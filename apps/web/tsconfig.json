@@ -1,0 +1,5 @@
+{
+  // Nuxt 会生成 .nuxt/tsconfig.json，里面包含自动导入、路径别名等全部必要配置。
+  // 我们只需要继承它，不要在这里重复声明 compilerOptions，否则容易互相覆盖。
+  "extends": "./.nuxt/tsconfig.json"
+}
