@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  // 构建产物里不需要测试文件，排除后还能顺便加快编译
+  "exclude": ["node_modules", "test", "dist", "**/*.spec.ts", "**/*.e2e-spec.ts"]
+}
