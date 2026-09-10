@@ -1,0 +1,210 @@
+# 项目目录地图
+
+> 这一页解决一个很具体的问题：**东西在哪，以及为什么在那里**。
+> 读完你应该能不靠搜索就推出"我要改的功能应该在哪个目录"。
+
+---
+
+## 一句话总原则
+
+```text
+apps/     = 能独立启动的程序（有自己的 package.json、能 pnpm dev）
+packages/ = 被复用但不独立启动的库（只被别人 import）
+根目录     = 管住所有 app 的配置
+```
+
+就这一条。下面全是对它的展开。
+
+---
+
+## 完整目录树
+
+```text
+studyplan/
+│
+├── apps/                                  ← 三个可独立启动的应用
+│   │
+│   ├── web/                               ① 前端：Nuxt 4
+│   │   ├── app/                             ├─ Nuxt 4 约定的源码根目录
+│   │   │   ├── app.vue                      │   根布局：页头 / <slot> / 页脚
+│   │   │   ├── app.config.ts                │   Nuxt UI 主色配置
+│   │   │   ├── assets/css/main.css          │   设计令牌 + 全局组件类
+│   │   │   ├── components/                  │   可复用组件（自动全局可用）
+│   │   │   ├── composables/                 │   逻辑复用（useApi / useAuth）
+│   │   │   ├── middleware/                  │   路由守卫（未登录禁止发帖）
+│   │   │   ├── pages/                       │   文件路由（文件路径 = URL）
+│   │   │   ├── plugins/                     │   启动时执行一次的插件
+│   │   │   ├── stores/                      │   Pinia 跨页面状态
+│   │   │   └── utils/                       │   纯函数（自动导入）
+│   │   ├── e2e/                             ├─ Playwright 端到端测试
+│   │   ├── nuxt.config.ts                   ├─ Nuxt 配置入口
+│   │   ├── playwright.config.ts             ├─ E2E 配置
+│   │   └── package.json                     └─ 包名 @studyplan/web
+│   │
+│   ├── api/                               ② 后端：NestJS 11
+│   │   ├── src/
+│   │   │   ├── main.ts                       ├─ 启动入口（全局管道/CORS/Swagger）
+│   │   │   ├── app.module.ts                 ├─ 根模块：把各模块装起来
+│   │   │   ├── config/env.validation.ts      ├─ 环境变量校验（缺失即启动失败）
+│   │   │   ├── common/                       ├─ 横切关注点（不专属于某个业务）
+│   │   │   │   ├── decorators/               │   @CurrentUser()
+│   │   │   │   ├── filters/                  │   全局异常过滤器
+│   │   │   │   ├── guards/                   │   JwtAuthGuard
+│   │   │   │   ├── schemas/                  │   可复用子文档（Author）
+│   │   │   │   ├── strategies/               │   Passport JWT 策略
+│   │   │   │   ├── types/                    │   后端内部类型
+│   │   │   │   └── utils/                    │   Cookie / Mongo 错误转换
+│   │   │   └── modules/                      └─ 业务模块（每个都自包含）
+│   │   │       ├── health/                      健康检查
+│   │   │       ├── users/                       用户
+│   │   │       ├── auth/                        注册登录 + JWT 双 Token
+│   │   │       ├── posts/                       帖子
+│   │   │       ├── comments/                    评论
+│   │   │       ├── likes/                       点赞
+│   │   │       └── ai/                          LangChain + 智谱 GLM
+│   │   ├── nest-cli.json / tsconfig.json    构建配置
+│   │   └── package.json                     包名 @studyplan/api
+│   │
+│   └── docs/                              ③ 电子书：VitePress
+│       ├── .vitepress/config.ts             导航 / 侧边栏 / 搜索
+│       ├── index.md                         电子书首页
+│       ├── guide/                           路线图、环境准备、Git、本页
+│       ├── stages/                          八篇阶段正文
+│       └── exercises/                       八份规划练习
+│
+├── packages/                              ← 被复用但不独立启动的库
+│   └── shared/                             前后端共享契约
+│       └── src/
+│           ├── types/                       user / post / comment / api
+│           ├── constants/                   标签白名单、长度限制
+│           └── index.ts                     统一出口
+│
+├── eslint.config.mjs                       全仓 lint 规则
+├── .prettierrc / .prettierignore           全仓格式规则
+├── .env.example                            环境变量模板（真实 .env 被忽略）
+├── pnpm-workspace.yaml                     workspace 范围 + 构建白名单
+├── package.json                            根脚本：dev / build / test / lint
+└── README.md                               项目总览
+```
+
+---
+
+## 为什么这么分：对照高星项目
+
+这不是我们自己发明的结构，而是社区收敛出来的主流做法。
+
+| 项目 | 布局 |
+| --- | --- |
+| **vercel/turborepo** 官方示例 | `apps/web` · `apps/docs` · `packages/ui` · `packages/config` |
+| **create-t3-turbo** | `apps/nextjs` · `apps/expo` · `packages/api` · `packages/db` |
+| **cal.com** | `apps/web` · `apps/api` · `packages/*` |
+| **supabase** | `apps/` · `packages/` |
+
+**`apps/` 这一层不是多余的。** 它的作用是回答一个具体问题：
+
+> "我现在要跑的是哪个程序？"
+
+`apps/web`、`apps/api`、`apps/docs` 三个都是**能自己启动的完整程序**，
+各有自己的 `package.json` 和启动脚本。`packages/shared` 不能启动，
+它只是被前两者 import 的一堆类型。
+
+如果去掉 `apps/` 这层，把 `web/`、`api/`、`docs/`、`shared/` 平铺在根目录，
+"能启动的"和"不能启动的"就混在一起了 —— 这才是真正的乱。
+
+---
+
+## 三个最容易困惑的地方
+
+### ① 为什么 `apps/web/` 里还有一层 `app/`？
+
+因为 **Nuxt 4 明确规定源码放在 `app/`**，用来把源码和"非源码"分开：
+
+```text
+apps/web/
+├── app/        源码（会被编译进产物）
+├── public/     静态文件（原样复制，不处理）
+├── server/     Nuxt 自带的后端路由（本项目不用）
+└── e2e/        测试（不参与构建）
+```
+
+Nuxt 3 时代这些东西全堆在根目录，文件一多就分不清哪些能动。
+Nuxt 4 收进 `app/` 是有意的改进。
+
+> 可以用 `srcDir` 配置改掉它，但那属于偏离框架默认。
+> 代价是：以后你看任何 Nuxt 4 教程、查官方文档、问 AI，路径都会对不上。
+
+### ② 为什么后端非要分 `common/` 和 `modules/`？
+
+判断标准只有一条：
+
+> 这个文件**服务于某个具体业务**吗？
+> 是 → `modules/`；否 → `common/`。
+
+`JwtAuthGuard` 被帖子、评论、点赞三个模块共用，它不属于任何一个业务，
+所以它在 `common/guards/`。而 `PostsService` 只服务于帖子，所以它在 `modules/posts/`。
+
+"横切关注点"这个名字听起来很玄，其实就是**多个人用、但不属于任何一个人**。
+
+### ③ 为什么健康检查也在 `modules/` 里？
+
+因为它确实是一个模块 —— 一个"不依赖任何业务领域"的模块。
+把它放在 `src/` 根下会让人以为 `src/` 下有两类并列的东西："模块"和"非模块"。
+归位之后，`src/` 下就只剩 `main.ts`、`app.module.ts`、`common/`、`config/`、
+`modules/` 五样，没有任何歧义。
+
+**目录结构就是心智模型。结构对齐了，找东西不用靠记忆，靠推理。**
+
+---
+
+## 速查表：想找什么，去哪
+
+| 我要改… | 去这里 |
+| --- | --- |
+| 某个页面的样子 | `apps/web/app/pages/` |
+| 页头 / 页脚 / 卡片这类组件 | `apps/web/app/components/` |
+| 主色、圆角、阴影、深色模式 | `apps/web/app/assets/css/main.css` |
+| 前端调用后端的统一封装 | `apps/web/app/composables/useApi.ts` |
+| 登录状态怎么存 | `apps/web/app/composables/useAuth.ts` + `stores/` |
+| 未登录不许发帖的拦截 | `apps/web/app/middleware/auth.ts` |
+| 接口返回的字段定义 | **`packages/shared/src/types/`**（前后端共用） |
+| 可选标签有哪些 | `packages/shared/src/constants/tags.ts` |
+| 某个接口的入参校验规则 | `apps/api/src/modules/<模块>/dto/` |
+| 某个接口的业务逻辑 | `apps/api/src/modules/<模块>/<模块>.service.ts` |
+| 数据在数据库里的结构 | `apps/api/src/modules/<模块>/schemas/` |
+| 登录 / Token 签发逻辑 | `apps/api/src/modules/auth/` |
+| 哪些接口需要登录 | 看 controller 上的 `@UseGuards(JwtAuthGuard)` |
+| 错误响应的统一格式 | `apps/api/src/common/filters/` |
+| AI 的 Prompt 模板 | `apps/api/src/modules/ai/prompts/` |
+| 环境变量有哪些 | `.env.example`（模板）与 `apps/api/src/config/env.validation.ts`（校验） |
+| 学习笔记 | `apps/docs/stages/` |
+| 规划练习 | `apps/docs/exercises/` |
+
+---
+
+## 命名约定
+
+| 对象 | 约定 | 例子 |
+| --- | --- | --- |
+| 目录 | 全小写，多个词用 `-` 或直接连写 | `composables`、`git-workflow.md` |
+| Vue 组件 | 大驼峰 `.vue` | `PostCard.vue` |
+| 后端模块 | 复数小写 | `posts`、`comments`、`likes` |
+| TypeScript 文件 | 短横线小写 | `post-meta.prompt.ts` |
+| 类型 / 接口 | 大驼峰，**不加 `I` 前缀** | `Post`、`PostListResponse` |
+| 常量 | 全大写下划线 | `ALLOWED_TAGS`、`MAX_TITLE_LENGTH` |
+
+**为什么接口不加 `I` 前缀？** 因为 TypeScript 里类型和值在语法上就是两个命名空间，
+`Post` 类型和 `Post` 变量不会冲突，`I` 只是从 C#/Java 带过来的历史习惯。
+
+---
+
+## 一页纸总结
+
+```text
+找前端   →  apps/web/app/
+找后端   →  apps/api/src/
+找接口字段 →  packages/shared/
+找原理   →  apps/docs/
+```
+
+其余的（`.vitepress/`、`dist/`、`.nuxt/`、`node_modules/`）都是**产物或配置**，
+不需要你去读，也不要手动去改。
