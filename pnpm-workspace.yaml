@@ -1,0 +1,29 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# ---------------------------------------------------------------------------
+# 构建脚本白名单
+#
+# pnpm 出于供应链安全，默认**禁止**依赖执行 postinstall 脚本
+# （postinstall 是恶意代码最经典的入口）。但下面这些包必须放行，
+# 否则原生二进制装不上、项目跑不起来：
+#
+#   esbuild        —— Vite / Nuxt 的构建内核，需要落地平台二进制
+#   unrs-resolver  —— ESLint 的模块解析器（Rust 实现）
+#   @parcel/watcher —— 开发时的文件监听
+#   vue-demi       —— 按当前 Vue 版本切换自身实现（行为依赖 postinstall）
+#   @scarf/scarf   —— 只上报匿名安装统计，与功能无关，明确拒绝
+# ---------------------------------------------------------------------------
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+  '@parcel/watcher': true
+  vue-demi: true
+  '@scarf/scarf': false
+
+minimumReleaseAgeExclude:
+  - '@types/node@22.20.2'
+  - '@langchain/core@1.2.10'
+  - '@langchain/openai@1.5.12'
+  - zod@4.6.1

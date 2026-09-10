@@ -1,0 +1,45 @@
+# ---------- 依赖 ----------
+node_modules/
+
+# ---------- 构建产物 ----------
+dist/
+.nuxt/
+.output/
+apps/docs/.vitepress/dist/
+apps/docs/.vitepress/cache/
+*.tsbuildinfo
+
+# ---------- 测试与缓存 ----------
+coverage/
+.cache/
+.eslintcache
+
+# Playwright 的产物：失败截图、trace 压缩包、HTML 报告。
+# 它们体积大、每次运行都变，属于"本地产物"而非"项目资产"。
+# trace 是排查偶发失败的利器，但需要时现场生成即可，不必进版本库。
+apps/web/test-results/
+apps/web/playwright-report/
+apps/web/.auth/
+
+# ---------- 日志 ----------
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ---------- 环境变量（关键！密钥绝不能进 Git）----------
+.env
+.env.*
+!.env.example
+
+# ---------- 编辑器 / 系统 ----------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# AI 助手的本机集成状态（部署记录、沙箱信息）。
+# 它记录的是"这台机器做过什么"，不是"这个项目是什么" —— 换台机器就失效，
+# 所以不该进版本库。
+.codebuddy/

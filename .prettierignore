@@ -1,0 +1,9 @@
+node_modules
+dist
+.nuxt
+.output
+coverage
+apps/docs/.vitepress/dist
+apps/docs/.vitepress/cache
+pnpm-lock.yaml
+*.md
