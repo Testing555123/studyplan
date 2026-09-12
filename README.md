@@ -9,18 +9,29 @@
 
 | 层 | 选型 | 版本 | 为什么选它 |
 | --- | --- | --- | --- |
-| 运行时 | Node.js | 24.18.1 | 本机已装，满足 NestJS 11（≥20.19）与 Nuxt 4（≥20） |
+| 运行时 | Node.js | ≥ 20.19.0 | NestJS 11 与 Nuxt 4 的共同下限（根 `package.json` 的 `engines` 声明） |
 | 包管理 | pnpm workspace | 11.20.0 | monorepo 下节省磁盘、依赖隔离严格 |
 | 前端 | Nuxt 4 + TypeScript | 4.5.2 | 服务端渲染 + 文件路由 + 自动导入，前后端同语言 |
 | UI | Nuxt UI（内置 Tailwind CSS 4） | 4.11.1 | 官方生态，组件现成，样式可控 |
 | 状态 | Pinia | 4.0.3 | Vue 官方推荐的状态管理 |
 | 后端 | NestJS + TypeScript | 11.2.3 | 模块化 + 依赖注入，架构约束强，适合学"规范" |
-| 数据库 | MongoDB Atlas M0（免费云集群） | — | 本机无 Docker / 无 mongod，云端零运维 |
+| 数据库 | MongoDB Atlas M0（免费云集群） | — | 云端零运维，本地不需要装数据库 |
 | ODM | Mongoose | 9.9.5 | Schema 即文档，天然适合学习数据建模 |
 | 鉴权 | JWT 双 Token（Access + Refresh） | — | 业界标准做法，安全性优于单 Token |
-| AI | LangChain JS + 智谱 GLM | 1.5.11 | 已有智谱 API Key，国内直连、成本低 |
+| 健康检查 | `@nestjs/terminus` | 11.1.1 | 官方方案：依赖不可用时返回 **503**，平台才能判定"真的不健康" |
+| 限流 | `@nestjs/throttler` | 6.5.0 | 保护注册 / 登录 / 发帖免于暴力请求 |
+| 访问日志 | 自建中间件 + requestId | — | 不引第三方日志库：用 Nest 自带 Logger + 链路 ID，把响应头与日志串起来 |
+| 契约 | `packages/shared` | — | 前后端唯一事实来源，字段只定义一次 |
+| 容器化 | Docker（多阶段构建） | — | 本地可复现、跨平台可携带 |
+| 部署 | Vercel 容器镜像 / Dokploy + VPS | — | 两条路径都保留，见「部署」章节 |
 | 文档 | VitePress | 1.6.4 | 与 Vite 同源，边写边发布电子书 |
-| 测试 | Jest（后端）+ Playwright（E2E） | — | 先保证业务核心，再补端到端 |
+| 测试 | Jest（后端）+ Playwright（E2E） | 30.5.1 / 1.63.0 | 先保证业务核心，再补端到端 |
+| AI（暂停） | 智谱 GLM（LangChain 已移除） | — | 摘要与标签当前**恒为降级**，见下方说明 |
+
+> **关于 AI**：项目原本用 LangChain 三件套调用智谱 GLM 生成摘要与标签。
+> 为了压缩技术栈，这三个依赖连同 `zod` 一起移除了（净删 54 个包），
+> AI 模块保留代码与降级契约，但**当前恒为停用状态**——发帖照常成功，只是没有摘要。
+> 恢复步骤写在 `apps/api/src/modules/ai/ai.service.ts` 的文件头注释里。
 
 ---
 
@@ -41,20 +52,24 @@ studyplan/
 │   │   │   ├── plugins/ utils/ assets/   插件 / 工具 / 设计令牌
 │   │   │   └── app.vue                  根布局
 │   │   ├── e2e/                          Playwright 端到端测试
+│   │   ├── Dockerfile                    前端镜像（多阶段，产物 .output）
 │   │   └── README.md                     ← 前端详细说明
 │   │
 │   ├── api/                            ② 后端 · NestJS 11     → :3000
-│   │   └── src/
-│   │       ├── main.ts                   启动入口
-│   │       ├── app.module.ts             根模块
-│   │       ├── common/                   横切关注点（守卫 / 过滤器 / 装饰器）
-│   │       ├── config/                   环境变量校验
-│   │       └── modules/                  业务模块（各自自包含）
-│   │           health users auth posts comments likes ai
+│   │   ├── src/
+│   │   │   ├── main.ts                   启动入口
+│   │   │   ├── app.module.ts             根模块
+│   │   │   ├── common/                   横切关注点（守卫 / 过滤器 / 装饰器 / 拦截器 / 中间件）
+│   │   │   │   ├── interceptors/           requestId + 统一响应包装
+│   │   │   │   └── middleware/             访问日志（含链路 ID）
+│   │   │   ├── config/                   环境变量校验
+│   │   │   └── modules/                  业务模块（各自自包含）
+│   │   │       health users auth posts comments likes ai
+│   │   ├── Dockerfile                    后端镜像（多阶段，产物 dist）
 │   │   └── README.md                     ← 后端详细说明
 │   │
 │   └── docs/                           ③ 电子书 · VitePress   → :3002
-│       ├── guide/                        路线图 / 目录地图 / 环境 / Git
+│       ├── guide/                        路线图 / 目录地图 / 环境 / Git / 经验档案
 │       ├── stages/                       八篇阶段正文
 │       └── exercises/                    八份规划练习
 │
@@ -62,7 +77,12 @@ studyplan/
 │   └── shared/                         前后端共享契约（唯一事实来源）
 │       └── src/types/  constants/
 │
-├── .env.example                        环境变量模板
+├── docker/vercel/entrypoint.mjs        容器入口：监听平台端口、按路径分流 /api 与页面
+├── deploy/                             部署脚本与手册（快照/恢复、平台配置清单、实测报告）
+├── Dockerfile.vercel                   单容器镜像（前后端同镜像，仓库根 = 构建上下文）
+├── vercel.json                         平台配置：显式声明容器服务与公开路由
+├── .dockerignore                       构建上下文忽略清单
+├── .env.example                        后端环境变量模板
 ├── pnpm-workspace.yaml                 workspace 范围
 └── package.json                        根脚本：dev / build / test / lint
 ```
@@ -88,6 +108,8 @@ pnpm install
 Copy-Item .env.example apps/api/.env
 #    macOS / Linux:
 #    cp .env.example apps/api/.env
+#    然后至少要填 MONGODB_URI / JWT_ACCESS_SECRET / JWT_REFRESH_SECRET 三项
+#    两个密钥的生成方式见 .env.example 里的注释
 
 # 3. 启动全部开发服务
 pnpm dev
@@ -115,7 +137,7 @@ pnpm dev:docs
 | `pnpm lint` | ESLint 检查 |
 | `pnpm format` | Prettier 格式化 |
 
-### 端到端测试（阶段 8）
+### 端到端测试
 
 需要**三个服务都在跑**：MongoDB Atlas 可达、`pnpm dev:api`、`pnpm dev:web`。
 
@@ -130,13 +152,67 @@ pnpm --filter @studyplan/web e2e:report     # 查看上次报告
 
 也可以让同一套用例去验证线上环境：
 
-```bash
-# PowerShell
-$env:E2E_BASE_URL='https://你的前端域名'; pnpm --filter @studyplan/web e2e
+```powershell
+# PowerShell：指向线上地址
+$env:E2E_BASE_URL='https://你的域名'
+pnpm --filter @studyplan/web e2e
+
+# 如果本机访问境外站点受限，再给浏览器也配一个代理（可选）
+$env:E2E_PROXY='http://127.0.0.1:7897'
 ```
 
 > **为什么这件事值得做**：能用同一套测试验证本地与线上，
 > 就同时证明了"部署成功"和"测试可信"。
+>
+> ⚠️ 注意：E2E 会往目标库**写真实数据**（真注册、真发帖）。
+> 指向线上库之前，先确认你能接受这些测试数据，或者先做一次快照
+> （见 `deploy/snapshot.mjs`）。
+
+---
+
+## 部署
+
+项目备了**两条路径**，可执行的那一刻起就能二选一。
+
+### 路径 A：Vercel 容器镜像（当前演示环境用的）
+
+把前后端打成一个容器镜像推上平台，一个域名同时提供页面与接口。
+
+```text
+浏览器 ──▶ 平台边缘 ──▶ 容器（入口脚本按路径分流）
+                          ├── /api、/docs ──▶ NestJS（内部 3000）
+                          └── 其余         ──▶ Nuxt SSR（内部 3001）
+```
+
+要点：
+
+- 仓库根的 `Dockerfile.vercel` 是构建入口，**构建上下文必须是仓库根**（要 COPY `packages/shared`）；
+- `vercel.json` 用来**显式声明**容器服务并把公开路由指向它——只放 Dockerfile 不够，平台未必识别；
+- 容器入口 `docker/vercel/entrypoint.mjs` 监听平台给的端口，并在冷启动窗口内**等待**子进程就绪，而不是立刻返回 502；
+- 同域部署带来两个好处：Cookie 天然同源（`SameSite=lax` 即可），接口地址可以用**相对路径 `/api`**（换域名不用重新构建前端）。
+
+> ⚠️ **已知网络限制**：`*.vercel.app` 这类域名在中国大陆会遭遇 DNS 污染与 TLS SNI 阻断
+> （实测：同一 IP 换成其他 SNI 可正常访问，说明被针对的是域名而非 IP）。
+> 因此本机浏览器可能需要代理；正式对外使用应绑定**自有域名**。
+> 完整实测记录见 `deploy/vercel-verification.md`。
+
+### 路径 B：Dokploy + VPS（自托管回退方案）
+
+在自己的一台服务器上用 Docker 跑，前后端各一个镜像，网关自动签发 HTTPS。
+
+- 两个镜像入口：`apps/api/Dockerfile`、`apps/web/Dockerfile`（构建上下文同样是仓库根）；
+- 平台侧操作手册：`deploy/dokploy-setup.md`；
+- 环境变量与构建参数填写清单：`deploy/env.keys.example`。
+
+### 部署前必读
+
+上线前请对照电子书「部署经验」一篇末尾的**上线前检查清单**逐项勾选
+（密钥轮换、白名单、健康检查、备份、验证、回滚），详见
+[部署经验：上线时踩过的九个坑](./apps/docs/guide/deployment-lessons.md)。
+那次部署踩过的坑与排查过程都记在同一篇与它的姊妹篇里。
+
+> 这里刻意不写"带锚点的链接"：GitHub 与 VitePress 对中文标题生成的锚点规则不同
+> （前者去掉顿号、后者保留），带锚点的链接总有一边会失效。
 
 ---
 
@@ -153,7 +229,7 @@ $env:E2E_BASE_URL='https://你的前端域名'; pnpm --filter @studyplan/web e2e
 | 4 | 首次前后端联调 | 列表与详情改接真实接口 |
 | 5 | 认证与发帖 | 注册登录、JWT 双 Token、路由守卫、Markdown 发帖 |
 | 6 | 互动功能 | 评论、点赞、标签筛选、分页与索引 |
-| 7 | AI 能力 | 发帖自动生成摘要与标签，失败降级 |
+| 7 | AI 能力 | 发帖自动生成摘要与标签，失败降级（当前依赖已移除，见「技术栈」说明） |
 | 8 | 测试与上线 | E2E 验证 + 部署到云端 |
 
 每个阶段都会交付三样东西：
@@ -164,11 +240,32 @@ $env:E2E_BASE_URL='https://你的前端域名'; pnpm --filter @studyplan/web e2e
 
 ---
 
+## 经验档案
+
+电子书里有两篇**实战复盘**，记录的是"做的时候会撞上什么"：
+
+| 文档 | 内容 |
+| --- | --- |
+| [部署经验：上线时踩过的九个坑](./apps/docs/guide/deployment-lessons.md) | 平台识别容器入口、启动超时掩盖真实报错、冷启动窗口、环境变量被污染、monorepo 构建上下文、白名单取舍、免费库无快照、多实例限流失效 + **上线前检查清单** |
+| [调试经验：出问题时先看什么](./apps/docs/guide/debugging-lessons.md) | 定位顺序、只在线上复现的问题、SSR 水合竞态、失败位置远离成因时看什么、网络三段式排查、代理识别 + **排查动作清单** |
+
+其中调试篇里**如实保留了一条尚未查明根因的本地开发环境问题**，
+所以"同一套测试本地与线上都绿"这个结论目前还不完全成立——细节见那篇的最后一节。
+
+---
+
 ## 密钥安全（不是可选项）
 
 - 真实密钥只写在 `apps/api/.env`，该文件已被 `.gitignore` 忽略；
 - 仓库里只保留 `.env.example`（全部为空值）；
 - 如果密钥曾经被提交过，**立刻去平台重置密钥**，再清理 Git 历史。
+
+> **实测教训（来自本项目的真实经历）**：
+> 曾经有一个示例文件被误填了真实数据库连接串，虽然它**没有进入提交历史**（清空即可），
+> 但那条**曾经外泄过的旧密码，在事后多日仍然可以连上数据库**。
+>
+> 所以：**"清空文件"只消除了继续扩散，不等于风险消失。**
+> 凭据一旦外泄，正确动作是**立即轮换**，而不是等有空再说。
 
 ---
 

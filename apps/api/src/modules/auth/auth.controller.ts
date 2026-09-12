@@ -27,7 +27,16 @@ import { LoginDto } from './dto/login.dto'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import type { AuthenticatedUser } from '../../common/types/authenticated-user'
+import { SkipThrottle, Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { REFRESH_COOKIE_NAME, readCookie } from '../../common/utils/cookies'
+
+/**
+ * 限流窗口。
+ *
+ * ⚠️ 单位是**毫秒**（@nestjs/throttler v5 起），不是秒。
+ * 写成 60 会变成 60 毫秒 —— 那等于把所有请求都拒了。
+ */
+const ONE_MINUTE_MS = 60_000
 
 /**
  * Refresh Cookie 只允许发给认证接口。
@@ -42,8 +51,15 @@ import { REFRESH_COOKIE_NAME, readCookie } from '../../common/utils/cookies'
  */
 const REFRESH_COOKIE_PATH = '/api/auth'
 
+/**
+ * 认证接口是**被针对性攻击**的重灾区：撞库、批量注册、刷 Token。
+ * 所以整个控制器挂上 ThrottlerGuard，再按方法给不同配额。
+ *
+ * 没有被 `@SkipThrottle()` 标记的方法，使用 app.module 里的默认档位（30 次/分钟）。
+ */
 @ApiTags('auth')
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   private readonly isProduction: boolean
   private readonly cookieSameSite: 'lax' | 'none' | 'strict'
@@ -71,7 +87,12 @@ export class AuthController {
     this.cookieSameSite = sameSite === 'none' || sameSite === 'strict' ? sameSite : 'lax'
   }
 
+  /**
+   * 注册配额最紧（5 次/分钟）：
+   * 正常用户不可能一分钟注册 5 次，而批量注册脚本会立刻撞上。
+   */
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: ONE_MINUTE_MS } })
   @ApiOperation({ summary: '注册并直接登录', description: '成功后会在响应里写入 Refresh Cookie。' })
   @ApiCreatedResponse({ description: '注册成功，返回用户信息与 Access Token' })
   @ApiConflictResponse({ description: '邮箱已被注册' })
@@ -86,7 +107,9 @@ export class AuthController {
     return session.result
   }
 
+  /** 登录稍宽（10 次/分钟）：要容忍输错密码，但要挡住撞库 */
   @Post('login')
+  @Throttle({ default: { limit: 10, ttl: ONE_MINUTE_MS } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '登录', description: '成功后会在响应里写入 Refresh Cookie。' })
   @ApiOkResponse({ description: '登录成功，返回用户信息与 Access Token' })
@@ -100,7 +123,12 @@ export class AuthController {
     return session.result
   }
 
+  /**
+   * 刷新接口配额刻意放宽（60 次/分钟）。
+   * 因为它由前端**自动**调用（收到 401 时），限太紧会把正常用户踢下线。
+   */
   @Post('refresh')
+  @Throttle({ default: { limit: 60, ttl: ONE_MINUTE_MS } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: '用 Refresh Cookie 换一套新 Token',
@@ -126,7 +154,9 @@ export class AuthController {
    * 如果加了守卫，一个过期 Token 会让登出失败，
    * 用户就会陷入"退不出去"的状态 —— 而登出本身是纯无害操作。
    */
+  /** 登出是纯无害操作，不该被限流挡住（否则"退不出去"比"被限流"更糟） */
   @Post('logout')
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '登出（清除 Refresh Cookie）' })
   @ApiOkResponse({ description: '已清除登录状态' })
@@ -135,7 +165,9 @@ export class AuthController {
     return { ok: true }
   }
 
+  /** 已登录用户的只读查询，限流只会伤害正常体验 */
   @Get('me')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: '获取当前登录用户资料' })

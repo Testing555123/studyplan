@@ -1,7 +1,6 @@
 import { Controller, Delete, HttpCode, HttpStatus, Param, Put, UseGuards } from '@nestjs/common'
 import {
   ApiBearerAuth,
-  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,

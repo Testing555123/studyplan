@@ -18,6 +18,29 @@ export interface ApiErrorBody {
   details?: string[]
 }
 
+/**
+ * 成功响应契约。
+ *
+ * 为什么成功也要定契约？
+ *   后端有一个全局响应拦截器，把所有成功响应包成同一个形状，
+ *   这样前端**只用在一处解包**，而不是在每个调用点猜返回结构。
+ *
+ * 它与 ApiErrorBody 是配对的：
+ *   成功了拿 `data`，失败了拿 `message + details`。
+ *   两边都由 packages/shared 定义，改错字段前后端会同时报错——
+ *   这正是"契约"存在的意义：把联调期才能发现的字段对不上，
+ *   提前到编译期。
+ */
+export interface ApiSuccessBody<T> {
+  /** HTTP 状态码，例如 200 / 201 */
+  statusCode: number
+  /** 业务数据；204 之类的空响应为 null */
+  data: T | null
+  /** 链路追踪 ID，与响应头 X-Request-Id 一致，排错时用它串日志 */
+  requestId: string
+  timestamp: string
+}
+
 /** 点赞接口返回：让前端可以拿服务端真值覆盖乐观更新，避免计数漂移 */
 export interface LikeResult {
   liked: boolean

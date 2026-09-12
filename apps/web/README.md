@@ -89,11 +89,19 @@ stores/post.ts  ──调用──▶  composables/useApi.ts  ──HTTP──�
 在本目录下：
 
 ```bash
-pnpm dev          # 开发服务器  http://localhost:3001
-pnpm build        # 生产构建，产物在 .output/
-pnpm preview      # 预览构建产物
-pnpm typecheck    # 类型检查
-pnpm e2e          # 端到端测试（需后端已在 :3000 运行）
+pnpm dev              # 开发服务器  http://localhost:3001
+pnpm build            # 生产构建，产物在 .output/
+pnpm preview          # 预览构建产物
+pnpm typecheck        # 类型检查
+pnpm e2e              # 端到端测试（需后端已在 :3000 运行）
+pnpm e2e:headed       # 看着浏览器跑，适合排查
+pnpm e2e:report       # 查看上次运行的报告
+```
+
+首次跑端到端测试要先下载浏览器（约 100MB，只需一次）：
+
+```bash
+pnpm exec playwright install chromium
 ```
 
 在仓库根目录下用过滤参数调用：
@@ -102,11 +110,74 @@ pnpm e2e          # 端到端测试（需后端已在 :3000 运行）
 pnpm --filter @studyplan/web dev
 ```
 
+### 端到端测试的两个环境变量
+
+| 变量 | 作用 | 默认值 |
+| --- | --- | --- |
+| `E2E_BASE_URL` | 被测站点地址。**同一套用例既能打本地也能打线上** | `http://localhost:3001` |
+| `E2E_PROXY` | 浏览器走代理。只在设置时才生效 | 不设置（直连） |
+
+```powershell
+# 打线上环境（PowerShell）
+$env:E2E_BASE_URL='https://你的域名'
+pnpm e2e
+
+# 若本机访问境外站点受限，再给浏览器配代理
+$env:E2E_PROXY='http://127.0.0.1:7897'
+```
+
+> ⚠️ 端到端测试会往目标环境**写真实数据**（真注册、真发帖）。
+> 指向线上库前先确认能接受这些数据，或先做一次快照（见 `deploy/snapshot.mjs`）。
+
 ## 环境变量
 
 | 变量 | 作用 | 默认值 |
 | --- | --- | --- |
-| `NUXT_PUBLIC_API_BASE` | 后端接口地址 | `http://localhost:3000/api` |
+| `NUXT_PUBLIC_API_BASE` | 后端接口地址（**浏览器侧**使用） | `http://localhost:3000/api` |
+| `NUXT_API_BASE_INTERNAL` | 后端接口地址（**SSR 服务端**使用，不进浏览器） | `http://127.0.0.1:3000/api` |
+| `HOST` / `PORT` | 生产运行时（Nitro）的监听地址与端口 | 容器里设为 `0.0.0.0` / `3000` |
+
+前两个变量的分工是刻意的：
+
+```text
+浏览器  →  NUXT_PUBLIC_API_BASE   （请求从用户机器发出，走同域或公网地址）
+SSR     →  NUXT_API_BASE_INTERNAL （请求从容器内部发出，走回环最快）
+```
+
+原因有两个：
+
+1. `$fetch` 在服务端**不接受相对路径**（没有 origin 可解析），所以同域部署时浏览器能用 `/api`，
+   服务端必须另给一个绝对地址；
+2. 服务端请求从容器内部发出，走回环比绕公网域名更快，也不受域名解析与证书影响。
 
 以 `NUXT_PUBLIC_` 开头的变量会被**打包进浏览器代码**，所以**绝对不能放密钥**。
 密钥只能待在后端的 `apps/api/.env` 里。
+
+⚠️ 另外注意：`NUXT_PUBLIC_API_BASE` 是**构建期常量**——它会被烘焙进客户端 bundle，
+改了环境变量**必须重新构建**才生效。这也是同域部署时建议直接写相对路径 `/api` 的原因：
+不带域名，换域名就不用重新构建。
+
+---
+
+## 容器化部署形态
+
+前端在容器里的构建与启动：
+
+```text
+apps/web/Dockerfile（多阶段）
+  ├─ deps      只复制清单文件 → pnpm install --filter @studyplan/web...
+  ├─ build     先构建 packages/shared，再 nuxt build（产物 .output）
+  └─ runtime   只搬 .output，CMD node .output/server/index.mjs
+```
+
+两个要点：
+
+1. **构建上下文必须是仓库根**——同样是 `workspace:*` 依赖 `packages/shared` 造成的约束；
+2. **接口地址在构建期注入**（`ARG NUXT_PUBLIC_API_BASE`）。忘了传，线上页面会去请求
+   `localhost`，而本地完全看不出来——所以 Dockerfile 里加了断言，没传就直接让构建失败。
+
+⚠️ 容器内监听地址必须是 `0.0.0.0`（不能是 `127.0.0.1`），
+否则网关从容器网络访问不到它，表现是"部署成功但站点 502"，且容器日志一切正常。
+
+> 单容器部署时前后端同处一个镜像、由入口脚本按路径分流，
+> 见仓库根的 `Dockerfile.vercel` 与 `docker/vercel/entrypoint.mjs`。

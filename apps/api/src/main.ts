@@ -1,9 +1,13 @@
+import type { NextFunction, Request, Response } from 'express'
 import { Logger, ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
+import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware'
+import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
+import { TransformInterceptor } from './common/interceptors/transform.interceptor'
 
 /**
  * 应用入口。整个后端从这里开始执行。
@@ -13,6 +17,37 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule)
   const config = app.get(ConfigService)
+
+  /**
+   * 0) 信任第一层代理 —— **必须放在所有中间件之前**。
+   *
+   * 上线后请求先到 Caddy 再转发到本机，不开启的话
+   * `request.ip` 拿到的永远是网关的内网地址，后果是：
+   *   ① 限流退化成"所有用户共用一个桶"，一个人触发就全站被封；
+   *   ② 日志里全是同一个 IP，事后无法定位真实来源。
+   *
+   * 参数 1 表示"只信任直接相连的那一跳"，正好对应单层反代。
+   */
+  const expressApp = app.getHttpAdapter().getInstance() as { set(key: string, value: unknown): void }
+  expressApp.set('trust proxy', 1)
+
+  /**
+   * 0.5) 访问日志中间件。
+   *
+   * 放在最前面，是为了让 requestId 覆盖**全部**后续环节
+   * （限流、鉴权、业务、统一响应），详细理由见中间件内的注释。
+   */
+  /**
+   * ⚠️ 这里必须包一层，不能直接写 `app.use(new HttpLoggerMiddleware().use)`。
+   *
+   * 直接传方法引用会**丢失 this**，等 `res.on('finish')` 回调触发时
+   * `this.logger` 是 undefined，抛出的异常发生在事件回调里、
+   * 不在请求调用栈上，Nest 捕获不到 —— 结果是**整个进程直接崩掉**。
+   * 这类 bug 的特点是"服务跑起来一切正常，第一个请求打完就死"，
+   * 不看日志根本猜不到原因。
+   */
+  const httpLogger = new HttpLoggerMiddleware()
+  app.use((req: Request, res: Response, next: NextFunction) => httpLogger.use(req, res, next))
 
   // 1) 统一路由前缀：所有接口都变成 /api/xxx
   app.setGlobalPrefix('api')
@@ -47,6 +82,16 @@ async function bootstrap(): Promise<void> {
   // 4) 全局异常过滤器：所有错误都归一化成 ApiErrorBody 的一种形状
   app.useGlobalFilters(new AllExceptionsFilter())
 
+  /**
+   * 5) 全局拦截器（**顺序敏感**）。
+   *
+   * RequestIdInterceptor 必须排在前面：它生成 requestId 并挂到 request 上，
+   * TransformInterceptor 随后把这个 ID 写进响应体，
+   * 从而让"响应里的 ID"与"日志里的 ID"是同一个值。
+   * 反过来的话，响应体里的 requestId 永远为空，追踪链就断了。
+   */
+  app.useGlobalInterceptors(new RequestIdInterceptor(), new TransformInterceptor())
+
   // 5) Swagger 接口文档。
   //    它的价值不只是"给前端看" —— 它还是一个**可交互的调试台**：
   //    在阶段 4 联调之前，你可以直接在这里把每个接口点一遍。
@@ -76,6 +121,19 @@ async function bootstrap(): Promise<void> {
   })
 
   const port = config.get<number>('PORT') ?? 3000
+
+  /**
+   * 监听全部网卡 —— 容器化部署的**硬性要求**。
+   *
+   * 之前为 systemd 方案把它在生产改成过 `127.0.0.1`（网关与后端同机）。
+   * 改用容器后，Traefik 是通过 Docker 网络访问这个容器的，
+   * 若绑 127.0.0.1，**容器外谁也连不上**，表现为"部署成功但站点 502"，
+   * 而且容器日志一切正常 —— 非常难查。
+   *
+   * 安全性不再依赖监听地址，改由两条保证：
+   *   ① 容器端口不 publish 到宿主；
+   *   ② 只有 Traefik 对外暴露 80/443。
+   */
   await app.listen(port, '0.0.0.0')
 
   Logger.log(`后端已启动：http://localhost:${port}/api`, 'Bootstrap')

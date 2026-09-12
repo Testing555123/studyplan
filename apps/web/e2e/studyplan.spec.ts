@@ -87,7 +87,24 @@ test.describe('学习社区 · 核心旅程', () => {
     await test.step('打开登录页并切到注册页签', async () => {
       await page.goto('/login')
       await expect(page.getByRole('heading', { name: '创建你的账号' })).toBeHidden()
-      await page.getByRole('button', { name: '注册' }).first().click()
+
+      /**
+       * ⚠️ 用 `expect(...).toPass()` 重试，而不是"点一下就走"：
+       *    这是在处理 **SSR 水合竞态**。
+       *
+       * 服务端渲染的 HTML 一到浏览器，DOM 就已经在了 ——
+       * 但 Vue 的事件处理器要等水合（hydration）完成才挂上。
+       * 落在这中间窗口里的点击**不报错，也不生效**：
+       * 按钮看得见、点得着，却什么都没发生。
+       * 结果是几步之后的断言超时，失败位置离真正的成因很远，极难归因。
+       *
+       * 线上（冷启动 + 跨境链路）会把这个窗口放大，所以比本地更容易踩到。
+       */
+      await expect(async () => {
+        await page.getByRole('button', { name: '注册' }).first().click()
+        await expect(page.getByRole('heading', { name: '创建你的账号' })).toBeVisible({ timeout: 1000 })
+      }).toPass({ timeout: 15_000 })
+
       await expect(page.getByRole('heading', { name: '创建你的账号' })).toBeVisible()
     })
 
@@ -114,8 +131,24 @@ test.describe('学习社区 · 核心旅程', () => {
         .getByLabel('正文（Markdown）')
         .fill('## 这是一篇端到端测试文章\n\n> 它由 Playwright 自动生成，用来验证发帖链路是通的。\n\n- 第一点\n- 第二点')
 
-      // 至少选一个标签，否则前端会拦住提交
-      await page.getByRole('button', { name: 'Nuxt', exact: true }).click()
+      /**
+       * 至少选一个标签，否则前端会拦住提交。
+       *
+       * ⚠️ 这里是"**先看状态，再决定点不点**"，而不能简单写成"点击 + 重试"：
+       *    标签按钮是**开关**，重试时再点一次会把它取消掉，
+       *    于是失败会从"没选上"变成"选上又取消"，更难查。
+       *
+       * 之所以要这样防：SSR 页面在水合完成前 DOM 已存在，
+       * 那个窗口里的点击会被吞掉（详见本文件第一处 toPass 的注释）。
+       */
+      const selectedCount = page.getByText(/已选\s*1\s*\/\s*5/)
+
+      await expect(async () => {
+        if (!(await selectedCount.isVisible())) {
+          await page.getByRole('button', { name: 'Nuxt', exact: true }).click()
+        }
+        await expect(selectedCount).toBeVisible({ timeout: 1000 })
+      }).toPass({ timeout: 15_000 })
     })
 
     await test.step('提交后跳转到详情页', async () => {

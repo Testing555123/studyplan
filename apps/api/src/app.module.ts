@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
+import { TerminusModule } from '@nestjs/terminus'
+import { ThrottlerModule } from '@nestjs/throttler'
 import { validateEnv } from './config/env.validation'
 import { AiModule } from './modules/ai/ai.module'
 import { AuthModule } from './modules/auth/auth.module'
@@ -61,6 +63,19 @@ import { UsersModule } from './modules/users/users.module'
         serverSelectionTimeoutMS: 8000,
 
         /**
+         * 连接池上限 —— **serverless 环境必须显式设置**。
+         *
+         * 不设的话走驱动默认值 100。这在常驻单进程里没问题，
+         * 但在"按流量自动扩缩"的平台上，**每个实例都会独立开一个池**：
+         * 10 个实例 = 1000 条连接，直接超过 Atlas 免费集群 500 条的上限。
+         * 表现是"流量一上来整站报数据库错误"，而且本地永远复现不出来。
+         *
+         * 取 5 的理由：单实例 5 条足够应付 SSR 取数 + 并发接口；
+         * 即使扩到 100 个实例也刚好是 500 条，压在上限之内。
+         */
+        maxPoolSize: 5,
+
+        /**
          * 断线自动重连。
          *
          * Atlas 的免费集群偶尔会抖一下。没有自动重连时，
@@ -70,6 +85,32 @@ import { UsersModule } from './modules/users/users.module'
         retryAttempts: 5,
         retryDelay: 3000,
       }),
+    }),
+
+    /**
+     * 健康检查的指示器体系。
+     *
+     * 只有 import 了它，HealthController 才能注入 HealthCheckService
+     * 与 MongooseHealthIndicator。详见 modules/health/health.controller.ts。
+     */
+    TerminusModule,
+
+    /**
+     * 限流。
+     *
+     * 这里只声明**默认档位**，真正的启用发生在具体控制器/方法上
+     * （`@UseGuards(ThrottlerGuard)` + `@Throttle()`）。
+     *
+     * 为什么刻意不做成全局守卫？因为只读接口（列表、详情）不该消耗配额——
+     * 否则一个正常浏览的用户就可能把自己挡在门外，
+     * 而我们要拦的是"暴力请求注册与登录"这类针对性滥用。
+     *
+     * ⚠️ `ttl` 的单位是**毫秒**（v5 起），60000 = 1 分钟。
+     *    旧版本是秒，复制网上的写法很容易在这里踩坑。
+     */
+    ThrottlerModule.forRoot({
+      throttlers: [{ name: 'default', limit: 30, ttl: 60_000 }],
+      errorMessage: '请求过于频繁，请稍后再试',
     }),
 
     PostsModule,

@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from '@studyplan/shared'
+import type { ApiErrorBody, ApiSuccessBody } from '@studyplan/shared'
 
 /**
  * 统一请求错误。
@@ -91,6 +91,39 @@ interface ApiRequestOptions {
 }
 
 /**
+ * 判断一个值是不是后端统一包装的成功响应体。
+ *
+ * 为什么不用 `statusCode in value` 一条就够？
+ *   因为 ApiErrorBody 也有 statusCode —— 只用这一个字段判断，
+ *   会把错误响应误判成成功响应，把 `message` 当成 `data` 返回。
+ *   必须同时命中成功契约独有的字段才行。
+ */
+function isApiSuccessBody<T>(value: unknown): value is ApiSuccessBody<T> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'statusCode' in value &&
+    'data' in value &&
+    'requestId' in value &&
+    !('message' in value)
+  )
+}
+
+/**
+ * 剥掉后端的统一包装，取出真正的业务数据。
+ *
+ * 这里是**全站唯一的解包点**。正因为只有一处，
+ * 后端改契约时才不用改几十个调用点——这也是它值得存在的理由。
+ *
+ * 为什么保留"不像统一结构就原样返回"的兜底？
+ *   因为 /health、Swagger 这类路径被后端刻意排除在包装之外，
+ *   直接透传反而是正确的行为。
+ */
+function unwrapSuccess<T>(payload: unknown): T {
+  return (isApiSuccessBody<T>(payload) ? payload.data : payload) as T
+}
+
+/**
  * 统一的接口调用入口。
  *
  * 它统一了五件事，每一件都是"不封装的代价"：
@@ -106,8 +139,24 @@ interface ApiRequestOptions {
  *    因为它内部要用 useRuntimeConfig() 和 useRequestHeaders()。
  */
 export function useApi() {
-  const { public: runtimePublic } = useRuntimeConfig()
-  const baseURL = runtimePublic.apiBase as string
+  const runtimeConfig = useRuntimeConfig()
+  const { public: runtimePublic } = runtimeConfig
+
+  /**
+   * 同一份代码，两种基地址：
+   *   - 浏览器：用 public.apiBase（生产是同域相对路径 `/api`）
+   *   - SSR：   用 apiBaseInternal（容器内回环的绝对地址）
+   *
+   * 为什么服务端非要换一个值？两个原因：
+   *   1. `$fetch` 在服务端**不接受相对 URL**，`/api` 在 Node 里无从解析；
+   *   2. 服务端请求从容器内部发出，走 127.0.0.1 比绕公网域名更快，
+   *      也不会因为域名解析或证书问题把首屏渲染卡住。
+   */
+  const baseURL = (
+    import.meta.server
+      ? runtimeConfig.apiBaseInternal || runtimePublic.apiBase
+      : runtimePublic.apiBase
+  ) as string
 
   /**
    * @param allowRetry 内部参数：标记"这次请求是否还允许在 401 时重试"。
@@ -152,7 +201,7 @@ export function useApi() {
     }
 
     try {
-      return await $fetch<T>(path, {
+      const payload = await $fetch<unknown>(path, {
         baseURL,
         method,
         /**
@@ -165,6 +214,8 @@ export function useApi() {
         ...(query ? { query } : {}),
         ...(body !== undefined ? { body } : {}),
       })
+
+      return unwrapSuccess<T>(payload)
     } catch (error) {
       const apiError = toApiRequestError(error)
 

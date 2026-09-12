@@ -50,25 +50,27 @@ studyplan/
 │   │   │   │   ├── decorators/               │   @CurrentUser()
 │   │   │   │   ├── filters/                  │   全局异常过滤器
 │   │   │   │   ├── guards/                   │   JwtAuthGuard
+│   │   │   │   ├── interceptors/             │   链路 ID + 统一响应包装
+│   │   │   │   ├── middleware/               │   访问日志
 │   │   │   │   ├── schemas/                  │   可复用子文档（Author）
 │   │   │   │   ├── strategies/               │   Passport JWT 策略
 │   │   │   │   ├── types/                    │   后端内部类型
 │   │   │   │   └── utils/                    │   Cookie / Mongo 错误转换
 │   │   │   └── modules/                      └─ 业务模块（每个都自包含）
-│   │   │       ├── health/                      健康检查
+│   │   │       ├── health/                      健康检查（Terminus，断连返回 503）
 │   │   │       ├── users/                       用户
 │   │   │       ├── auth/                        注册登录 + JWT 双 Token
 │   │   │       ├── posts/                       帖子
 │   │   │       ├── comments/                    评论
 │   │   │       ├── likes/                       点赞
-│   │   │       └── ai/                          LangChain + 智谱 GLM
+│   │   │       └── ai/                          摘要与标签（依赖已移除，恒降级）
 │   │   ├── nest-cli.json / tsconfig.json    构建配置
 │   │   └── package.json                     包名 @studyplan/api
 │   │
 │   └── docs/                              ③ 电子书：VitePress
 │       ├── .vitepress/config.ts             导航 / 侧边栏 / 搜索
 │       ├── index.md                         电子书首页
-│       ├── guide/                           路线图、环境准备、Git、本页
+│       ├── guide/                           路线图、环境准备、Git、本页、经验档案
 │       ├── stages/                          八篇阶段正文
 │       └── exercises/                       八份规划练习
 │
@@ -79,6 +81,11 @@ studyplan/
 │           ├── constants/                   标签白名单、长度限制
 │           └── index.ts                     统一出口
 │
+├── docker/vercel/entrypoint.mjs            容器入口（监听平台端口 + 按路径分流）
+├── deploy/                                 部署脚本与手册（快照/恢复、平台清单、实测报告）
+├── Dockerfile.vercel                       单容器镜像（前后端同镜像，仓库根 = 构建上下文）
+├── vercel.json                             平台配置：显式声明容器服务与公开路由
+├── .dockerignore                           构建上下文忽略清单
 ├── eslint.config.mjs                       全仓 lint 规则
 ├── .prettierrc / .prettierignore           全仓格式规则
 ├── .env.example                            环境变量模板（真实 .env 被忽略）
@@ -176,6 +183,9 @@ Nuxt 4 收进 `app/` 是有意的改进。
 | 错误响应的统一格式 | `apps/api/src/common/filters/` |
 | AI 的 Prompt 模板 | `apps/api/src/modules/ai/prompts/` |
 | 环境变量有哪些 | `.env.example`（模板）与 `apps/api/src/config/env.validation.ts`（校验） |
+| 容器与部署配置 | `Dockerfile.vercel`、`vercel.json`、`deploy/` |
+| 部署踩过的坑 | `apps/docs/guide/deployment-lessons.md` |
+| 排查问题的方法 | `apps/docs/guide/debugging-lessons.md` |
 | 学习笔记 | `apps/docs/stages/` |
 | 规划练习 | `apps/docs/exercises/` |
 

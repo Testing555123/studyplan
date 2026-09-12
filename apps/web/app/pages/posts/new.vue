@@ -276,7 +276,8 @@ async function publish(): Promise<void> {
                 发布后自动完成
               </p>
               <p class="mt-1.5 text-[13px] leading-6 text-slate-700 dark:text-slate-300">
-                系统会读取标题与正文，自动生成一句话摘要和推荐标签（由 LangChain + 智谱 GLM 完成）。
+                系统会读取标题与正文，自动生成一句话摘要和推荐标签。
+                （该功能当前停用：相关依赖已移除，发帖与其他功能不受影响。）
               </p>
               <p class="mt-1.5 text-[12px] leading-6 text-slate-500 dark:text-slate-400">
                 它走旁路：<strong class="font-medium">不会拖慢发布，也不会让发布失败</strong>。

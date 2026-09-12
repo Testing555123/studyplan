@@ -26,7 +26,7 @@ const year = new Date().getFullYear()
           <span>配套电子书</span>
         </a>
         <span class="text-slate-300 dark:text-slate-600">|</span>
-        <span>Nuxt 4 · NestJS 11 · MongoDB · LangChain</span>
+        <span>Nuxt 4 · NestJS 11 · MongoDB</span>
       </div>
     </div>
   </footer>

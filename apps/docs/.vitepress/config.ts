@@ -4,12 +4,15 @@ import { defineConfig } from 'vitepress'
  * 电子书站点的配置。
  *
  * 导航（nav）按"学习顺序"组织，而不是按文件结构：
- *   路线图 → 环境准备 → Git 工作流 → 逐阶段正文 → 规划练习
+ *   路线图 → 环境准备 → Git 工作流 → 逐阶段正文 → 经验档案 → 规划练习
+ *
+ * 「经验档案」放的是**实战沉淀**（上线踩过的坑、排查方法论），
+ * 它和阶段正文的区别是：阶段正文讲"怎么做"，经验档案讲"做的时候会撞上什么"。
  */
 export default defineConfig({
   lang: 'zh-CN',
   title: 'studyplan 全栈实战',
-  description: '从零到上线：Nuxt 4 + NestJS 11 + MongoDB Atlas + LangChain 的边做边学电子书',
+  description: '从零到上线：Nuxt 4 + NestJS 11 + MongoDB Atlas 的边做边学电子书',
 
   // 只对内容做"最后更新时间"标记，需要 Git 仓库已初始化
   lastUpdated: true,
@@ -28,6 +31,13 @@ export default defineConfig({
     nav: [
       { text: '首页', link: '/' },
       { text: '学习路线', link: '/guide/roadmap' },
+      {
+        text: '经验档案',
+        items: [
+          { text: '部署经验：上线时踩过的九个坑', link: '/guide/deployment-lessons' },
+          { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
+        ],
+      },
       {
         text: '阶段正文',
         items: [
@@ -65,6 +75,14 @@ export default defineConfig({
           { text: '阶段 6 · 互动功能', link: '/stages/stage-6' },
           { text: '阶段 7 · AI 能力', link: '/stages/stage-7' },
           { text: '阶段 8 · 测试与上线', link: '/stages/stage-8' },
+        ],
+      },
+      {
+        text: '经验档案',
+        collapsed: false,
+        items: [
+          { text: '部署经验：上线时踩过的九个坑', link: '/guide/deployment-lessons' },
+          { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
         ],
       },
       {

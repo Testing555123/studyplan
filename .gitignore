@@ -31,6 +31,16 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# ---------- Vercel CLI ----------
+# `vercel link` 会生成此目录；其中可能包含从平台拉取下来的真实密钥
+# （例如 .env.production.local），因此必须忽略
+.vercel
+
+# ---------- 数据库快照 ----------
+# deploy/snapshot.mjs 默认把 dump 写到 .snapshots/，
+# 里面有真实用户数据（含密码哈希），绝不能进版本库
+**/.snapshots
+
 # ---------- 编辑器 / 系统 ----------
 .DS_Store
 Thumbs.db
@@ -43,3 +53,5 @@ Thumbs.db
 # 它记录的是"这台机器做过什么"，不是"这个项目是什么" —— 换台机器就失效，
 # 所以不该进版本库。
 .codebuddy/
+.vercel
+.env*

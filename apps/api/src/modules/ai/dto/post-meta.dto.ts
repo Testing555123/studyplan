@@ -1,5 +1,12 @@
-import { z } from 'zod'
-import { MAX_TAGS_PER_POST } from '@studyplan/shared'
+/**
+ * ⚠️ 本文件原先用 zod 定义结构化输出 Schema。
+ * 移除 LangChain 依赖后不再需要 zod，改为纯类型 + 常量约束。
+ * 真正的"取值合规"校验在 `utils/post-meta.sanitizer.ts`（它带单测，不依赖任何库）。
+ *
+ * 恢复 AI 能力时，可参照 Git 历史把 zod Schema 加回来：
+ *   summary: z.string().min(1).max(200)
+ *   tags: z.array(z.string()).min(1).max(MAX_TAGS_PER_POST)
+ */
 
 /**
  * AI 结构化输出的契约。
@@ -23,22 +30,10 @@ import { MAX_TAGS_PER_POST } from '@studyplan/shared'
  * 但**不要因此以为它一定成功**：不同模型的支持程度不同，
  * 所以解析失败的分支仍然必须存在（见 ai.service.ts）。
  */
-export const postMetaSchema = z.object({
-  /** 一句话摘要。上限 200 字，超过就截断（见 ai.service.ts 的 sanitize） */
-  summary: z.string().min(1).max(200),
-
-  /**
-   * 推荐标签。
-   *
-   * 这里只约束**数量与类型**，不约束"必须是白名单里的值" ——
-   * 因为把 10 个标签白名单塞进 Schema 描述会让 Prompt 变得啰嗦，
-   * 而"过滤非法标签"是纯逻辑，放在代码里做更可靠、也更好测试。
-   *
-   * > 一条经验：**能用代码确定的规则，不要交给模型去遵守。**
-   * > Schema 用来约束"形状"，白名单校验用来约束"取值"。
-   */
-  tags: z.array(z.string()).min(1).max(MAX_TAGS_PER_POST),
-})
-
-/** 由 Schema 推导出的类型 —— 全程唯一的那份定义 */
-export type PostMeta = z.infer<typeof postMetaSchema>
+/** 模型结构化输出的形状（恢复 AI 能力时，这就是 withStructuredOutput 要产出的结构） */
+export interface PostMeta {
+  /** 一句话摘要 */
+  summary: string
+  /** 推荐标签；取值合规性由 sanitizer 校验，这里只声明形状 */
+  tags: string[]
+}

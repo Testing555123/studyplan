@@ -25,6 +25,7 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger'
 import type { Post as PostContract, PostListResponse } from '@studyplan/shared'
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import type { AuthenticatedUser } from '../../common/types/authenticated-user'
@@ -71,8 +72,10 @@ export class PostsController {
     return this.postsService.findOne(id)
   }
 
+  /** 发帖限额（10 次/分钟）：挡住灌水机器人，不影响正常创作 */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '创建帖子（需要登录）',

@@ -1,0 +1,116 @@
+# ============================================================
+#  Vercel 容器镜像（前端 SSR + 后端 API 同容器）
+# ------------------------------------------------------------
+#  为什么前后端放一个容器，而不是用平台的 services 拆成两个？
+#    平台的 `services` 用 `root` 把每个服务限定在子目录，
+#    而官方文档**没有提供"构建上下文"字段** —— 我们的 monorepo
+#    必须用仓库根当上下文（要 COPY packages/shared），
+#    上下文设成子目录就直接构建失败。一个容器先把这件事绕开。
+#
+#  文件名必须是 Dockerfile.vercel，且放在**仓库根**，
+#  平台才会自动检测并把流量路由到这个镜像。
+#
+#  本地验证（不需要平台账号）：
+#    docker build -f Dockerfile.vercel -t studyplan-vercel .
+#    docker run --rm -p 8080:80 -e MONGODB_URI=... studyplan-vercel
+# ============================================================
+
+ARG NODE_VERSION=24
+
+# ---------- 公共基础层 ----------
+FROM node:${NODE_VERSION}-alpine AS base
+# pnpm 走 corepack（Node 自带），并锁定与 packageManager 同一版本，
+# 避免"本地 11.20、容器里 10.x"这类只在构建时才暴露的差异
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+WORKDIR /app
+
+# ---------- 依赖层（含开发依赖，构建需要）----------
+# 只复制"清单文件"：源码变了不会触发重装依赖，构建时间能大幅下降
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+# 两个 --filter 是"或"的关系；`...` 后缀会把 workspace 内的 shared 一并装入
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --filter @studyplan/api... --filter @studyplan/web...
+
+# ---------- 构建层 ----------
+FROM base AS build
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY . .
+
+# 接口地址是**构建期常量**，Nuxt 会把它烘焙进客户端 bundle。
+# 默认值 /api 是相对路径 —— 同域部署下的最优解：
+#   1. 同域 → Cookie 天然同源，无需跨站配置；
+#   2. 不带域名 → 以后换域名不用重新构建。
+ARG NUXT_PUBLIC_API_BASE=/api
+ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
+
+# 顺序不能反：shared 是 workspace 内部依赖，两个子包构建时读的都是它的 dist
+RUN pnpm --filter @studyplan/shared build
+RUN pnpm --filter @studyplan/api build
+RUN pnpm --filter @studyplan/web build
+
+# ---------- 后端生产依赖层 ----------
+# 与 deps 分开：这里只要 prod 依赖，镜像里不含 typescript / jest / nuxt 等
+# 前端**不需要**单独装：Nitro 的 .output 已把运行时依赖全部打包进去
+FROM base AS prod-deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod --filter @studyplan/api...
+
+# ---------- 运行层 ----------
+FROM node:${NODE_VERSION}-alpine AS runtime
+
+# PORT=80 是平台对容器镜像的默认约定（可用平台侧的 PORT 环境变量覆盖）。
+# 两个内部端口只在本容器内互相访问，不对外暴露。
+ENV NODE_ENV=production \
+    PORT=80 \
+    API_INTERNAL_PORT=3000 \
+    WEB_INTERNAL_PORT=3001
+
+WORKDIR /app
+
+COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=prod-deps /app/apps/api/node_modules ./apps/api/node_modules
+
+# ⚠️ 这里**没有** packages/shared/node_modules，不是漏写：
+#    shared 是纯类型 + 常量的包，运行时零依赖（只有 typescript 这个 devDependency），
+#    所以 `pnpm install --prod` 不会为它创建 node_modules 目录 ——
+#    去 COPY 一个不存在的路径会直接构建失败（`"/app/packages/shared/node_modules": not found`）。
+#    它运行时只需要 dist（下面会拷）与 package.json。
+
+# 运行时解析 @studyplan/shared 需要各自的 package.json
+COPY --chown=node:node package.json pnpm-workspace.yaml ./
+COPY --chown=node:node apps/api/package.json apps/api/
+COPY --chown=node:node packages/shared/package.json packages/shared/
+
+# 只搬构建产物，不搬源码：镜像里没有 .ts / .vue，也就没有源码泄漏面
+COPY --chown=node:node --from=build /app/apps/api/dist ./apps/api/dist
+COPY --chown=node:node --from=build /app/packages/shared/dist ./packages/shared/dist
+COPY --chown=node:node --from=build /app/apps/web/.output ./apps/web/.output
+
+# 入口脚本：监听 $PORT，把 /api、/docs 分流给后端，其余给前端
+COPY --chown=node:node docker/vercel/entrypoint.mjs ./entrypoint.mjs
+
+# 不以 root 运行。平台沙箱本身有隔离，但"容器内也不用 root"
+# 是零成本的习惯 —— 一旦以后换成自托管，这条就直接生效了。
+USER node
+
+EXPOSE 80
+
+# ⚠️ CMD 用**绝对路径**而不是裸 `node`：
+#    平台会在容器启动命令之前注入一个"证书入口包装脚本"，
+#    而该脚本**不会保留镜像的 PATH**（Vercel 社区已有多例报告，表现是
+#    `exec: ... not found`，且运行日志里看不到任何应用输出，极难定位）。
+#    node:alpine 里 node 的绝对路径就是下面这个。
+#    入口脚本内部启动子进程用的是 `process.execPath`，同样不依赖 PATH。
+CMD ["/usr/local/bin/node", "entrypoint.mjs"]

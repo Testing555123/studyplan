@@ -60,6 +60,24 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     locale: 'zh-CN',
     timezoneId: 'Asia/Shanghai',
+
+    /**
+     * 可选代理。用 `E2E_PROXY=http://127.0.0.1:7897` 启用。
+     *
+     * 为什么需要它？当被测环境在境外、而本机网络访问受限时，
+     * **真实浏览器同样连不上**，整套 E2E 会全部失败在"页面打不开"这一步 ——
+     * 那种失败看起来像应用坏了，实际是链路问题，最容易误判。
+     * （本项目实测：`*.vercel.app` 既有 DNS 污染，又有 TLS SNI 阻断。）
+     *
+     * 只在设置了该环境变量时才生效，因此不影响本地跑测。
+     */
+    ...(process.env.E2E_PROXY
+      ? {
+          proxy: { server: process.env.E2E_PROXY },
+          // 本地代理若开了 TLS 拦截，证书链会变成自签，需要放宽校验
+          ignoreHTTPSErrors: true,
+        }
+      : {}),
   },
 
   projects: [

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: studyplan 全栈实战
   text: 从零到上线，边做边学
-  tagline: Nuxt 4 · NestJS 11 · MongoDB Atlas · LangChain —— 每个技术细节都讲清"是什么、为什么、怎么干"
+  tagline: Nuxt 4 · NestJS 11 · MongoDB Atlas —— 每个技术细节都讲清"是什么、为什么、怎么干"
   actions:
     - theme: brand
       text: 从路线图开始
@@ -20,8 +20,8 @@ features:
     details: 所有接口字段只定义一次，放在 packages/shared。改错一个字段名，前端和后端会同时报类型错误——把联调事故提前到编译期。
   - title: 每阶段三样交付物
     details: 可运行的最小实现、一份笔记（核心概念由你自己重写）、一个 30 分钟的规划小练习。
-  - title: AI 不拖垮主流程
-    details: LangChain 生成的摘要与标签走旁路：失败就留空，发帖照样成功。这是"AI 功能工程化"的第一课。
+  - title: AI 走旁路，不拖垮主流程
+    details: 摘要与标签生成失败就留空，发帖照样成功——这是"AI 功能工程化"的第一课。（当前该功能依赖已移除、处于停用状态，降级契约保留。）
 ---
 
 ## 这个项目在做什么
@@ -41,7 +41,7 @@ features:
 | 后端 | NestJS 的模块 / 依赖注入 / 守卫 / 管道 / 拦截器 / 异常过滤器 |
 | 数据库 | MongoDB 文档建模、Mongoose Schema、索引、原子更新、聚合 |
 | 网络 | REST 设计、HTTP 状态码、CORS 与凭据、JWT 双 Token 认证 |
-| AI | Prompt 模板、结构化输出、超时与降级、把 LLM 安全地接进业务链路 |
+| AI | Prompt 模板、结构化输出、超时与降级、把 LLM 安全地接进业务链路（当前该功能已停用，依赖已移除） |
 | 工程 | monorepo、Git 工作流、代码规范、单测、E2E、部署 |
 
 ## 学习方式

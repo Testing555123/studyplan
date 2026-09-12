@@ -1,15 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { ChatZhipuAI } from '@langchain/community/chat_models/zhipuai'
-import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 import type { AiPostMeta } from '@studyplan/shared'
-import { postMetaSchema, type PostMeta } from './dto/post-meta.dto'
-import { buildPostMetaPrompt } from './prompts/post-meta.prompt'
-import { describeError, redactApiKey, sanitizePostMeta } from './utils/post-meta.sanitizer'
 
-/** 系统消息：定义角色与语气。与"任务描述"分开写，是因为它不随每次调用变化 */
-const SYSTEM_PROMPT =
-  '你是一个严谨的中文技术写作助手。你只输出符合要求的 JSON，从不添加额外解释。'
+/**
+ * ⚠️ AI 调用依赖已移除（LangChain 三件套 + zod），本服务当前**恒为停用状态**。
+ *
+ * 为什么移除：`ZHIPUAI_API_KEY` 一直为空，该功能从未真正启用，
+ * 却让项目长期背着 4 个与学习目标栈无关的第三方依赖。
+ * 这里刻意保留"降级不中断"的契约，是为了让将来能一键恢复。
+ *
+ * ── 如何恢复 ──
+ *   1. pnpm --filter @studyplan/api add @langchain/community @langchain/core @langchain/openai zod
+ *   2. 恢复这些导入：
+ *        import { ChatZhipuAI } from '@langchain/community/chat_models/zhipuai'
+ *        import { HumanMessage, SystemMessage } from '@langchain/core/messages'
+ *        import { buildPostMetaPrompt } from './prompts/post-meta.prompt'
+ *        import { describeError, redactApiKey, sanitizePostMeta } from './utils/post-meta.sanitizer'
+ *   3. 恢复 SYSTEM_PROMPT 常量与 generatePostMeta 里的调用逻辑
+ *      （原实现可从 Git 历史找回，搜索 `withStructuredOutput`）
+ *   4. 配上 ZHIPUAI_API_KEY 后重启
+ *
+ * prompt、sanitizer 及其单测都原样保留着，不必重写。
+ */
 
 /**
  * AI 服务：把「文章标题 + 正文」变成「摘要 + 推荐标签」。
@@ -33,12 +45,9 @@ const SYSTEM_PROMPT =
 export class AiService {
   private readonly logger = new Logger(AiService.name)
 
-  private readonly model: ChatZhipuAI | null
-  private readonly timeoutMs: number
   private readonly apiKey: string | null
 
   constructor(config: ConfigService) {
-    this.timeoutMs = Number(config.get<string>('ZHIPUAI_TIMEOUT_MS') ?? 15000)
     this.apiKey = config.get<string>('ZHIPUAI_API_KEY') ?? null
 
     /**
@@ -52,29 +61,14 @@ export class AiService {
      * > "哪些依赖必须存在"是一个产品判断，不是一个技术判断。
      * > 把增强功能也做成硬依赖，等于用一个可选项卡住了整个系统。
      */
-    this.model = this.apiKey
-      ? new ChatZhipuAI({
-          apiKey: this.apiKey,
-          model: config.get<string>('ZHIPUAI_MODEL') ?? 'glm-4-flash',
-          /**
-           * 温度调低。
-           *
-           * 摘要与标签是**信息提取**任务，不是创作任务 ——
-           * 我们要的是"最可能正确的答案"，而不是"每次都不一样的答案"。
-           * 同一个输入两次得到完全不同的摘要，会让用户觉得系统不稳定。
-           */
-          temperature: 0.3,
-        })
-      : null
-
-    if (!this.model) {
+    if (!this.apiKey) {
       this.logger.warn('未配置 ZHIPUAI_API_KEY，AI 摘要与标签功能已停用（应用其余部分正常）')
     }
   }
 
   /** AI 功能是否可用。调用方据此决定要不要发起调用 */
   get enabled(): boolean {
-    return this.model !== null
+    return this.apiKey !== null
   }
 
   /**
@@ -83,81 +77,26 @@ export class AiService {
    * @returns 清洗后的元数据；任何一步失败都返回 null
    */
   async generatePostMeta(input: { title: string; content: string }): Promise<AiPostMeta | null> {
-    if (!this.model) return null
+    if (!this.apiKey) return null
 
-    const startedAt = Date.now()
-
-    try {
-      const structured = this.model.withStructuredOutput(postMetaSchema)
-
-      const raw = await this.invokeWithTimeout<PostMeta>((signal) =>
-        structured.invoke(
-          [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(buildPostMetaPrompt(input))],
-          { signal },
-        ),
-      )
-
-      const cleaned = sanitizePostMeta(raw)
-
-      if (!cleaned) {
-        /**
-         * 走到这里说明"调用成功，但结果不可用" —— 比如标签全都
-         * 不在白名单里、摘要是空的。
-         *
-         * 这是 AI 功能**最容易被忽略的一种失败**：
-         * 它不会抛异常、不会超时，日志里一切正常，
-         * 只是数据库里悄悄少了一个摘要。所以必须单独记一条 warn。
-         */
-        this.logger.warn(`AI 返回内容不可用，已跳过（耗时 ${Date.now() - startedAt}ms）`)
-        return null
-      }
-
-      this.logger.log(
-        `AI 生成完成：摘要 ${cleaned.summary.length} 字、标签 ${cleaned.tags.length} 个（耗时 ${Date.now() - startedAt}ms）`,
-      )
-      return cleaned
-    } catch (error) {
-      this.logger.warn(
-        `AI 生成失败（耗时 ${Date.now() - startedAt}ms）：${redactApiKey(describeError(error), this.apiKey)}`,
-      )
-      return null
-    }
+    /**
+     * AI 依赖已移除（恢复步骤见文件顶部注释），这里保留**降级契约**：
+     * 不抛异常、直接返回 null，调用方（PostsService）照常完成发帖。
+     *
+     * 为什么不让这里直接抛"未实现"？
+     *   因为它是核心链路（发帖）上的旁路组件。一旦改成抛异常，
+     *   恢复依赖前的所有发帖都会失败 —— 这正是当初设计成"永远不抛异常"的原因。
+     */
+    this.logger.debug(`AI 能力当前停用，已跳过摘要生成（标题 ${input.title.length} 字）`)
+    return null
   }
 
   /**
-   * 给调用加上超时。
+   * （已移除）给模型调用加超时。
    *
-   * 两件事同时做，缺一不可：
-   *
-   *   ① `Promise.race` —— **保证应用层一定会往下走**。
-   *      不管底层的 HTTP 请求有没有真的结束，我们的代码
-   *      在 timeoutMs 之后就会继续执行并发帖成功。
-   *      这是"不阻塞主流程"的硬保证。
-   *
-   *   ② `AbortController` —— **尽力真正取消底层请求**。
-   *      已确认 ChatZhipuAI 会把 signal 透传给底层的 fetch，
-   *      所以这能真正省下带宽与服务端资源。
-   *
-   * 为什么不能只做 ②？因为"能不能取消"取决于第三方库的实现细节，
-   * 而"不阻塞"是我们必须自己保证的。**依赖别人的承诺，不如自己兜底。**
+   * 原实现同时做两件事，恢复 AI 能力时必须一并恢复：
+   *   ① `Promise.race` —— 保证应用层一定会往下走，不阻塞发帖主流程；
+   *   ② `AbortController` —— 尽力真正取消底层请求，省带宽与服务端资源。
+   * 原代码可从 Git 历史找回（搜索 `invokeWithTimeout`）。
    */
-  private async invokeWithTimeout<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T> {
-    const controller = new AbortController()
-    let timer: ReturnType<typeof setTimeout> | undefined
-
-    const timeout = new Promise<never>((_resolve, reject) => {
-      timer = setTimeout(() => {
-        controller.abort()
-        reject(new Error(`调用超过 ${this.timeoutMs}ms 上限`))
-      }, this.timeoutMs)
-    })
-
-    try {
-      return await Promise.race([task(controller.signal), timeout])
-    } finally {
-      // 任务先完成时必须清掉定时器，否则它会一直挂到超时才触发，
-      // 在进程退出时表现为"有一个未完成的定时器"这类难查的告警
-      if (timer) clearTimeout(timer)
-    }
-  }
 }
