@@ -1,31 +1,40 @@
 import { Module } from '@nestjs/common'
+import { MongooseModule } from '@nestjs/mongoose'
+import { AiController } from './ai.controller'
 import { AiService } from './ai.service'
+import { CodeIndexService } from './code-index.service'
+import { NvNimClient } from './nv-nim.client'
+import { AiAnswerCache, AiAnswerCacheSchema, AiDailyUsage, AiDailyUsageSchema } from './schemas/ai-usage.schema'
 
 /**
  * AI 模块。
  *
- * ── 注意这里的 imports 是**空的** ──
+ * ── 关于 imports：这里只有 Mongoose，没有别的业务模块 ──
  *
- * 它不 import PostsModule —— 因为 AiService 只做一件事：
- * "给一段文本，还我一个摘要与标签"。它不碰数据库，
- * 也不知道"帖子"这个概念。
+ * 这一点是本项目刻意维持的边界，值得解释：
  *
- * 回填落库由 PostsService 负责，所以依赖方向是：
+ *   ```text
+ *   PostsModule ──imports──▶ AiModule
+ *   ```
  *
- * ```text
- * PostsModule ──imports──▶ AiModule
- * ```
- *
- * 单向。如果反过来（AiModule 也 import PostsModule），
- * 就形成了**循环依赖**，NestJS 会要求你用 `forwardRef()` 包起来 ——
+ * 依赖是**单向**的。AiService 不认识"帖子"这个概念，
+ * 它只做"给文本，还我元数据"；回填落库由 PostsService 负责。
+ * 如果反过来（AiModule 也 import PostsModule）就形成了循环依赖，
+ * NestJS 会要求你用 `forwardRef()` 包起来 ——
  * 而 `forwardRef` 是一个明确的信号：**你的模块边界划错了**。
  *
- * > 遇到循环依赖时，不要第一反应去加 forwardRef，
- * > 先问："是不是有一个东西的职责放错了位置？"
- * > 本项目里，答案是"回填应该由数据的拥有者（帖子模块）来做"。
+ * 现在新增的两个 Mongoose Model 只服务于 AI 自己的用量与缓存，
+ * 属于本模块的**内部实现**，不破坏这条单向依赖。
  */
 @Module({
-  providers: [AiService],
+  imports: [
+    MongooseModule.forFeature([
+      { name: AiDailyUsage.name, schema: AiDailyUsageSchema },
+      { name: AiAnswerCache.name, schema: AiAnswerCacheSchema },
+    ]),
+  ],
+  controllers: [AiController],
+  providers: [AiService, NvNimClient, CodeIndexService],
   // PostsModule 要用它，所以必须导出
   exports: [AiService],
 })

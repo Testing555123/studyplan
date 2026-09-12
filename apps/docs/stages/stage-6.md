@@ -313,7 +313,7 @@ LikesModule    ──imports──▶ PostsModule
 
 ## 下一阶段预告
 
-阶段 7 会接入 LangChain 与智谱 GLM，在发帖时自动生成摘要和推荐标签。
+阶段 7 会接入 AI（现为 NVIDIA NIM），在发帖时自动生成摘要和推荐标签。
 
 它的核心不是"怎么调 LLM"，而是**怎么让 AI 失败时不拖垮主流程** ——
 这是把 AI 从 demo 变成产品功能的第一道分水岭。

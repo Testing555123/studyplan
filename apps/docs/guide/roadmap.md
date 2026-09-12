@@ -105,7 +105,7 @@ NestJS 的模块划分、数据库的连接方式——这些一旦定下来，
 | 笔记 | `stages/stage-6.md` |
 | 练习 | `exercises/stage-6.md` |
 
-### 阶段 7 · AI 能力（LangChain + 智谱 GLM）
+### 阶段 7 · AI 能力（NVIDIA NIM）
 
 | 项 | 内容 |
 | --- | --- |

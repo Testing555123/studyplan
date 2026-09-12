@@ -9,6 +9,16 @@
  *
  * 如果这个组件内部自己 `usePostStore().fetchList()`，
  * 它就只能用在首页了 —— 这是新手最常见的组件设计错误。
+ *
+ * ── Nuxt UI 化之后的变化 ──
+ * 卡片外壳改用 `UCard`，标签用 `UBadge`，点赞用 `UButton`，
+ * 文字颜色改用语义类（`text-highlighted` / `text-muted` …）而不是
+ * 手写 `text-slate-900 dark:text-white`。
+ *
+ * 语义类的好处在暗色模式下最明显：过去每个颜色都要写两遍
+ * （亮色一遍 + `dark:` 一遍），现在一遍就够，而且全站口径统一。
+ * 剩下没被替换掉的是**布局类**（间距、flex、绝对定位）——
+ * 那是 Nuxt UI 不提供的部分，按"务实保留"的约定照常使用。
  */
 import { ChevronRight, Heart, MessageSquare } from 'lucide-vue-next'
 import type { Post } from '@studyplan/shared'
@@ -27,7 +37,10 @@ const liked = computed(() => postStore.isLiked(props.post.id))
 </script>
 
 <template>
-  <article class="post-card group relative p-5 sm:p-6">
+  <UCard
+    class="group relative transition-all duration-300 hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-500/5 dark:hover:border-primary-800"
+    :ui="{ body: 'p-5 sm:p-6' }"
+  >
     <!-- 整卡可点：用绝对定位的链接覆盖整张卡片，同时保持标题可被单独选中复制 -->
     <NuxtLink
       :to="`/posts/${post.id}`"
@@ -35,22 +48,19 @@ const liked = computed(() => postStore.isLiked(props.post.id))
       :aria-label="`阅读：${post.title}`"
     />
 
-    <div class="relative z-10 pointer-events-none">
+    <div class="pointer-events-none relative z-10">
       <!-- 标题 -->
       <h3
-        class="text-[17px] leading-7 font-semibold tracking-tight text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-400"
+        class="text-[17px] leading-7 font-semibold tracking-tight transition-colors group-hover:text-primary text-highlighted"
       >
         {{ post.title }}
       </h3>
 
       <!-- AI 摘要：没有摘要时不占位、不留空洞 -->
-      <p
-        v-if="post.summary"
-        class="mt-2 line-clamp-2 text-[13.5px] leading-6 text-slate-500 dark:text-slate-400"
-      >
+      <p v-if="post.summary" class="mt-2 line-clamp-2 text-[13.5px] leading-6 text-muted">
         {{ post.summary }}
       </p>
-      <p v-else class="mt-2 text-[13px] leading-6 text-slate-400 italic dark:text-slate-500">
+      <p v-else class="mt-2 text-[13px] leading-6 italic text-dimmed">
         这篇还没有摘要
       </p>
 
@@ -60,9 +70,11 @@ const liked = computed(() => postStore.isLiked(props.post.id))
           v-for="tag in post.tags"
           :key="tag"
           :to="`/?tag=${encodeURIComponent(tag)}`"
-          class="tag-pill tag-pill-idle pointer-events-auto"
+          class="pointer-events-auto"
         >
-          {{ tag }}
+          <UBadge variant="subtle" color="neutral" size="xs">
+            {{ tag }}
+          </UBadge>
         </NuxtLink>
       </div>
 
@@ -75,29 +87,30 @@ const liked = computed(() => postStore.isLiked(props.post.id))
           >
             {{ avatarInitial(post.author.username) }}
           </span>
-          <span class="text-[13px] text-slate-600 dark:text-slate-300">
+          <span class="text-[13px] text-toned">
             {{ post.author.username }}
           </span>
-          <span class="text-slate-300 dark:text-slate-600">·</span>
-          <time
-            class="text-[12.5px] text-slate-400 dark:text-slate-500"
-            :datetime="post.createdAt"
-          >
+          <span class="text-dimmed">·</span>
+          <time class="text-[12.5px] text-muted" :datetime="post.createdAt">
             {{ formatRelativeTime(post.createdAt) }}
           </time>
         </div>
 
-        <div class="flex items-center gap-4 text-[12.5px] text-slate-400 dark:text-slate-500">
-          <button
-            type="button"
-            class="pointer-events-auto inline-flex cursor-pointer items-center gap-1.5 transition-colors hover:text-rose-500"
+        <div class="flex items-center gap-4 text-[12.5px] text-muted">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            class="pointer-events-auto"
             :class="liked ? 'text-rose-500' : ''"
             :aria-pressed="liked"
             @click.stop="emit('toggle-like', post.id)"
           >
-            <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
-            <span>{{ post.likeCount }}</span>
-          </button>
+            <template #leading>
+              <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+            </template>
+            {{ post.likeCount }}
+          </UButton>
 
           <span class="inline-flex items-center gap-1.5">
             <MessageSquare :size="14" />
@@ -109,9 +122,9 @@ const liked = computed(() => postStore.isLiked(props.post.id))
 
     <!-- 悬停时右侧滑出的小箭头：给"可以点进去"一个视觉提示 -->
     <span
-      class="pointer-events-none absolute top-1/2 right-4 z-10 -translate-y-1/2 text-brand-400 opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
+      class="pointer-events-none absolute top-1/2 right-4 z-10 -translate-y-1/2 text-primary opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
     >
       <ChevronRight :size="18" />
     </span>
-  </article>
+  </UCard>
 </template>

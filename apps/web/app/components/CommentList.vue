@@ -10,7 +10,7 @@
  *
  * 这四种状态才是"做完了"和"能用了"之间的差别。
  */
-import { MessageSquare, Send, Trash2 } from 'lucide-vue-next'
+import { MessageSquare } from 'lucide-vue-next'
 import { COMMENT_MAX_LENGTH, type Comment } from '@studyplan/shared'
 
 const props = withDefaults(
@@ -69,101 +69,94 @@ function submit(): void {
 <template>
   <section class="mt-10">
     <header class="mb-5 flex items-center gap-2">
-      <MessageSquare :size="18" class="text-slate-400" />
-      <h2 class="text-[15px] font-semibold text-slate-900 dark:text-white">
+      <MessageSquare :size="18" class="text-dimmed" />
+      <h2 class="text-[15px] font-semibold text-highlighted">
         评论
-        <span class="ml-1 text-slate-400 dark:text-slate-500">{{ comments.length }}</span>
+        <span class="ml-1 text-dimmed">{{ comments.length }}</span>
       </h2>
     </header>
 
     <!-- 发表框 -->
-    <div v-if="canComment" class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-[#16161d]">
-      <textarea
+    <UCard v-if="canComment" :ui="{ body: 'p-4' }">
+      <UTextarea
         v-model="draft"
-        rows="3"
+        :rows="3"
         :maxlength="COMMENT_MAX_LENGTH + 50"
         placeholder="说说你的看法，或者补充一个你踩过的坑…"
-        class="w-full resize-none border-0 bg-transparent text-[14px] leading-6 text-slate-800 placeholder:text-slate-400 focus:outline-none dark:text-slate-100"
+        class="w-full"
       />
-      <!-- 发表失败提示 -->
-      <p v-if="error" class="mt-2 text-[12.5px] text-rose-600 dark:text-rose-400">
-        {{ error }}
-      </p>
 
-      <div class="mt-2 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-white/5">
+      <!-- 发表失败提示 -->
+      <UAlert
+        v-if="error"
+        class="mt-2"
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-circle"
+        :description="error"
+      />
+
+      <div class="mt-3 flex items-center justify-between">
         <span
           class="text-[12px] tabular-nums"
-          :class="
-            tooLong
-              ? 'text-rose-500'
-              : remaining < 50
-                ? 'text-amber-500'
-                : 'text-slate-400 dark:text-slate-500'
-          "
+          :class="tooLong ? 'text-error' : remaining < 50 ? 'text-warning' : 'text-dimmed'"
         >
           还可以写 {{ remaining }} 字
         </span>
 
-        <button
-          type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-500 px-4 text-[13px] font-medium text-white transition-all duration-200 hover:bg-brand-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+        <UButton
+          size="sm"
+          icon="i-lucide-send"
           :disabled="!canSubmit"
+          :loading="submitting"
           @click="submit"
         >
-          <Send :size="14" />
           {{ submitting ? '发表中…' : '发表评论' }}
-        </button>
+        </UButton>
       </div>
-    </div>
+    </UCard>
 
     <!-- 未登录时把输入框替换为引导，避免用户白写一段再被拒 -->
-    <div
+    <UAlert
       v-else
-      class="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 dark:border-white/15 dark:bg-white/5"
+      color="neutral"
+      variant="soft"
+      icon="i-lucide-log-in"
+      title="登录后即可参与讨论"
     >
-      <p class="text-[13.5px] text-slate-500 dark:text-slate-400">
-        登录后即可参与讨论
-      </p>
-      <NuxtLink
-        to="/login"
-        class="inline-flex h-9 shrink-0 items-center rounded-xl border border-brand-300 px-4 text-[13px] font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:border-brand-700 dark:text-brand-400 dark:hover:bg-brand-500/10"
-      >
-        去登录
-      </NuxtLink>
-    </div>
+      <template #actions>
+        <UButton to="/login" size="xs" variant="outline" color="primary">去登录</UButton>
+      </template>
+    </UAlert>
 
     <!-- 列表 -->
     <div class="mt-6 space-y-4">
       <!-- 加载骨架 -->
       <template v-if="loading">
-        <div
-          v-for="index in 2"
-          :key="`skeleton-${index}`"
-          class="animate-pulse rounded-2xl border border-slate-100 p-4 dark:border-white/5"
-        >
+        <UCard v-for="index in 2" :key="`skeleton-${index}`">
           <div class="flex items-center gap-2.5">
-            <div class="h-7 w-7 rounded-full bg-slate-200 dark:bg-white/10" />
-            <div class="h-3 w-24 rounded bg-slate-200 dark:bg-white/10" />
+            <USkeleton class="h-7 w-7 rounded-full" />
+            <USkeleton class="h-3 w-24" />
           </div>
-          <div class="mt-3 h-3 w-3/4 rounded bg-slate-100 dark:bg-white/5" />
-          <div class="mt-2 h-3 w-1/2 rounded bg-slate-100 dark:bg-white/5" />
-        </div>
+          <USkeleton class="mt-3 h-3 w-3/4" />
+          <USkeleton class="mt-2 h-3 w-1/2" />
+        </UCard>
       </template>
 
       <!-- 空态 -->
-      <p
+      <UEmpty
         v-else-if="comments.length === 0"
-        class="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-[13.5px] text-slate-400 dark:border-white/10 dark:text-slate-500"
-      >
-        还没有人评论，来说第一句吧
-      </p>
+        icon="i-lucide-message-square"
+        title="还没有人评论"
+        description="来说第一句吧"
+      />
 
       <!-- 正常列表 -->
       <template v-else>
-        <article
+        <UCard
           v-for="comment in comments"
           :key="comment.id"
-          class="rounded-2xl border border-slate-100 bg-white p-4 transition-colors hover:border-slate-200 dark:border-white/5 dark:bg-[#16161d] dark:hover:border-white/10"
+          :ui="{ body: 'p-4' }"
         >
           <div class="flex items-center gap-2.5">
             <span
@@ -172,31 +165,33 @@ function submit(): void {
             >
               {{ avatarInitial(comment.author.username) }}
             </span>
-            <span class="text-[13px] font-medium text-slate-700 dark:text-slate-200">
+            <span class="text-[13px] font-medium text-toned">
               {{ comment.author.username }}
             </span>
-            <span class="text-slate-300 dark:text-slate-600">·</span>
-            <time class="text-[12px] text-slate-400 dark:text-slate-500" :datetime="comment.createdAt">
+            <span class="text-dimmed">·</span>
+            <time class="text-[12px] text-muted" :datetime="comment.createdAt">
               {{ formatRelativeTime(comment.createdAt) }}
             </time>
 
             <!-- 只有自己的评论才显示删除。用户界面上少一个"你点了会失败"的按钮 -->
-            <button
+            <UButton
               v-if="isMine(comment)"
-              type="button"
-              class="ml-auto inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-[12px] text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+              class="ml-auto"
+              size="xs"
+              variant="ghost"
+              color="error"
+              icon="i-lucide-trash-2"
               :aria-label="`删除这条评论`"
               @click="emit('delete', comment.id)"
             >
-              <Trash2 :size="12" />
               删除
-            </button>
+            </UButton>
           </div>
 
-          <p class="mt-2.5 text-[14px] leading-7 text-slate-700 dark:text-slate-300">
+          <p class="mt-2.5 text-[14px] leading-7 text-toned">
             {{ comment.content }}
           </p>
-        </article>
+        </UCard>
       </template>
     </div>
   </section>

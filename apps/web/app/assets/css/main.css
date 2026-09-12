@@ -18,7 +18,7 @@
  * 为什么需要这一行？
  *   Tailwind 4 会自动探测"哪些文件里可能有工具类"，但它的探测范围
  *   是**当前项目目录**（apps/web）。而头像配色类名
- *   （from-indigo-500 / to-blue-600 这些）定义在 packages/shared 里 ——
+ *   （from-brand-400 / to-brand-600 这些）定义在 packages/shared 里 ——
  *   那在 apps/web 之外，探测不到。
  *
  *   后果是：这些类**不会被生成到 CSS 里**，所有头像都会失去背景色。
@@ -34,26 +34,63 @@
 /* ------------------------------------------------------------------
    设计令牌
    在 @theme 里声明 --color-brand-500，就能直接写 bg-brand-500 / text-brand-500
-   ------------------------------------------------------------------ */
-@theme {
-  /* 主色：鸢尾紫蓝，比默认的绿更"技术社区" */
-  --color-brand-50: #f1f1fd;
-  --color-brand-100: #e5e4fb;
-  --color-brand-200: #cfcef7;
-  --color-brand-300: #b0aef1;
-  --color-brand-400: #8a87e8;
-  --color-brand-500: #5b5bd6;
-  --color-brand-600: #4a4ac4;
-  --color-brand-700: #3e3da8;
-  --color-brand-800: #33328a;
-  --color-brand-900: #2c2b6f;
 
-  /* 语义色：AI 相关内容统一用青绿，和主色形成明确区分 */
-  --color-ai-50: #e8fbf4;
-  --color-ai-100: #cbf5e5;
-  --color-ai-500: #12b886;
-  --color-ai-600: #0ca678;
-  --color-ai-700: #099268;
+   ⚠️ 为什么是 `@theme static` 而不是普通的 `@theme`？
+
+   Tailwind 4 默认**只输出被用到的变量**：没被任何工具类引用的色阶
+   不会写进最终 CSS。而我们实测下来，brand 色阶只输出了 8 个（缺 100/900/950）。
+
+   这之所以会出问题，是因为 Nuxt UI 会把主色展开成 11 个色阶并逐个引用：
+       --ui-color-primary-950: var(--color-brand-950, )
+   那个 `--color-brand-950` 如果没被编译进 CSS，就会取到空的兜底值 ——
+   表现是"某个组件在暗色下/某个状态下突然没有颜色"，而且极难定位。
+
+   `static` 的含义就是"无条件全部输出"。代价是几十字节的体积，
+   换来的是色阶永远完整 —— 这笔交易很划算。
+   ------------------------------------------------------------------ */
+@theme static {
+  /*
+   * 主色：科技青蓝（Tailwind cyan 标准色阶）。
+   *
+   * 为什么换掉原来的鸢尾紫蓝 #5b5bd6？
+   *   这个项目的主界面是「GitHub 热门项目榜」这类技术内容，
+   *   冷调青蓝更贴近 Vercel / Tailwind 官网那类技术站的气质；
+   *   而且它在**亮色**背景下比紫色更通透、层次更清楚
+   *   （紫色在浅底上容易发闷，青蓝不会）。
+   */
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+  --color-brand-700: #0e7490;
+  --color-brand-800: #155e75;
+  --color-brand-900: #164e63;
+  --color-brand-950: #083344;
+
+  /*
+   * 语义色：AI 相关内容用紫罗兰，和主色形成**冷暖对比**。
+   *
+   * ⚠️ 这里原来是青绿 #12b886，必须换掉，原因值得记下来：
+   *   主色换成青蓝 #06b6d4 之后，青绿和青蓝**同为冷色且色相接近**，
+   *   AI 面板、AI 按钮会"融"进主色里，用户分不清哪块是 AI 功能。
+   *
+   *   改用紫罗兰 #8b5cf6 有两个好处：
+   *     1. 紫与青蓝冷暖对立，辨识度一眼就有；
+   *     2. "青蓝→紫"的渐变正是当下 AI 类产品最主流的视觉语言，
+   *        AI 助手的悬浮按钮用这个渐变会很自然。
+   *
+   *   顺带一提：这正是"换主色必须连带检查语义色"的典型案例 ——
+   *   只改主色不改配套色，界面不会报错，但会悄悄变得难用。
+   */
+  --color-ai-50: #f5f3ff;
+  --color-ai-100: #ede9fe;
+  --color-ai-400: #a78bfa;
+  --color-ai-500: #8b5cf6;
+  --color-ai-600: #7c3aed;
+  --color-ai-700: #6d28d9;
 
   /* 圆角与阴影：大圆角 + 克制阴影，是这个界面的性格 */
   --radius-card: 1rem;
@@ -84,77 +121,43 @@
    只在 Tailwind 工具类写起来会很长、且会被多处重复时，才抽到这里。
    ------------------------------------------------------------------ */
 @layer components {
-  /* 玻璃拟态导航栏：半透明 + 背景模糊 */
-  .glass-bar {
-    @apply border-b border-slate-200/70 bg-white/75 backdrop-blur-xl dark:border-white/10 dark:bg-[#0d0d12]/75;
-  }
-
-  /* 导航项：hover 时下方滑出一条主色下划线 */
   /*
-   * ⚠️ 为什么这类样式要写在**全局 CSS** 里，而不是组件内的 <style scoped>？
+   * 这一块**曾经**放着 .glass-bar / .nav-link / .post-card / .ai-panel /
+   * .tag-pill-* 等自定义类，现在已全部删除 —— 它们各自被 Nuxt UI 的组件取代：
    *
-   * Tailwind CSS 4 的 @apply 必须在"能看到主题与工具类定义"的上下文里执行。
-   * 而 Vue 单文件组件的 <style scoped> 是一个独立编译单元，它看不到
-   * main.css 里的 @theme 与 @import，于是连 gap-1.5 这种核心工具类
-   * 都会报 "Cannot apply unknown utility class"。
+   *   .glass-bar   → UHeader（自带边框与半透明背景）
+   *   .nav-link    → UNavigationMenu / UButton
+   *   .post-card   → UCard
+   *   .ai-panel    → UAlert（图标单独染成 AI 紫罗兰）
+   *   .tag-pill-*  → UButton（size="xs" + variant 切换选中态）
    *
-   * 此时你有两条路：
-   *   a) 在 <style> 顶部写 @reference "../assets/css/main.css"; 显式建立引用；
-   *   b) 把这类多用样式收进全局 @layer components（本项目采用）。
-   * 选择 (b) 的原因：同一套导航样式在页头、页脚、筛选条里会复用，
-   * 放在全局只定义一次，也避免每个组件都重复写 @reference。
+   * 收益不只是"少几行 CSS"。过去每加一处交互元素，就要重写一遍
+   * 圆角、边框、hover、焦点环，还要给每个颜色再配一套 `dark:` 变体；
+   * 现在这些由组件库统一提供，换主题只改 @theme 一处。
+   *
+   * ── 唯一保留下来的是 .prose-post ──
+   * 它是 **Markdown 正文排版**。Nuxt UI 虽然有 Prose 组件，
+   * 但要配合 MDC 使用；而本项目的正文是用 markdown-it 渲染成 HTML 字符串的，
+   * 引入一整套 MDC 反而不划算。保留这个自定义类是更务实的选择。
+   *
+   * ⚠️ 顺带记下一条 Tailwind 4 的坑：
+   *    这类带 @apply 的样式**不能**写进组件的 <style scoped> ——
+   *    scoped 是独立编译单元，看不到本文件的 @theme 与 @import，
+   *    连 gap-1.5 这种核心工具类都会报 "Cannot apply unknown utility class"。
+   *    所以它们必须留在全局样式里。
    */
-  .nav-link {
-    @apply relative inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white;
-  }
 
-  .nav-link::after {
-    content: '';
-    @apply absolute inset-x-3 -bottom-0.5 h-0.5 origin-left scale-x-0 rounded-full bg-brand-500 transition-transform duration-200;
-  }
-
-  .nav-link:hover::after {
-    @apply scale-x-100;
-  }
-
-  /* 帖子卡片：hover 时轻微抬升，让列表"活"起来 */
-  .post-card {
-    @apply rounded-2xl border border-slate-200 bg-white transition-all duration-300 dark:border-white/10 dark:bg-[#16161d];
-  }
-
-  .post-card:hover {
-    @apply -translate-y-1 border-brand-200 shadow-lg shadow-brand-500/5 dark:border-brand-800;
-  }
-
-  /* AI 摘要区块：青绿描边 + 浅青底，一眼可辨 */
-  .ai-panel {
-    @apply rounded-2xl border border-ai-500/30 bg-ai-50 p-4 dark:bg-ai-500/5;
-  }
-
-  /* 标签胶囊：未选中描边、选中填充主色 */
-  .tag-pill {
-    @apply inline-flex cursor-pointer items-center rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200;
-  }
-
-  .tag-pill-idle {
-    @apply border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300;
-  }
-
-  .tag-pill-active {
-    @apply border border-brand-500 bg-brand-500 text-white;
-  }
-
-  /* Markdown 正文排版 */
+  /* Markdown 正文排版（颜色一律用语义类，自动适配明暗） */
   .prose-post {
-    @apply text-[15px] leading-8 text-slate-700 dark:text-slate-300;
+    @apply text-[15px] leading-8 text-toned;
   }
 
   .prose-post h2 {
-    @apply mt-8 mb-3 text-xl font-semibold text-slate-900 dark:text-slate-100;
+    @apply mt-8 mb-3 text-xl font-semibold text-highlighted;
   }
 
   .prose-post h3 {
-    @apply mt-6 mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100;
+    @apply mt-6 mb-2 text-lg font-semibold text-highlighted;
   }
 
   .prose-post p {
@@ -170,23 +173,23 @@
   }
 
   .prose-post a {
-    @apply font-medium text-brand-600 underline decoration-brand-300 underline-offset-2 hover:text-brand-700 dark:text-brand-400;
+    @apply font-medium text-primary underline decoration-primary/30 underline-offset-2;
   }
 
   .prose-post code {
-    @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-brand-700 dark:bg-white/10 dark:text-brand-300;
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-primary;
   }
 
   .prose-post pre {
-    @apply my-5 overflow-x-auto rounded-xl bg-slate-900 p-4 text-[13px] leading-6 text-slate-100;
+    @apply my-5 overflow-x-auto rounded-xl bg-inverted p-4 text-[13px] leading-6 text-inverted;
   }
 
   .prose-post pre code {
-    @apply bg-transparent p-0 text-slate-100;
+    @apply bg-transparent p-0 text-inverted;
   }
 
   .prose-post blockquote {
-    @apply my-5 border-l-4 border-brand-400 bg-slate-50 py-2 pl-4 text-slate-600 italic dark:bg-white/5 dark:text-slate-300;
+    @apply my-5 border-l-4 border-primary-400 bg-muted py-2 pl-4 italic text-muted;
   }
 
   .prose-post img {
@@ -194,7 +197,7 @@
   }
 
   .prose-post hr {
-    @apply my-8 border-slate-200 dark:border-white/10;
+    @apply my-8 border-default;
   }
 }
 

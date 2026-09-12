@@ -15,7 +15,15 @@
 
 <template>
   <UApp>
-    <div class="flex min-h-screen flex-col bg-slate-50 transition-colors dark:bg-[#0d0d12]">
+    <!--
+      `bg-default` 是 Nuxt UI 的语义背景色：亮色下是浅灰白，
+      暗色下自动切换成深色。过去这里要写两套类名还带一个魔法色值
+      （dark:bg-[#0d0d12]），现在一个词就够，且全站口径统一。
+
+      AI 助手挂在这里而不是某个页面里 —— 它是全站级的能力，
+      任何页面都应该能唤起。
+    -->
+    <div class="flex min-h-screen flex-col bg-default">
       <AppHeader />
 
       <main class="flex-1 pt-16">
@@ -23,6 +31,8 @@
       </main>
 
       <AppFooter />
+
+      <AiAssistant />
     </div>
   </UApp>
 </template>

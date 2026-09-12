@@ -158,15 +158,23 @@ Resolve-DnsName -Type SRV _mongodb._tcp.cluster0.xxxxx.mongodb.net | Select Name
 
 ---
 
-## 三、智谱 GLM API Key（阶段 7 之前必须完成）
+## 三、NVIDIA NIM API Key（可选，用于 AI 摘要与学习助手）
 
-1. 打开 <https://open.bigmodel.cn> 注册并完成实名认证（有免费额度）；
-2. 进入 `API Keys` 页面创建一个新的 Key；
-3. Key 形如 `xxxxxxxxxxxxxxxx.xxxxxxxxxxxxxxxx`，请立刻保存。
+1. 打开 <https://build.nvidia.com> 注册 NVIDIA 开发者账号（有免费额度，无需信用卡）；
+2. 在模型页面点 `Get API Key` 生成一个以 `nvapi-` 开头的 Key；
+3. 把它填进 `apps/api/.env` 的 `NVNIM_API_KEY`。
 
-> **智谱的 Key 结构特殊**：它由 `id.secret` 两段组成，
-> SDK 会用这两段签出一个 JWT 再调用接口。
-> 所以如果你看到"需要 jsonwebtoken 这个依赖"的说法，原因就在这里。
+> **不填也能跑**：AI 是增强功能。缺少 Key 时后端照常启动，
+> 只是发帖不生成摘要、AI 助手显示「未启用」。
+>
+> **接口是 OpenAI 兼容的**：`https://integrate.api.nvidia.com/v1`，
+> 所以用 Node 内置的 `fetch` 就能调，**不需要安装任何 SDK**。
+> （这也是它比原先的智谱方案更简单的原因：那边需要 LangChain 三件套 + zod。）
+>
+> ⚠️ **模型会下线**：实测某些模型返回 `410 Gone`
+> （如 `meta/llama-3.1-8b-instruct` 已于 2026-08-26 下线）。
+> 因此模型名由 `NVNIM_MODEL` 配置而非写死。可用清单随时可查：
+> `GET https://integrate.api.nvidia.com/v1/models`
 
 ---
 
@@ -188,7 +196,7 @@ CORS_ORIGIN=http://localhost:3001
 MONGODB_URI=mongodb+srv://...（上一步拿到的连接串）
 JWT_ACCESS_SECRET=...（自己生成，见下）
 JWT_REFRESH_SECRET=...
-ZHIPUAI_API_KEY=...（上一步创建的 Key）
+NVNIM_API_KEY=...（上一步创建的 Key；不填则 AI 功能自动降级）
 ```
 
 生成 JWT 密钥（两个必须不同）：

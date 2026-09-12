@@ -12,14 +12,25 @@
  * 不依赖时间、不依赖进程。
  */
 
-/** Tailwind 的渐变工具类。后端直接把其中一个字符串存进数据库。 */
+/**
+ * Tailwind 的渐变工具类。后端直接把其中一个字符串存进数据库。
+ *
+ * ⚠️ 改这个数组会**改变已有用户的头像颜色**（下标不变但对应色变了）。
+ *    所以只能改某一项的内容，**不要改数组长度、也不要重排顺序** ——
+ *    长度一变，`avatarGradientIndex` 的取模结果就全变了，
+ *    所有人的头像颜色会集体跳变。
+ *
+ * 第一项用 `brand`（青蓝主色），让头像与全站主色呼应；
+ * 其余保持彩色，是为了让不同用户有辨识度 ——
+ * 头像的"多样性"本身就是设计目的，不该被主色统一掉。
+ */
 export const AVATAR_GRADIENTS = [
-  'from-indigo-500 to-blue-600',
+  'from-brand-400 to-brand-600',
   'from-emerald-500 to-teal-600',
   'from-rose-500 to-pink-600',
   'from-amber-500 to-orange-600',
   'from-violet-500 to-purple-600',
-  'from-cyan-500 to-sky-600',
+  'from-sky-500 to-blue-600',
 ] as const
 
 export type AvatarGradient = (typeof AVATAR_GRADIENTS)[number]

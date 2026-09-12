@@ -5,7 +5,7 @@
   "description": "学习社区后端 API（NestJS 11 + MongoDB Atlas）",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "nest build && node ../../scripts/generate-code-index.mjs",
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "jest --passWithNoTests",

@@ -178,9 +178,12 @@ pnpm test:watch   # 单测监听模式
 | `COOKIE_SAME_SITE` | 否 | `lax` | 只接受 `lax` / `none` / `strict`；非法值回落 `lax`。跨站部署才需要 `none` |
 | `JWT_ACCESS_EXPIRES_IN` | 否 | `15m` | Access Token 有效期 |
 | `JWT_REFRESH_EXPIRES_IN` | 否 | `7d` | Refresh Token 有效期 |
-| `ZHIPUAI_API_KEY` | 否 | 空 | 缺失时 AI 功能自动降级，不影响发帖 |
-| `ZHIPUAI_MODEL` | 否 | `glm-4-flash` | 当前 AI 模块恒为降级（依赖已移除），此项暂无实际调用 |
-| `ZHIPUAI_TIMEOUT_MS` | 否 | `15000` | 同上 |
+| `NVNIM_API_KEY` | 否 | 空 | 缺失时 AI 功能自动降级，不影响发帖 |
+| `NVNIM_MODEL` | 否 | `deepseek-ai/deepseek-v4-flash-0731` | 模型会下线，故做成可配而非写死 |
+| `NVNIM_TIMEOUT_MS` | 否 | `25000` | AI 单次调用超时 |
+| `NVNIM_DAILY_LIMIT` | 否 | `300` | 每日调用上限（命中缓存不计） |
+| `GITHUB_TOKEN` | 否 | 空 | 配了可把 Search 限流从 10 次/分提到 30 次/分 |
+| `GITHUB_TRENDING_CACHE_TTL_MINUTES` | 否 | `360` | 榜单缓存软过期时长 |
 
 缺失必填项时，`config/env.validation.ts` 会让进程**启动即失败**并打印哪个变量有问题 ——
 配置错误要在启动时暴露，而不是等到用户点了发帖才报错。

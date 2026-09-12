@@ -1,17 +1,28 @@
 /**
  * Nuxt UI 的运行时外观配置。
  *
- * 这里只做一件事：把 Nuxt UI 组件库里所有 `primary` 色名的引用，
- * 映射到配色系统里我们想要的色板。改这一处，
- * 全站按钮、输入框、链接的强调色会一起变。
+ * 这里只做一件事：把 Nuxt UI 组件库里所有 `primary` / `neutral` 的引用，
+ * 映射到本项目 `@theme` 里定义的色板名。改这一处，
+ * 全站按钮、输入框、链接、选中态的强调色会一起变。
  *
- * 注意：真正的色值定义在 assets/css/main.css 的 @theme 里，
- * 此处只是"把别名指向色板名"。
+ * ⚠️ 真正的色值**不在这里**，而在 `assets/css/main.css` 的 `@theme` 里
+ *    （`--color-brand-*` 青蓝色阶）。此处只是"把别名指向色板名"。
+ *    这个分工是有意的：**色值只有一处定义**，
+ *    将来再换配色仍然只改 main.css，不会出现"改了 A 处 B 处没跟上"。
  */
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'indigo',
+      /**
+       * 主色 → `brand` 色板（科技青蓝 #06b6d4）。
+       *
+       * 这里**曾经是 `indigo`**（Tailwind 内置色），那是个 bug：
+       * 它让 Nuxt UI 组件用 Tailwind 的靛蓝，而手写样式用 @theme 的 brand 色，
+       * 全站出现两套"品牌色"。指向 `brand` 之后二者才真正统一。
+       */
+      primary: 'brand',
+
+      /** 中性色 → slate。页面背景、边框、次要文字都取自它 */
       neutral: 'slate',
     },
   },

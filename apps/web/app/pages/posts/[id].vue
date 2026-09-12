@@ -11,7 +11,7 @@
  *   2. 404 是一等公民：帖子不存在时显示专门的界面，而不是空白或报错；
  *   3. 阅读时长由正文推导，不需要后端提供字段。
  */
-import { AlertCircle, ArrowLeft, RefreshCw, Sparkles, TriangleAlert } from 'lucide-vue-next'
+// 图标全部改用 Nuxt UI 的 Iconify 名称（i-lucide-*），无需逐个 import
 
 const route = useRoute()
 const postStore = usePostStore()
@@ -135,73 +135,65 @@ function onDeleteComment(commentId: string): void {
   <div class="mx-auto max-w-3xl px-4 sm:px-6">
     <!-- 返回 -->
     <div class="pt-8">
-      <NuxtLink
+      <UButton
         to="/"
-        class="inline-flex items-center gap-1.5 text-[13px] text-slate-500 transition-colors hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-400"
+        variant="link"
+        color="neutral"
+        size="sm"
+        icon="i-lucide-arrow-left"
+        class="px-0"
       >
-        <ArrowLeft :size="14" />
         返回帖子流
-      </NuxtLink>
+      </UButton>
     </div>
 
     <!-- 帖子不存在 -->
-    <div
+    <UEmpty
       v-if="notFound"
-      class="mt-10 rounded-2xl border border-dashed border-slate-300 py-16 text-center dark:border-white/15"
+      class="mt-10"
+      icon="i-lucide-triangle-alert"
+      title="找不到这篇文章"
+      :description="`它可能已被作者删除，或者链接里的编号有误（id = ${postId}）`"
     >
-      <TriangleAlert class="mx-auto text-amber-400" :size="32" />
-      <p class="mt-4 text-[15px] font-medium text-slate-700 dark:text-slate-200">找不到这篇文章</p>
-      <p class="mt-1.5 text-[13px] text-slate-400 dark:text-slate-500">
-        它可能已被作者删除，或者链接里的编号有误
-      </p>
-      <p class="mt-1 font-mono text-[12px] text-slate-400 dark:text-slate-600">
-        id = {{ postId }}
-      </p>
-      <NuxtLink
-        to="/"
-        class="mt-5 inline-flex h-9 items-center rounded-xl bg-brand-500 px-4 text-[13px] font-medium text-white transition-colors hover:bg-brand-600"
-      >
-        回到帖子流
-      </NuxtLink>
-    </div>
+      <template #actions>
+        <UButton to="/" icon="i-lucide-home">回到帖子流</UButton>
+      </template>
+    </UEmpty>
 
     <!-- 服务故障：必须与"帖子不存在"区分开，并给出重试入口 -->
-    <div
+    <UAlert
       v-else-if="failed"
-      class="mt-10 rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center dark:border-rose-500/30 dark:bg-rose-500/5"
+      class="mt-10"
+      color="error"
+      variant="soft"
+      icon="i-lucide-alert-circle"
+      title="暂时打不开这篇文章"
+      :description="postStore.error ?? ''"
     >
-      <AlertCircle class="mx-auto text-rose-500" :size="32" />
-      <p class="mt-4 text-[15px] font-medium text-rose-800 dark:text-rose-300">暂时打不开这篇文章</p>
-      <p class="mt-1.5 text-[13px] text-rose-700/80 dark:text-rose-300/70">
-        {{ postStore.error }}
-      </p>
-      <div class="mt-5 flex justify-center gap-3">
-        <button
-          type="button"
-          class="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-xl bg-rose-500 px-4 text-[13px] font-medium text-white transition-colors hover:bg-rose-600"
-          @click="postStore.fetchOne(postId)"
-        >
-          <RefreshCw :size="14" />
-          重试
-        </button>
-        <NuxtLink
-          to="/"
-          class="inline-flex h-9 items-center rounded-xl border border-rose-300 px-4 text-[13px] font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-500/40 dark:text-rose-300"
-        >
-          回到帖子流
-        </NuxtLink>
-      </div>
-    </div>
+      <template #actions>
+        <div class="mt-3 flex gap-3">
+          <UButton
+            size="sm"
+            color="error"
+            icon="i-lucide-refresh-cw"
+            @click="postStore.fetchOne(postId)"
+          >
+            重试
+          </UButton>
+          <UButton size="sm" color="neutral" variant="outline" to="/">回到帖子流</UButton>
+        </div>
+      </template>
+    </UAlert>
 
     <!-- 加载骨架 -->
-    <div v-else-if="!post" class="mt-8 animate-pulse">
-      <div class="h-7 w-3/4 rounded bg-slate-200 dark:bg-white/10" />
-      <div class="mt-4 h-3 w-40 rounded bg-slate-100 dark:bg-white/5" />
-      <div class="mt-8 h-24 rounded-2xl bg-slate-100 dark:bg-white/5" />
-      <div class="mt-6 space-y-2">
-        <div class="h-3 w-full rounded bg-slate-100 dark:bg-white/5" />
-        <div class="h-3 w-11/12 rounded bg-slate-100 dark:bg-white/5" />
-        <div class="h-3 w-4/5 rounded bg-slate-100 dark:bg-white/5" />
+    <div v-else-if="!post" class="mt-8 space-y-4">
+      <USkeleton class="h-7 w-3/4" />
+      <USkeleton class="h-3 w-40" />
+      <USkeleton class="h-24 rounded-2xl" />
+      <div class="space-y-2">
+        <USkeleton class="h-3 w-full" />
+        <USkeleton class="h-3 w-11/12" />
+        <USkeleton class="h-3 w-4/5" />
       </div>
     </div>
 
@@ -209,7 +201,7 @@ function onDeleteComment(commentId: string): void {
     <article v-else class="pt-6 pb-4">
       <header>
         <h1
-          class="text-[26px] leading-tight font-semibold tracking-tight text-slate-900 dark:text-white"
+          class="text-[26px] leading-tight font-semibold tracking-tight text-highlighted"
         >
           {{ post.title }}
         </h1>
@@ -222,19 +214,17 @@ function onDeleteComment(commentId: string): void {
             >
               {{ avatarInitial(post.author.username) }}
             </span>
-            <span class="text-[13.5px] font-medium text-slate-700 dark:text-slate-200">
+            <span class="text-[13.5px] font-medium text-toned">
               {{ post.author.username }}
             </span>
           </div>
 
-          <span class="text-slate-300 dark:text-slate-600">·</span>
-          <time class="text-[12.5px] text-slate-500 dark:text-slate-400" :datetime="post.createdAt">
+          <span class="text-dimmed">·</span>
+          <time class="text-[12.5px] text-muted" :datetime="post.createdAt">
             {{ formatDate(post.createdAt) }}
           </time>
-          <span class="text-slate-300 dark:text-slate-600">·</span>
-          <span class="text-[12.5px] text-slate-500 dark:text-slate-400">
-            约 {{ minutes }} 分钟读完
-          </span>
+          <span class="text-dimmed">·</span>
+          <span class="text-[12.5px] text-muted">约 {{ minutes }} 分钟读完</span>
         </div>
 
         <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -242,57 +232,54 @@ function onDeleteComment(commentId: string): void {
             v-for="tag in post.tags"
             :key="tag"
             :to="`/?tag=${encodeURIComponent(tag)}`"
-            class="tag-pill tag-pill-idle"
           >
-            {{ tag }}
+            <UBadge variant="subtle" color="neutral" size="xs">{{ tag }}</UBadge>
           </NuxtLink>
         </div>
       </header>
 
-      <!-- AI 摘要 + 推荐标签 -->
-      <aside v-if="post.summary" class="ai-panel animate-fade-up mt-7">
-        <div class="flex items-start gap-3">
-          <span
-            class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-ai-500/15 text-ai-700 dark:text-ai-500"
-          >
-            <Sparkles :size="14" />
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="text-[12px] font-medium tracking-wide text-ai-700 dark:text-ai-500">
-              AI 摘要
-            </p>
-            <p class="mt-1.5 text-[13.5px] leading-7 text-slate-700 dark:text-slate-300">
-              {{ post.summary }}
-            </p>
+      <!--
+        AI 摘要 + 推荐标签。
+        图标单独染成紫罗兰（全站 AI 强调色），其余样式交给 UAlert。
+      -->
+      <UAlert
+        v-if="post.summary"
+        class="animate-fade-up mt-7"
+        color="info"
+        variant="soft"
+        icon="i-lucide-sparkles"
+        title="AI 摘要"
+        :ui="{ icon: 'text-violet-500' }"
+      >
+        <template #description>
+          <p class="text-[13.5px] leading-7">{{ post.summary }}</p>
 
-            <!--
-              AI 推荐标签与作者自己选的标签**分开显示**，样式也不同。
-              这样读者一眼能分清"这是作者给的分类"还是"这是机器猜的"，
-              作者也能清楚看到 AI 补充了什么。
-            -->
-            <div v-if="post.aiTags?.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-              <span class="text-[11.5px] text-ai-700/80 dark:text-ai-500/80">推荐标签</span>
-              <span
-                v-for="tag in post.aiTags"
-                :key="tag"
-                class="rounded-full border border-ai-500/30 bg-white/60 px-2.5 py-0.5 text-[11.5px] font-medium text-ai-700 dark:bg-ai-500/10 dark:text-ai-500"
-              >
-                {{ tag }}
-              </span>
-            </div>
+          <!--
+            AI 推荐标签与作者自己选的标签**分开显示**，样式也不同。
+            这样读者一眼能分清"这是作者给的分类"还是"这是机器猜的"，
+            作者也能清楚看到 AI 补充了什么。
+          -->
+          <div v-if="post.aiTags?.length" class="mt-3 flex flex-wrap items-center gap-1.5">
+            <span class="text-[11.5px] text-violet-600 dark:text-violet-400">推荐标签</span>
+            <UBadge
+              v-for="tag in post.aiTags"
+              :key="tag"
+              variant="outline"
+              color="neutral"
+              size="xs"
+            >
+              {{ tag }}
+            </UBadge>
           </div>
-        </div>
-      </aside>
+        </template>
+      </UAlert>
 
       <!--
         还没有摘要、但帖子很新 —— 说明 AI 正在生成中。
         这里给出"正在来"的预期，而不是留一片空白让用户以为坏了。
       -->
-      <p
-        v-else-if="aiPending"
-        class="mt-7 flex items-center gap-2 text-[12.5px] text-slate-400 dark:text-slate-500"
-      >
-        <Sparkles :size="14" class="animate-pulse" />
+      <p v-else-if="aiPending" class="mt-7 flex items-center gap-2 text-[12.5px] text-muted">
+        <UIcon name="i-lucide-sparkles" class="animate-pulse text-violet-500" />
         AI 正在为这篇文章生成摘要与推荐标签，稍后刷新即可看到
       </p>
 
@@ -300,15 +287,13 @@ function onDeleteComment(commentId: string): void {
       <div class="prose-post mt-8" v-html="bodyHtml" />
 
       <!-- 互动 -->
-      <div class="mt-10 flex items-center gap-3 border-t border-slate-100 pt-6 dark:border-white/5">
+      <div class="mt-10 flex items-center gap-3 border-t border-default pt-6">
         <LikeButton
           :liked="postStore.isLiked(post.id)"
           :count="post.likeCount"
           @toggle="onToggleLike"
         />
-        <span class="text-[12.5px] text-slate-400 dark:text-slate-500">
-          觉得有用就点个赞，作者会看到
-        </span>
+        <span class="text-[12.5px] text-dimmed">觉得有用就点个赞，作者会看到</span>
       </div>
 
       <CommentList

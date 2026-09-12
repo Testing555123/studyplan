@@ -77,7 +77,7 @@ runtimeConfig: {
 
 > **任何以 `NUXT_PUBLIC_` 或 `PUBLIC_` 开头的东西，都绝不能放密钥。**
 
-本项目的密钥（`MONGODB_URI`、`JWT_*`、`ZHIPUAI_API_KEY`）全部只在
+本项目的密钥（`MONGODB_URI`、`JWT_*`、`NVNIM_API_KEY`、`GITHUB_TOKEN`）全部只在
 `apps/api/.env` 里，前端一个都碰不到。这不是巧合，是**架构上就隔开了**。
 
 顺带说：为什么用 `runtimeConfig` 而不是直接写常量？

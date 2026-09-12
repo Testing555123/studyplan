@@ -16,7 +16,7 @@
  * 一个很常见的误解是"前端校验过了后端就不用校验"，
  * 那等于把规则写在用户可以随意修改的地方。
  */
-import { AlertCircle, AtSign, KeyRound, Loader2, LogIn, UserPlus } from 'lucide-vue-next'
+import { LogIn } from 'lucide-vue-next'
 import { PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from '@studyplan/shared'
 import { ApiRequestError } from '~/composables/useApi'
 
@@ -125,217 +125,158 @@ async function submit(): Promise<void> {
     <!-- 品牌与标语 -->
     <div class="text-center">
       <span
-        class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lg shadow-brand-500/25"
+        class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/25"
       >
         <LogIn :size="22" />
       </span>
-      <h1 class="mt-5 text-xl font-semibold tracking-tight text-slate-900 dark:text-white">
+      <h1 class="mt-5 text-xl font-semibold tracking-tight text-highlighted">
         {{ mode === 'login' ? '欢迎回来' : '创建你的账号' }}
       </h1>
-      <p class="mt-1.5 text-[13.5px] text-slate-500 dark:text-slate-400">
+      <p class="mt-1.5 text-[13.5px] text-muted">
         {{ mode === 'login' ? '继续记录你的学习与思考' : '开始分享你的学习笔记与技术心得' }}
       </p>
     </div>
 
-    <!-- 页签 -->
-    <div class="mt-8 grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-white/5">
-      <button
-        type="button"
-        class="relative cursor-pointer rounded-lg py-2.5 text-[13.5px] font-medium transition-all duration-300"
-        :class="
-          mode === 'login'
-            ? 'bg-white text-brand-600 shadow-sm dark:bg-[#16161d] dark:text-brand-400'
-            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-        "
+    <!-- 页签：用 UButton 组而不是手写按钮，圆角/内边距/hover 全由组件统一 -->
+    <div class="mt-8 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+      <UButton
+        :variant="mode === 'login' ? 'solid' : 'ghost'"
+        :color="mode === 'login' ? 'primary' : 'neutral'"
+        block
         @click="switchMode('login')"
       >
         登录
-      </button>
-      <button
-        type="button"
-        class="relative cursor-pointer rounded-lg py-2.5 text-[13.5px] font-medium transition-all duration-300"
-        :class="
-          mode === 'register'
-            ? 'bg-white text-brand-600 shadow-sm dark:bg-[#16161d] dark:text-brand-400'
-            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-        "
+      </UButton>
+      <UButton
+        :variant="mode === 'register' ? 'solid' : 'ghost'"
+        :color="mode === 'register' ? 'primary' : 'neutral'"
+        block
         @click="switchMode('register')"
       >
         注册
-      </button>
+      </UButton>
     </div>
 
-    <!-- 表单 -->
-    <form class="mt-6 space-y-4" @submit.prevent="submit">
-      <!-- 邮箱 -->
-      <div>
-        <label
-          for="email"
-          class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-200"
-        >
-          邮箱
-        </label>
-        <div class="relative">
-          <span
-            class="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center text-slate-400"
-          >
-            <AtSign :size="15" />
-          </span>
-          <input
-            id="email"
-            v-model.trim="form.email"
-            type="email"
-            autocomplete="email"
-            placeholder="you@example.com"
-            class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-3 pl-11 text-[14px] text-slate-900 shadow-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none dark:border-white/10 dark:bg-[#16161d] dark:text-white dark:hover:border-white/20"
-          />
-        </div>
-      </div>
+    <!-- 表单：UForm + UFormField + UInput，图标直接由 UInput 的 icon 属性承担 -->
+    <UForm class="mt-6 space-y-4" :state="form" @submit="submit">
+      <UFormField label="邮箱" name="email">
+        <UInput
+          v-model.trim="form.email"
+          type="email"
+          autocomplete="email"
+          icon="i-lucide-at-sign"
+          placeholder="you@example.com"
+          class="w-full"
+        />
+      </UFormField>
 
-      <!-- 用户名（仅注册） -->
-      <div v-if="mode === 'register'">
-        <label
-          for="username"
-          class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-200"
-        >
-          用户名
-        </label>
-        <input
-          id="username"
+      <UFormField v-if="mode === 'register'" label="用户名" name="username">
+        <UInput
           v-model.trim="form.username"
           type="text"
           autocomplete="username"
+          icon="i-lucide-user"
           :placeholder="`${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} 个字，会显示在文章作者处`"
-          class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 shadow-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none dark:border-white/10 dark:bg-[#16161d] dark:text-white dark:hover:border-white/20"
+          class="w-full"
         />
-      </div>
+      </UFormField>
 
-      <!-- 密码 -->
-      <div>
-        <label
-          for="password"
-          class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-200"
-        >
-          密码
-        </label>
-        <div class="relative">
-          <span
-            class="pointer-events-none absolute inset-y-0 left-0 grid w-11 place-items-center text-slate-400"
-          >
-            <KeyRound :size="15" />
-          </span>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
-            :placeholder="mode === 'register' ? `至少 ${PASSWORD_MIN_LENGTH} 位` : '输入密码'"
-            class="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-3 pl-11 text-[14px] text-slate-900 shadow-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none dark:border-white/10 dark:bg-[#16161d] dark:text-white dark:hover:border-white/20"
-          />
-        </div>
-      </div>
+      <UFormField label="密码" name="password">
+        <UInput
+          v-model="form.password"
+          type="password"
+          :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
+          icon="i-lucide-key-round"
+          :placeholder="mode === 'register' ? `至少 ${PASSWORD_MIN_LENGTH} 位` : '输入密码'"
+          class="w-full"
+        />
+      </UFormField>
 
-      <!-- 确认密码（仅注册） -->
-      <div v-if="mode === 'register'">
-        <label
-          for="confirm"
-          class="mb-1.5 block text-[13px] font-medium text-slate-700 dark:text-slate-200"
-        >
-          确认密码
-        </label>
-        <input
-          id="confirm"
+      <UFormField v-if="mode === 'register'" label="确认密码" name="confirm">
+        <UInput
           v-model="form.confirm"
           type="password"
           autocomplete="new-password"
+          icon="i-lucide-key-round"
           placeholder="再输入一次"
-          class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[14px] text-slate-900 shadow-none transition-colors placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none dark:border-white/10 dark:bg-[#16161d] dark:text-white dark:hover:border-white/20"
+          class="w-full"
         />
-      </div>
+      </UFormField>
 
       <!-- 本地校验错误 -->
-      <ul v-if="visibleErrors.length" class="space-y-1.5">
-        <li
-          v-for="error in visibleErrors"
-          :key="error"
-          class="flex items-center gap-2 text-[12.5px] text-rose-600 dark:text-rose-400"
-        >
-          <AlertCircle :size="13" />
-          {{ error }}
-        </li>
-      </ul>
+      <UAlert
+        v-if="visibleErrors.length"
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-circle"
+        title="请先修正以下问题"
+      >
+        <ul class="mt-1 space-y-1">
+          <li v-for="error in visibleErrors" :key="error" class="text-[12.5px]">
+            · {{ error }}
+          </li>
+        </ul>
+      </UAlert>
 
       <!-- 服务端返回的错误 -->
-      <div
+      <UAlert
         v-if="serverError"
-        class="rounded-xl border border-rose-200 bg-rose-50 p-3.5 dark:border-rose-500/30 dark:bg-rose-500/5"
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-circle"
+        :title="serverError"
       >
-        <p class="flex items-start gap-2 text-[12.5px] leading-6 text-rose-700 dark:text-rose-300">
-          <AlertCircle :size="14" class="mt-1 shrink-0" />
-          <span>{{ serverError }}</span>
-        </p>
-        <ul v-if="serverDetails.length" class="mt-1.5 space-y-1 pl-6">
-          <li
-            v-for="detail in serverDetails"
-            :key="detail"
-            class="text-[12px] leading-5 text-rose-600/80 dark:text-rose-400/80"
-          >
+        <ul v-if="serverDetails.length" class="mt-1 space-y-1">
+          <li v-for="detail in serverDetails" :key="detail" class="text-[12px]">
             · {{ detail }}
           </li>
         </ul>
-      </div>
+      </UAlert>
 
       <!-- 主按钮 -->
-      <button
+      <UButton
         type="submit"
-        class="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-500 text-[14px] font-medium text-white shadow-lg shadow-brand-500/20 transition-all duration-200 hover:bg-brand-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-        :disabled="submitting"
+        block
+        size="lg"
+        :loading="submitting"
+        :icon="
+          submitting
+            ? undefined
+            : mode === 'register'
+              ? 'i-lucide-user-plus'
+              : 'i-lucide-log-in'
+        "
       >
-        <Loader2 v-if="submitting" :size="16" class="animate-spin" />
-        <UserPlus v-else-if="mode === 'register'" :size="16" />
-        <LogIn v-else :size="16" />
         {{ submitting ? '处理中…' : mode === 'login' ? '登录' : '创建账号' }}
-      </button>
+      </UButton>
+    </UForm>
 
-      <!-- 辅助文案 -->
-      <p class="pt-1 text-center text-[12.5px] text-slate-500 dark:text-slate-400">
-        <template v-if="mode === 'login'">
-          还没有账号？
-          <button
-            type="button"
-            class="cursor-pointer font-medium text-brand-600 hover:underline dark:text-brand-400"
-            @click="switchMode('register')"
-          >
-            立即注册
-          </button>
-        </template>
-        <template v-else>
-          已经有账号了？
-          <button
-            type="button"
-            class="cursor-pointer font-medium text-brand-600 hover:underline dark:text-brand-400"
-            @click="switchMode('login')"
-          >
-            去登录
-          </button>
-        </template>
-      </p>
-    </form>
+    <!-- 辅助文案 -->
+    <p class="pt-4 text-center text-[12.5px] text-muted">
+      <template v-if="mode === 'login'">
+        还没有账号？
+        <UButton variant="link" color="primary" size="xs" @click="switchMode('register')">
+          立即注册
+        </UButton>
+      </template>
+      <template v-else>
+        已经有账号了？
+        <UButton variant="link" color="primary" size="xs" @click="switchMode('login')">
+          去登录
+        </UButton>
+      </template>
+    </p>
 
     <!-- 安全说明：这里描述的都是**本阶段已经真正实现**的行为 -->
-    <div
-      class="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5"
-    >
-      <p class="text-[12px] font-medium tracking-wide text-slate-500 dark:text-slate-400">
-        这个登录是怎么保护你的
-      </p>
-      <ul class="mt-2 space-y-1.5 text-[12px] leading-6 text-slate-500 dark:text-slate-400">
+    <UCard class="mt-8" :ui="{ body: 'p-4' }">
+      <p class="text-[12px] font-medium tracking-wide text-muted">这个登录是怎么保护你的</p>
+      <ul class="mt-2 space-y-1.5 text-[12px] leading-6 text-muted">
         <li>· 密码用 bcrypt 哈希后入库，数据库里看不到明文</li>
         <li>· Access Token 只存在内存里，刷新页面即失效（15 分钟）</li>
         <li>· Refresh Token 放进 httpOnly Cookie，JavaScript 读不到（7 天）</li>
         <li>· 两个 Token 用不同密钥签发，Access 无法当 Refresh 用</li>
         <li>· 前端校验只为体验，真正的校验在后端再做了一遍</li>
       </ul>
-    </div>
+    </UCard>
   </div>
 </template>

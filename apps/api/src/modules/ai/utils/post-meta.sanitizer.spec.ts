@@ -9,7 +9,7 @@ import { describeError, redactApiKey, sanitizePostMeta } from './post-meta.sanit
  * 却把 AI 功能**最真实的风险**（调用成功但结果不可用）全部覆盖了。
  *
  * 对比一下：如果这段逻辑还留在 AiService 里，
- * 要测它就得先伪造一个 ChatZhipuAI 实例 —— 成本高到大多数人会放弃。
+ * 要测它就得先伪造一个模型客户端实例 —— 成本高到大多数人会放弃。
  */
 describe('sanitizePostMeta', () => {
   it('正常输入：摘要与标签原样通过', () => {

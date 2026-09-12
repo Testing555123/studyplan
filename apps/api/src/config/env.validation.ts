@@ -14,7 +14,7 @@ import { IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } 
  *   阶段 1 只要求 PORT
  *   阶段 3 追加 MONGODB_URI
  *   阶段 5 追加两个 JWT 密钥
- *   阶段 7 会追加 ZHIPUAI_API_KEY
+ *   阶段 7 追加 AI 供应商的 Key（智谱 GLM → 现为 NVIDIA NIM 的 NVNIM_API_KEY）
  *
  * 这也是一种规划：**不要一开始就把所有变量都列成必填**，
  * 否则你在阶段 1 就会被一堆还没用到的配置拦住。
@@ -99,28 +99,47 @@ export class EnvironmentVariables {
   COOKIE_SAME_SITE: string = 'lax'
 
   // ────────────────────────────────────────────────────────────────
-  // 阶段 7：AI 能力（智谱 GLM）
+  // AI 能力（NVIDIA NIM）
   //
-  // ⚠️ 注意 ZHIPUAI_API_KEY 是**可选**的 —— 这与 MONGODB_URI 的处理
+  // ⚠️ 注意 NVNIM_API_KEY 是**可选**的 —— 这与 MONGODB_URI 的处理
   //    刻意不同，而这个区别本身就是一条重要的设计经验：
   //
   //      · 数据库是**核心依赖**：没有它，这个后端没有任何存在意义
   //        → 必须 fail fast，启动时就崩；
-  //      · AI 是**增强功能**：没有它，应用依然完整可用（只是没有摘要）
+  //      · AI 是**增强功能**：没有它，应用依然完整可用（只是没有摘要与问答）
   //        → 降级运行，并在日志里说清楚。
   //
   //    "哪些依赖必须存在"是一个**产品判断**，不是一个技术判断。
   //    把增强功能也做成硬依赖，等于用一个可选项卡住了整个系统 ——
   //    新人第一次跑项目时，会因为没填一个他根本不需要的 Key 而完全跑不起来。
+  //
+  // 供应商沿革：这里原本是智谱 GLM，需要 LangChain 三件套 + zod；
+  // 换成 NIM 之后因为它是 **OpenAI 兼容接口**，用 Node 内置 fetch 就能调，
+  // 那几个依赖就全都不需要了 —— 这是"选对供应商也能简化架构"的现成例子。
   // ────────────────────────────────────────────────────────────────
 
   @IsOptional()
   @IsString()
-  ZHIPUAI_API_KEY?: string
+  NVNIM_API_KEY?: string
 
+  /**
+   * 模型名。
+   *
+   * ⚠️ **必须可配，绝不能写死**：NV NIM 的模型会下线。
+   * 实测请求 `meta/llama-3.1-8b-instruct` 返回 410 Gone，正文写着
+   * "has reached its end of life on 2026-08-26T09:00:00Z and is no longer available"。
+   * 写死模型名的代码会在某一天毫无征兆地全线报错。
+   *
+   * 当前默认取 `openai/gpt-oss-20b` —— 它是实测中**产出答案最快**的
+   * （约 36 字/秒）。别被名字误导：先前默认的 `deepseek-v4-flash-0731`
+   * 虽然带 "flash"，却是推理模型，思考链能占掉一半以上输出，
+   * 简单问题 22 秒、复杂问题直接撞 60 秒超时。
+   *
+   * 可用模型清单可随时查询：GET https://integrate.api.nvidia.com/v1/models
+   */
   @IsOptional()
   @IsString()
-  ZHIPUAI_MODEL: string = 'glm-4-flash'
+  NVNIM_MODEL: string = 'openai/gpt-oss-20b'
 
   /**
    * AI 单次调用超时（毫秒）。
@@ -131,9 +150,61 @@ export class EnvironmentVariables {
    */
   @IsOptional()
   @IsInt()
-  @Min(1000, { message: 'ZHIPUAI_TIMEOUT_MS 至少 1000 毫秒' })
-  @Max(60000, { message: 'ZHIPUAI_TIMEOUT_MS 最多 60000 毫秒' })
-  ZHIPUAI_TIMEOUT_MS: number = 15000
+  @Min(1000, { message: 'NVNIM_TIMEOUT_MS 至少 1000 毫秒' })
+  @Max(60000, { message: 'NVNIM_TIMEOUT_MS 最多 60000 毫秒' })
+  NVNIM_TIMEOUT_MS: number = 25000
+
+  /**
+   * 每日调用上限（命中缓存的请求不计）。
+   *
+   * 为什么需要它？因为 AI 对**所有人开放**，而 NIM 的免费额度有限
+   * （公开资料约 40 RPM，且按 token 计费）。没有这道闸，
+   * 链接一旦被分享出去，额度可能在几小时内耗尽。
+   *
+   * 这是"产品决策（对所有人开放）必须配一个技术手段兜底"的典型例子。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: 'NVNIM_DAILY_LIMIT 至少为 1' })
+  @Max(100000, { message: 'NVNIM_DAILY_LIMIT 过大' })
+  NVNIM_DAILY_LIMIT: number = 300
+
+  // ────────────────────────────────────────────────────────────────
+  // GitHub 热门项目榜
+  //
+  // 两个变量都是**可选**的 —— 与上面的 AI 配置同理：
+  // 榜单是增强功能，没有 Token 也能跑（只是限流从 30 次/分钟
+  // 降到 10 次/分钟），没配缓存时长就用默认的 6 小时。
+  // ────────────────────────────────────────────────────────────────
+
+  /**
+   * GitHub 个人访问令牌（可选）。
+   *
+   * ⚠️ 注意它对限流的提升**远不如想象中大**：
+   *   Search API 独立限流 —— 未认证 10 次/分钟，认证后**只有 30 次/分钟**，
+   *   而不是 core 接口的 5000 次/小时。
+   *
+   * 所以这个 Token 是"锦上添花"，真正保证不撞限流的是
+   * Service 层的缓存与最小刷新间隔。别指望配了它就能随便刷。
+   *
+   * 只需要 public_repo 级别的只读权限；如果只查公开仓库，
+   * 实际上不配置也能正常工作。
+   */
+  @IsOptional()
+  @IsString()
+  GITHUB_TOKEN?: string
+
+  /**
+   * 榜单缓存的软过期时长（分钟）。
+   *
+   * 下限 5 分钟是防止有人配成 0 导致每次请求都打上游；
+   * 上限 7 天则是因为再久就称不上"热门榜"了。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(5, { message: 'GITHUB_TRENDING_CACHE_TTL_MINUTES 至少 5 分钟' })
+  @Max(10080, { message: 'GITHUB_TRENDING_CACHE_TTL_MINUTES 最多 10080 分钟（7 天）' })
+  GITHUB_TRENDING_CACHE_TTL_MINUTES: number = 360
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

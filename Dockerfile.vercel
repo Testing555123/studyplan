@@ -75,6 +75,26 @@ ENV VITEPRESS_BASE=$VITEPRESS_BASE
 # 电子书不依赖 shared，放在最后只是为了让它的失败不影响前面几层的缓存复用。
 RUN pnpm --filter @studyplan/shared build
 RUN pnpm --filter @studyplan/api build
+
+# 代码索引（供 AI 助手回答"这段代码为什么这样写"）的生成，
+# 已并入 @studyplan/api 的 build 脚本，让本地 `pnpm build` 与容器构建
+# 行为完全一致。
+#
+# 为什么值得专门说这件事：它此前**只**写在这个 Dockerfile 里，
+# 于是本地开发时索引文件根本不存在 —— 而失败方式极其隐蔽：
+# 不报错、不崩溃，只是 AI 回答变成"资料中没有提到"。
+# "同一件事在两个环境里各写一遍"，就是这种 bug 的温床。
+#
+# ⚠️ 为什么必须紧跟 api 构建：产物落在 apps/api/dist/code-index.json，
+#    而 `nest build` 会清空 dist —— 生成早于构建，索引会被随之删掉，
+#    同样不报错，只在运行时表现为"找不到索引文件"。
+#
+# 为什么要构建期生成？因为运行层**没有源码**（见上面"只搬构建产物"的说明），
+# 运行时读文件这条路根本走不通。
+#
+# 产物随 apps/api/dist 一起被 COPY 进运行层，无需额外 COPY。
+RUN pnpm --filter @studyplan/api build
+
 RUN pnpm --filter @studyplan/web build
 RUN pnpm --filter @studyplan/docs build
 

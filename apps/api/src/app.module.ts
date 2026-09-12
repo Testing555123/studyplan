@@ -7,6 +7,7 @@ import { validateEnv } from './config/env.validation'
 import { AiModule } from './modules/ai/ai.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { CommentsModule } from './modules/comments/comments.module'
+import { GithubModule } from './modules/github/github.module'
 import { HealthController } from './modules/health/health.controller'
 import { LikesModule } from './modules/likes/likes.module'
 import { PostsModule } from './modules/posts/posts.module'
@@ -138,6 +139,11 @@ import { UsersModule } from './modules/users/users.module'
      * 在这里注册一次即可，其它模块通过 imports AiModule 使用它。
      */
     AiModule,
+    /**
+     * GitHub 热门项目榜。
+     * 它自己带缓存 Model，不依赖其它业务模块，与其它模块也没有交集。
+     */
+    GithubModule,
   ],
   controllers: [HealthController],
 })

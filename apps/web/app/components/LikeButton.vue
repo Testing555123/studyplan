@@ -60,25 +60,28 @@ const iconSize = computed(() => (props.size === 'sm' ? 14 : 17))
 </script>
 
 <template>
-  <button
-    type="button"
-    class="group inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all duration-200 active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-60"
-    :class="
-      liked
-        ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400'
-        : 'border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:text-rose-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-300'
-    "
+  <!--
+    过去这里手写了一整串边框/背景/文字颜色，还要各配一套 dark: 变体。
+    改成 UButton 之后，选中态用 color="error"（语义色，自动适配明暗），
+    未选中用 color="neutral" + variant="outline"，一套就够。
+  -->
+  <UButton
+    :variant="liked ? 'soft' : 'outline'"
+    :color="liked ? 'error' : 'neutral'"
+    size="sm"
+    class="rounded-full"
     :disabled="pending"
     :aria-pressed="liked"
     @click="onClick"
   >
-    <Heart
-      :size="iconSize"
-      :fill="liked ? 'currentColor' : 'none'"
-      :class="popping ? 'animate-pop' : ''"
-      class="transition-transform duration-200 group-hover:scale-110"
-    />
+    <template #leading>
+      <Heart
+        :size="iconSize"
+        :fill="liked ? 'currentColor' : 'none'"
+        :class="popping ? 'animate-pop' : ''"
+      />
+    </template>
     <span class="tabular-nums">{{ count }}</span>
     <span class="sr-only">{{ liked ? '取消点赞' : '点赞' }}</span>
-  </button>
+  </UButton>
 </template>

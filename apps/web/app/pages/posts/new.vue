@@ -11,15 +11,7 @@
  *      前端连"我是谁"都不需要告诉后端（那是 Token 已经证明过的事）。
  *   3. 校验规则来自 `packages/shared`，与后端 DTO 用的是同一批常量。
  */
-import {
-  AlertCircle,
-  Eye,
-  Lightbulb,
-  Loader2,
-  PenLine,
-  Sparkles,
-  X,
-} from 'lucide-vue-next'
+import { Eye } from 'lucide-vue-next'
 import type { Post } from '@studyplan/shared'
 import {
   CONTENT_MAX_LENGTH,
@@ -84,7 +76,7 @@ const canPublish = computed(() => errors.value.length === 0 && !publishing.value
 const previewHtml = computed(() =>
   form.content.trim()
     ? render(form.content)
-    : '<p class="text-slate-400">左侧开始写，这里会实时出现渲染结果。</p>',
+    : '<p class="text-dimmed">左侧开始写，这里会实时出现渲染结果。</p>',
 )
 
 function toggleTag(tag: string): void {
@@ -159,8 +151,8 @@ async function publish(): Promise<void> {
   <div class="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
     <!-- 页头 -->
     <header class="pt-10 pb-6">
-      <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">写文章</h1>
-      <p class="mt-1.5 text-[13.5px] text-slate-500 dark:text-slate-400">
+      <h1 class="text-2xl font-semibold tracking-tight text-highlighted">写文章</h1>
+      <p class="mt-1.5 text-[13.5px] text-muted">
         用 Markdown 撰写。右侧实时预览的效果，与你发布后读者看到的完全一致。
       </p>
     </header>
@@ -170,23 +162,18 @@ async function publish(): Promise<void> {
       <section class="space-y-5" :class="mobilePane === 'edit' ? 'block' : 'hidden lg:block'">
         <!-- 标题 -->
         <div>
-          <label for="title" class="sr-only">标题</label>
-          <input
-            id="title"
+          <UInput
             v-model="form.title"
-            type="text"
             :maxlength="TITLE_MAX_LENGTH + 20"
             placeholder="给文章起一个能让人想点开的标题"
-            class="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-[17px] font-medium text-slate-900 shadow-none transition-colors placeholder:font-normal placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none dark:border-white/10 dark:bg-[#16161d] dark:text-white dark:hover:border-white/20"
+            aria-label="标题"
+            size="lg"
+            class="w-full"
           />
           <div class="mt-1.5 flex justify-end">
             <span
               class="text-[12px] tabular-nums"
-              :class="
-                titleLength > TITLE_MAX_LENGTH
-                  ? 'text-rose-500'
-                  : 'text-slate-400 dark:text-slate-500'
-              "
+              :class="titleLength > TITLE_MAX_LENGTH ? 'text-error' : 'text-dimmed'"
             >
               {{ titleLength }} / {{ TITLE_MAX_LENGTH }}
             </span>
@@ -195,26 +182,19 @@ async function publish(): Promise<void> {
 
         <!-- 正文 -->
         <div>
-          <label for="content" class="sr-only">正文（Markdown）</label>
-          <textarea
-            id="content"
+          <UTextarea
             v-model="form.content"
-            rows="20"
+            :rows="20"
             :maxlength="CONTENT_MAX_LENGTH + 200"
             placeholder="## 小标题&#10;&#10;正文内容…支持 `行内代码`、```ts 代码块```、> 引用、- 列表&#10;&#10;> 提示：写完记得看看右侧预览里的代码块排版"
-            class="w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 font-mono text-[13.5px] leading-7 text-slate-800 shadow-none transition-colors placeholder:font-sans placeholder:text-slate-400 hover:border-slate-300 focus:border-brand-500 focus:outline-none dark:border-white/10 dark:bg-[#16161d] dark:text-slate-100 dark:hover:border-white/20"
+            aria-label="正文（Markdown）"
+            class="w-full font-mono text-[13.5px] leading-7"
           />
           <div class="mt-1.5 flex justify-between">
-            <span class="text-[12px] text-slate-400 dark:text-slate-500">
-              最少 {{ CONTENT_MIN_LENGTH }} 字
-            </span>
+            <span class="text-[12px] text-dimmed">最少 {{ CONTENT_MIN_LENGTH }} 字</span>
             <span
               class="text-[12px] tabular-nums"
-              :class="
-                contentLength > CONTENT_MAX_LENGTH
-                  ? 'text-rose-500'
-                  : 'text-slate-400 dark:text-slate-500'
-              "
+              :class="contentLength > CONTENT_MAX_LENGTH ? 'text-error' : 'text-dimmed'"
             >
               {{ contentLength }} 字
             </span>
@@ -224,119 +204,108 @@ async function publish(): Promise<void> {
         <!-- 标签 -->
         <div>
           <div class="mb-2.5 flex items-center justify-between">
-            <span class="text-[13px] font-medium text-slate-700 dark:text-slate-200">标签</span>
-            <span class="text-[12px] text-slate-400 dark:text-slate-500">
+            <span class="text-[13px] font-medium text-toned">标签</span>
+            <span class="text-[12px] text-dimmed">
               已选 {{ form.tags.length }} / {{ MAX_TAGS_PER_POST }}
             </span>
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button
+            <UButton
               v-for="tag in POST_TAGS"
               :key="tag"
-              type="button"
-              class="tag-pill"
-              :class="form.tags.includes(tag) ? 'tag-pill-active' : 'tag-pill-idle'"
+              size="xs"
+              :variant="form.tags.includes(tag) ? 'solid' : 'outline'"
+              :color="form.tags.includes(tag) ? 'primary' : 'neutral'"
+              class="rounded-full"
               @click="toggleTag(tag)"
             >
               {{ tag }}
-            </button>
+            </UButton>
           </div>
 
           <!-- 已选标签可单独移除：比"再点一次那个标签"更直观 -->
           <div v-if="form.tags.length" class="mt-3 flex flex-wrap gap-2">
-            <span
+            <UButton
               v-for="tag in form.tags"
               :key="`selected-${tag}`"
-              class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-[12px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300"
+              size="xs"
+              color="primary"
+              variant="soft"
+              icon="i-lucide-x"
+              :aria-label="`移除标签 ${tag}`"
+              @click="toggleTag(tag)"
             >
               {{ tag }}
-              <button
-                type="button"
-                class="cursor-pointer rounded-full p-0.5 transition-colors hover:bg-brand-200/60 dark:hover:bg-brand-500/20"
-                :aria-label="`移除标签 ${tag}`"
-                @click="toggleTag(tag)"
-              >
-                <X :size="11" />
-              </button>
-            </span>
+            </UButton>
           </div>
         </div>
 
-        <!-- AI 说明面板 -->
-        <div class="ai-panel">
-          <div class="flex items-start gap-3">
-            <span
-              class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-ai-500/15 text-ai-700 dark:text-ai-500"
-            >
-              <Sparkles :size="14" />
-            </span>
-            <div>
-              <p class="text-[12px] font-medium tracking-wide text-ai-700 dark:text-ai-500">
-                发布后自动完成
-              </p>
-              <p class="mt-1.5 text-[13px] leading-6 text-slate-700 dark:text-slate-300">
-                系统会读取标题与正文，自动生成一句话摘要和推荐标签。
-                （该功能当前停用：相关依赖已移除，发帖与其他功能不受影响。）
-              </p>
-              <p class="mt-1.5 text-[12px] leading-6 text-slate-500 dark:text-slate-400">
-                它走旁路：<strong class="font-medium">不会拖慢发布，也不会让发布失败</strong>。
-                如果生成失败，你的文章照样发布成功，只是没有摘要。
-                所以点完发布可以直接跳转，摘要会稍后出现在详情页。
-              </p>
-            </div>
-          </div>
-        </div>
+        <!--
+          AI 说明面板。
+          图标单独染成紫罗兰 —— 那是全站 AI 相关内容的强调色，
+          与青蓝主色形成冷暖对比，一眼就能认出"这块跟 AI 有关"。
+          其余样式交给 UAlert，不另造一套卡片。
+        -->
+        <UAlert
+          color="info"
+          variant="soft"
+          icon="i-lucide-sparkles"
+          title="发布后自动完成"
+          :ui="{ icon: 'text-violet-500' }"
+        >
+          <template #description>
+            <p class="text-[13px] leading-6">
+              系统会读取标题与正文，自动生成一句话摘要和推荐标签。
+            </p>
+            <p class="mt-1.5 text-[12px] leading-6">
+              它走旁路：<strong class="font-medium">不会拖慢发布，也不会让发布失败</strong>。
+              如果生成失败，你的文章照样发布成功，只是没有摘要。
+              所以点完发布可以直接跳转，摘要会稍后出现在详情页。
+            </p>
+          </template>
+        </UAlert>
 
         <!-- 校验错误 -->
-        <ul v-if="visibleErrors.length" class="space-y-1.5">
-          <li
-            v-for="error in visibleErrors"
-            :key="error"
-            class="flex items-center gap-2 text-[13px] text-rose-600 dark:text-rose-400"
-          >
-            <AlertCircle :size="14" />
-            {{ error }}
-          </li>
-        </ul>
+        <UAlert
+          v-if="visibleErrors.length"
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-circle"
+          title="还有几处需要修改"
+        >
+          <ul class="mt-1 space-y-1">
+            <li v-for="error in visibleErrors" :key="error" class="text-[13px]">
+              · {{ error }}
+            </li>
+          </ul>
+        </UAlert>
 
         <!-- 发布结果（失败时展示） -->
-        <div
+        <UAlert
           v-if="result && !result.ok"
-          class="flex items-start gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-500/5"
-        >
-          <Lightbulb class="mt-0.5 shrink-0 text-amber-500" :size="17" />
-          <p class="text-[13px] leading-6 text-slate-700 dark:text-slate-300">
-            {{ result.message }}
-          </p>
-        </div>
+          color="warning"
+          variant="soft"
+          icon="i-lucide-lightbulb"
+          :description="result.message"
+        />
 
         <!-- 操作区 -->
-        <div
-          class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5 dark:border-white/5"
-        >
-          <button
-            type="button"
-            class="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-brand-500 px-6 text-sm font-medium text-white shadow-lg shadow-brand-500/20 transition-all duration-200 hover:bg-brand-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-            :disabled="publishing"
+        <div class="flex flex-wrap items-center gap-3 border-t border-default pt-5">
+          <UButton
+            size="lg"
+            icon="i-lucide-pen-line"
+            :loading="publishing"
             @click="publish"
           >
-            <Loader2 v-if="publishing" :size="16" class="animate-spin" />
-            <PenLine v-else :size="16" />
             {{ publishing ? '发布中…' : '发布文章' }}
-          </button>
+          </UButton>
 
-          <button
-            type="button"
-            class="inline-flex h-11 cursor-pointer items-center rounded-xl border border-slate-200 px-5 text-sm font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:text-slate-300 dark:hover:border-white/20"
-            @click="resetForm"
-          >
+          <UButton size="lg" color="neutral" variant="outline" @click="resetForm">
             清空
-          </button>
+          </UButton>
 
-          <span class="text-[12px] text-slate-400 dark:text-slate-500">
-            作者信息由登录凭证决定，无法手动指定
-          </span>
+          <span class="text-[12px] text-dimmed">作者信息由登录凭证决定，无法手动指定</span>
         </div>
       </section>
 
@@ -344,74 +313,67 @@ async function publish(): Promise<void> {
       <section :class="mobilePane === 'preview' ? 'block' : 'hidden lg:block'">
         <div class="sticky top-24">
           <div class="mb-2.5 flex items-center justify-between">
-            <span
-              class="inline-flex items-center gap-1.5 text-[13px] font-medium text-slate-700 dark:text-slate-200"
-            >
+            <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-toned">
               <Eye :size="14" />
               实时预览
             </span>
-            <span class="text-[12px] text-slate-400 dark:text-slate-500">与读者看到的一致</span>
+            <span class="text-[12px] text-dimmed">与读者看到的一致</span>
           </div>
 
-          <div
-            class="max-h-[calc(100vh-10rem)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-[#16161d]"
-          >
+          <UCard :ui="{ body: 'p-6 max-h-[calc(100vh-10rem)] overflow-y-auto' }">
             <h1
               v-if="form.title"
-              class="text-[22px] leading-tight font-semibold tracking-tight text-slate-900 dark:text-white"
+              class="text-[22px] leading-tight font-semibold tracking-tight text-highlighted"
             >
               {{ form.title }}
             </h1>
-            <p
-              v-else
-              class="text-[22px] leading-tight font-semibold text-slate-300 dark:text-slate-600"
-            >
+            <p v-else class="text-[22px] leading-tight font-semibold text-dimmed">
               文章标题会出现在这里
             </p>
 
             <div v-if="form.tags.length" class="mt-3 flex flex-wrap gap-2">
-              <span v-for="tag in form.tags" :key="`preview-${tag}`" class="tag-pill tag-pill-idle">
+              <UBadge
+                v-for="tag in form.tags"
+                :key="`preview-${tag}`"
+                variant="subtle"
+                color="neutral"
+                size="xs"
+              >
                 {{ tag }}
-              </span>
+              </UBadge>
             </div>
 
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="prose-post mt-6" v-html="previewHtml" />
-          </div>
+          </UCard>
         </div>
       </section>
     </div>
 
     <!-- 移动端切换：桌面端隐藏 -->
     <div
-      class="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/90 backdrop-blur-xl lg:hidden dark:border-white/10 dark:bg-[#0d0d12]/90"
+      class="fixed inset-x-0 bottom-0 z-40 flex border-t border-default bg-default/90 backdrop-blur-xl lg:hidden"
     >
-      <button
-        type="button"
-        class="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-3.5 text-[13px] font-medium transition-colors"
-        :class="
-          mobilePane === 'edit'
-            ? 'text-brand-600 dark:text-brand-400'
-            : 'text-slate-500 dark:text-slate-400'
-        "
+      <UButton
+        class="flex-1 justify-center rounded-none py-3.5"
+        :variant="mobilePane === 'edit' ? 'soft' : 'ghost'"
+        :color="mobilePane === 'edit' ? 'primary' : 'neutral'"
+        icon="i-lucide-pen-line"
+        block
         @click="mobilePane = 'edit'"
       >
-        <PenLine :size="15" />
         编辑
-      </button>
-      <button
-        type="button"
-        class="flex flex-1 cursor-pointer items-center justify-center gap-1.5 py-3.5 text-[13px] font-medium transition-colors"
-        :class="
-          mobilePane === 'preview'
-            ? 'text-brand-600 dark:text-brand-400'
-            : 'text-slate-500 dark:text-slate-400'
-        "
+      </UButton>
+      <UButton
+        class="flex-1 justify-center rounded-none py-3.5"
+        :variant="mobilePane === 'preview' ? 'soft' : 'ghost'"
+        :color="mobilePane === 'preview' ? 'primary' : 'neutral'"
+        icon="i-lucide-eye"
+        block
         @click="mobilePane = 'preview'"
       >
-        <Eye :size="15" />
         预览
-      </button>
+      </UButton>
     </div>
 
     <!-- 给移动端底部切换条让出空间 -->
