@@ -16,19 +16,26 @@
  *   —— 少一个组件，就少一处只能靠文档才能排错的地方。
  *
  * 路径约定：
- *   /api/**  → 后端（含统一响应包装、限流、健康检查）
- *   /docs**  → 后端（Swagger，生产由网关加口令保护）
- *   其余     → 前端（SSR 页面与静态资源）
+ *   /ebook/** → 电子书（VitePress 静态产物，由本文件里的静态服务直接读盘返回，
+ *               **不经过任何子进程**，所以它在冷启动期间也是立刻可用的）
+ *   /api/**   → 后端（含统一响应包装、限流、健康检查）
+ *   /docs**   → 后端（Swagger）
+ *   其余      → 前端（SSR 页面与静态资源）
  *
  * 环境变量：
  *   PORT                对外端口（**平台要求**，Vercel 默认 80）
  *   API_INTERNAL_PORT   后端内部端口，默认 3000
  *   WEB_INTERNAL_PORT   前端内部端口，默认 3001
+ *   EBOOK_PREFIX        电子书挂载前缀，默认 /ebook
+ *   EBOOK_DIR           电子书产物目录，默认相对于本文件所在目录
  */
 
+import fs from 'node:fs'
 import http from 'node:http'
 import net from 'node:net'
+import path from 'node:path'
 import { spawn } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 const PORT = Number(process.env.PORT ?? 80)
 const API_PORT = Number(process.env.API_INTERNAL_PORT ?? 3000)
@@ -36,6 +43,18 @@ const WEB_PORT = Number(process.env.WEB_INTERNAL_PORT ?? 3001)
 
 /** 需要打到后端的路径前缀。加 /docs 是为了让 Swagger 也能被访问与验证。 */
 const API_PREFIXES = ['/api', '/docs']
+
+/**
+ * 电子书（VitePress 静态产物）的挂载前缀与磁盘目录。
+ *
+ * 为什么用 `import.meta.url` 而不是 `process.cwd()` 来定位目录？
+ *   前者是"本文件所在位置"，与启动时的工作目录无关；而工作目录会被
+ *   平台、命令写法、容器编排改变。静态资源的根目录必须钉死在文件位置上，
+ *   否则换个启动方式就整站 404。
+ */
+const APP_ROOT = path.dirname(fileURLToPath(import.meta.url))
+const EBOOK_PREFIX = (process.env.EBOOK_PREFIX ?? '/ebook').replace(/\/+$/, '') || '/ebook'
+const EBOOK_DIR = process.env.EBOOK_DIR ?? path.join(APP_ROOT, 'apps/docs/.vitepress/dist')
 
 const children = []
 
@@ -151,11 +170,158 @@ async function waitUntilReady(port, timeoutMs = 20_000) {
  * 3) 对外监听，按路径分流
  * ------------------------------------------------------------- */
 
+/* ---------------------------------------------------------------
+ * 电子书的静态文件服务（零依赖，只用 node:fs）
+ * ------------------------------------------------------------- */
+
+/** 够用就好：没命中就退回 application/octet-stream，不猜 */
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.map': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+}
+
+/** EBOOK_DIR 可能来自环境变量（相对路径），这里统一成绝对路径供安全校验使用 */
+const EBOOK_ROOT = path.resolve(EBOOK_DIR)
+
+function isEbookPath(url = '/') {
+  return url === EBOOK_PREFIX || url.startsWith(`${EBOOK_PREFIX}/`) || url.startsWith(`${EBOOK_PREFIX}?`)
+}
+
+/**
+ * 把请求路径解析成一个**确定落在 EBOOK_ROOT 之内**的文件路径。
+ *
+ * ⚠️ 这里是本文件唯一的安全面：静态服务一旦可被 `..` 穿越，
+ *    等于把整个镜像的文件系统（含 .env、含源码）对外暴露。
+ *    所以规矩是"先规范化、再校验前缀"，任何一步不满足就直接拒绝 ——
+ *    而不是"先读读看、出错再说"。
+ */
+async function resolveEbookFile(rawUrl) {
+  const rawPath = rawUrl.split('?')[0].split('#')[0]
+
+  let rel
+  try {
+    // 先解码再判断：这样 %2e%2e 这类编码形态会还原成 .. 并被下面的校验拦下
+    rel = decodeURIComponent(rawPath.slice(EBOOK_PREFIX.length))
+  } catch {
+    return null // 非法的百分号编码
+  }
+
+  if (rel === '') rel = '/'
+  if (!rel.startsWith('/')) rel = `/${rel}`
+  if (rel.includes('\0')) return null
+
+  /**
+   * 三级兜底（顺序固定）：
+   *   1. 精确文件
+   *   2. 追加 .html   —— VitePress 产物是 guide/roadmap.html 形态，
+   *                      少了这一步就会出现"不带 .html 就 404"
+   *   3. 当目录取 index.html
+   */
+  const trimmed = rel.replace(/\/+$/, '')
+  const candidates = [rel, `${trimmed}.html`, `${trimmed}/index.html`]
+
+  for (const candidate of candidates) {
+    // `'.' + candidate` 让它成为相对路径：若含 ../ 就会跳出 EBOOK_ROOT，
+    // 被紧随其后的前缀校验拦下，绝不会落盘读取
+    const filePath = path.resolve(EBOOK_ROOT, `.${candidate}`)
+    if (filePath !== EBOOK_ROOT && !filePath.startsWith(EBOOK_ROOT + path.sep)) continue
+
+    try {
+      const stat = await fs.promises.stat(filePath)
+      if (stat.isFile()) return filePath
+    } catch {
+      // 该候选不存在不是错误，继续试下一个
+    }
+  }
+
+  return null
+}
+
+async function serveEbook(req, res) {
+  // 静态资源只接受读请求
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.writeHead(405, { allow: 'GET, HEAD', 'content-type': 'text/plain; charset=utf-8' })
+    res.end('电子书只支持 GET / HEAD')
+    return
+  }
+
+  const filePath = await resolveEbookFile(req.url ?? '/')
+
+  if (!filePath) {
+    // 兜底到 VitePress 自己生成的 404 页面（它也在产物里）
+    try {
+      const html = await fs.promises.readFile(path.join(EBOOK_ROOT, '404.html'))
+      res.writeHead(404, { 'content-type': MIME_TYPES['.html'], 'cache-control': 'no-cache' })
+      if (req.method === 'HEAD') res.end()
+      else res.end(html)
+    } catch {
+      res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' })
+      res.end('电子书页面不存在')
+    }
+    return
+  }
+
+  /**
+   * 缓存分两档：
+   *   · assets/ 下的文件名带内容哈希 → 可以长缓存（改版会换文件名，不会读到旧的）
+   *   · HTML 用 no-cache → 否则改版后用户会拿到旧页面
+   */
+  const isHashedAsset = filePath.startsWith(path.join(EBOOK_ROOT, 'assets') + path.sep)
+  const headers = {
+    'content-type': MIME_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream',
+    'cache-control': isHashedAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
+  }
+
+  if (req.method === 'HEAD') {
+    res.writeHead(200, headers)
+    res.end()
+    return
+  }
+
+  res.writeHead(200, headers)
+  const stream = fs.createReadStream(filePath)
+  // 头已经发出去了，这里改不了状态码 —— 直接断开，让客户端看到连接中断
+  stream.on('error', (error) => {
+    console.error(`[entrypoint] 读取电子书文件失败 ${filePath}：${error.message}`)
+    res.destroy()
+  })
+  stream.pipe(res)
+}
+
 function isApiPath(url = '/') {
   return API_PREFIXES.some((prefix) => url === prefix || url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`))
 }
 
 const server = http.createServer(async (req, res) => {
+  /**
+   * ① 电子书静态资源 —— 判断放在最前面，而且**不等待任何子进程**。
+   *
+   * 为什么不走下面那条 `waitUntilReady`？
+   *   那是为"冷启动时后端还没起来"修的等待逻辑（最多等 20 秒）。
+   *   静态文件不依赖任何子进程 —— 让电子书也去等，等于给它平白
+   *   加上最多 20 秒延迟，且毫无理由。
+   */
+  if (isEbookPath((req.url ?? '/').split('?')[0])) {
+    await serveEbook(req, res)
+    return
+  }
+
   const targetPort = isApiPath(req.url) ? API_PORT : WEB_PORT
 
   /**
@@ -244,8 +410,22 @@ server.on('error', (error) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(
-    `[entrypoint] 监听 0.0.0.0:${PORT}｜${API_PREFIXES.join('、')} → ${API_PORT}｜其余 → ${WEB_PORT}`,
+    `[entrypoint] 监听 0.0.0.0:${PORT}｜${EBOOK_PREFIX} → 静态文件｜${API_PREFIXES.join('、')} → ${API_PORT}｜其余 → ${WEB_PORT}`,
   )
+
+  /**
+   * 顺手确认电子书产物在不在。
+   * 缺了它只会表现为"/ebook 全部 404"，而那时的日志里什么都看不出来 ——
+   * 与其让人去猜，不如启动时就把结论打出来。
+   */
+  fs.promises
+    .stat(path.join(EBOOK_ROOT, 'index.html'))
+    .then(() => console.log(`[entrypoint] 电子书目录：${EBOOK_ROOT}`))
+    .catch(() =>
+      console.error(
+        `[entrypoint] ⚠️ 电子书产物缺失：${EBOOK_ROOT}/index.html 不存在，/ebook 会全部 404`,
+      ),
+    )
 })
 
 // 监听已经生效，这里只是"事后探测"并给出可诊断的提示，不阻塞对外服务

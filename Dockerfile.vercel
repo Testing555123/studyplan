@@ -1,5 +1,11 @@
 # ============================================================
-#  Vercel 容器镜像（前端 SSR + 后端 API 同容器）
+#  Vercel 容器镜像（前端 SSR + 后端 API + 电子书，同一个容器）
+# ------------------------------------------------------------
+#  容器内提供三类内容：
+#    · NestJS 后端（内部 3000）        → /api、/docs
+#    · Nuxt SSR 前端（内部 3001）       → 其余路径
+#    · VitePress 电子书（纯静态文件）   → /ebook
+#      —— 静态产物由入口脚本直接读盘返回，**不额外起进程**
 # ------------------------------------------------------------
 #  为什么前后端放一个容器，而不是用平台的 services 拆成两个？
 #    平台的 `services` 用 `root` 把每个服务限定在子目录，
@@ -32,16 +38,21 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY apps/docs/package.json apps/docs/
 COPY packages/shared/package.json packages/shared/
-# 两个 --filter 是"或"的关系；`...` 后缀会把 workspace 内的 shared 一并装入
+# 多个 --filter 是"或"的关系；`...` 后缀会把 workspace 内的 shared 一并装入。
+# 电子书（@studyplan/docs）虽然不依赖任何 workspace 包，但它自己的构建依赖
+# （vitepress / mermaid）必须在这里装上 —— 它要在镜像里现场构建，见下面的 build 层。
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter @studyplan/api... --filter @studyplan/web...
+    pnpm install --frozen-lockfile \
+      --filter @studyplan/api... --filter @studyplan/web... --filter @studyplan/docs...
 
 # ---------- 构建层 ----------
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/apps/docs/node_modules ./apps/docs/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
 
@@ -52,10 +63,20 @@ COPY . .
 ARG NUXT_PUBLIC_API_BASE=/api
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 
-# 顺序不能反：shared 是 workspace 内部依赖，两个子包构建时读的都是它的 dist
+# 电子书挂在主站子路径下，产物里的资源引用必须带上前缀，否则浏览器会去
+# 请求 /assets/* 而落到 Nuxt 上 → 全部 404。
+# ⚠️ VitePress 的 base 必须**同时以 `/` 开头和结尾**（`/ebook/`）。
+#    而本地 base 是 `/`，所以配错只会在容器里暴露 —— 本地冒烟必须验证
+#    "页面里引用的资源 URL 能 200 拉回来"，不能只看首页打不打得开。
+ARG VITEPRESS_BASE=/ebook/
+ENV VITEPRESS_BASE=$VITEPRESS_BASE
+
+# 顺序不能反：shared 是 workspace 内部依赖，两个子包构建时读的都是它的 dist。
+# 电子书不依赖 shared，放在最后只是为了让它的失败不影响前面几层的缓存复用。
 RUN pnpm --filter @studyplan/shared build
 RUN pnpm --filter @studyplan/api build
 RUN pnpm --filter @studyplan/web build
+RUN pnpm --filter @studyplan/docs build
 
 # ---------- 后端生产依赖层 ----------
 # 与 deps 分开：这里只要 prod 依赖，镜像里不含 typescript / jest / nuxt 等
@@ -98,7 +119,12 @@ COPY --chown=node:node --from=build /app/apps/api/dist ./apps/api/dist
 COPY --chown=node:node --from=build /app/packages/shared/dist ./packages/shared/dist
 COPY --chown=node:node --from=build /app/apps/web/.output ./apps/web/.output
 
-# 入口脚本：监听 $PORT，把 /api、/docs 分流给后端，其余给前端
+# 电子书：纯静态产物（实测约 3 MB / 92 个文件）。
+# 它不需要 node_modules，也**不额外起进程** —— 由入口脚本直接读盘返回，
+# 所以它在冷启动期间也是立刻可用的（不依赖任何子进程就绪）。
+COPY --chown=node:node --from=build /app/apps/docs/.vitepress/dist ./apps/docs/.vitepress/dist
+
+# 入口脚本：监听 $PORT —— /ebook 交给静态服务，/api 与 /docs 分流给后端，其余给前端
 COPY --chown=node:node docker/vercel/entrypoint.mjs ./entrypoint.mjs
 
 # 不以 root 运行。平台沙箱本身有隔离，但"容器内也不用 root"

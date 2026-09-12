@@ -323,4 +323,4 @@ curl -x http://127.0.0.1:7897 https://studyplan-teal.vercel.app/api/health
 
 ---
 
-**回到上一篇**：[部署经验：上线时踩过的九个坑](./deployment-lessons)
+**回到上一篇**：[部署经验：上线时踩过的十个坑](./deployment-lessons)

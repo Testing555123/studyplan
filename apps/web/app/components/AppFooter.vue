@@ -17,7 +17,7 @@ const year = new Date().getFullYear()
 
       <div class="flex items-center gap-4">
         <a
-          href="http://localhost:3002"
+          href="/ebook/"
           target="_blank"
           rel="noopener"
           class="inline-flex items-center gap-1.5 transition-colors hover:text-brand-600 dark:hover:text-brand-400"

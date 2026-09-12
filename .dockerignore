@@ -36,8 +36,12 @@
 **/playwright-report
 **/.auth
 
-# 文档站不参与前后端构建（它有 21 个 md，体积虽小但无谓）
-apps/docs
+# 文档站（电子书）**要**参与构建 —— 线上通过 /ebook 访问：
+#   · Dockerfile.vercel 会构建它（pnpm --filter @studyplan/docs build）
+#   · docker/vercel/entrypoint.mjs 用零依赖静态服务提供产物
+# 它的构建产物 apps/docs/.vitepress/dist 已被上面的 **/dist 规则排除，
+# 镜像里会重新生成，所以不需要进上下文。
+# ⚠️ 不要把整个 apps/docs 排除掉 —— 那样源码与配置进不去，电子书会直接 404。
 
 # 本机 AI 助手状态
 .codebuddy

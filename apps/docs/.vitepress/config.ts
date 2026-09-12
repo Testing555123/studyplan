@@ -1,4 +1,25 @@
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { defineConfig } from 'vitepress'
+
+/**
+ * 仓库里有没有 `.git` —— 决定能否启用「最后更新于」。
+ *
+ * 为什么需要判断？VitePress 的 `lastUpdated` 会 **spawn git** 去读每个文件的
+ * 提交时间。而容器镜像里既没有 git 命令、也没有 `.git` 目录（两者都被有意排除，
+ * 否则构建上下文会膨胀到几百 MB），于是构建会直接失败：
+ *
+ *     [vitepress] spawn git ENOENT
+ *
+ * 与其"让人记得在构建时传一个环境变量把它关掉"（忘一次就构建失败），
+ * 不如让配置自己适应环境：有 `.git` 就启用，没有就自动关闭。
+ * 需要强制覆盖时用 `VITEPRESS_LAST_UPDATED=true|false`。
+ */
+const hasGit = existsSync(resolve(process.cwd(), '../../.git'))
+const lastUpdated =
+  process.env.VITEPRESS_LAST_UPDATED === undefined
+    ? hasGit
+    : process.env.VITEPRESS_LAST_UPDATED === 'true'
 
 /**
  * 电子书站点的配置。
@@ -12,10 +33,23 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   lang: 'zh-CN',
   title: 'studyplan 全栈实战',
+
+  /**
+   * 站点挂载路径（**必须以 `/` 开头、以 `/` 结尾**）。
+   *
+   * 本地保持默认的 `/`：pnpm dev:docs 仍然直接访问 http://localhost:3002。
+   * 线上容器构建时注入 VITEPRESS_BASE=/ebook/ —— 因为电子书与主站同域，
+   * 挂在子路径下（主站的 /docs 已被后端的 Swagger 占用）。
+   *
+   * ⚠️ 写成 `ebook` 或 `/ebook`（缺斜杠）会让全部资源 404。
+   *    而本地 base 是 `/`，所以这个错误**只在容器里才会暴露** ——
+   *    本地验证时必须检查"页面里引用的资源 URL 能否 200 拉回"，不能只看首页打不打得开。
+   */
+  base: process.env.VITEPRESS_BASE ?? '/',
   description: '从零到上线：Nuxt 4 + NestJS 11 + MongoDB Atlas 的边做边学电子书',
 
-  // 只对内容做"最后更新时间"标记，需要 Git 仓库已初始化
-  lastUpdated: true,
+  // 只对内容做「最后更新于」标记；它依赖 git，因此由上面的 hasGit 自动决定
+  lastUpdated,
 
   // VitePress 默认会把所有链接都做"死链检查"。
   // 但本电子书大量引用 http://localhost:3000/api 这类**本地开发地址**，
@@ -34,7 +68,7 @@ export default defineConfig({
       {
         text: '经验档案',
         items: [
-          { text: '部署经验：上线时踩过的九个坑', link: '/guide/deployment-lessons' },
+          { text: '部署经验：上线时踩过的十个坑', link: '/guide/deployment-lessons' },
           { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
         ],
       },
@@ -81,7 +115,7 @@ export default defineConfig({
         text: '经验档案',
         collapsed: false,
         items: [
-          { text: '部署经验：上线时踩过的九个坑', link: '/guide/deployment-lessons' },
+          { text: '部署经验：上线时踩过的十个坑', link: '/guide/deployment-lessons' },
           { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
         ],
       },

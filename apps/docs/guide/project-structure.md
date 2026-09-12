@@ -67,8 +67,8 @@ studyplan/
 │   │   ├── nest-cli.json / tsconfig.json    构建配置
 │   │   └── package.json                     包名 @studyplan/api
 │   │
-│   └── docs/                              ③ 电子书：VitePress
-│       ├── .vitepress/config.ts             导航 / 侧边栏 / 搜索
+│   └── docs/                              ③ 电子书：VitePress（线上挂在 /ebook）
+│       ├── .vitepress/config.ts             导航 / 侧边栏 / 搜索 / base
 │       ├── index.md                         电子书首页
 │       ├── guide/                           路线图、环境准备、Git、本页、经验档案
 │       ├── stages/                          八篇阶段正文
