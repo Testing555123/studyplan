@@ -143,9 +143,14 @@ watch(open, (isOpen) => {
 </script>
 
 <template>
-  <!-- 悬浮按钮：青蓝 → 紫罗兰渐变，暗示"这是 AI" -->
+  <!--
+    悬浮按钮：GitHub 克制风（中性表面 + 1px 细边框 + 轻阴影 + 圆角方形）。
+    只让 Sparkles 图标用单一强调色（text-primary）点出"这是 AI"，
+    其余一律中性，降低视觉噪音——正是 GitHub Copilot「中性按钮 + 着色图标」的范式。
+  -->
   <UButton
-    class="fixed bottom-6 right-6 z-40 h-12 w-12 rounded-full bg-gradient-to-br from-primary-500 to-violet-500 text-white shadow-lg shadow-primary-500/30 transition-transform hover:scale-105 active:scale-95"
+    variant="ghost"
+    class="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-xl border border-default bg-default text-primary shadow-sm transition-transform hover:scale-105 hover:border-emphasis hover:bg-muted hover:text-default active:scale-95"
     :aria-label="open ? '关闭 AI 助手' : '打开 AI 助手'"
     @click="open ? close() : (open = true)"
   >
@@ -168,10 +173,10 @@ watch(open, (isOpen) => {
     @update:open="(value) => { if (!value) close() }"
   >
     <template #header>
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3 border-b border-default pb-3">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-[13px] font-semibold text-highlighted">
-            <Sparkles :size="14" class="text-violet-500" />
+            <Sparkles :size="14" class="text-primary" />
             AI 学习助手
           </p>
           <p class="mt-0.5 truncate text-[11.5px] text-muted">{{ contextLabel }}</p>
@@ -181,6 +186,7 @@ watch(open, (isOpen) => {
           variant="subtle"
           color="neutral"
           size="xs"
+          class="rounded-full"
         >
           今日剩余 {{ remaining }}
         </UBadge>
@@ -210,7 +216,10 @@ watch(open, (isOpen) => {
 
           <!-- 引用到的本站代码文件：让答案可核对，对一个学习项目尤其重要 -->
           <div v-if="sources.length > 0" class="rounded-lg border border-default bg-muted p-3">
-            <p class="mb-1.5 text-[11.5px] font-medium text-toned">回答参考了这些文件</p>
+            <p class="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-medium text-toned">
+              <UIcon name="i-lucide-file" :size="13" class="text-muted" />
+              回答参考了这些文件
+            </p>
             <ul class="space-y-1">
               <li v-for="source in sources" :key="source" class="text-[11.5px] text-muted">
                 <code class="font-mono">{{ source }}</code>
@@ -249,7 +258,7 @@ watch(open, (isOpen) => {
     </template>
 
     <template #footer>
-      <div v-if="canAsk" class="flex items-end gap-2">
+      <div v-if="canAsk" class="flex w-full items-end gap-2">
         <UTextarea
           v-model="question"
           :rows="2"
@@ -264,6 +273,7 @@ watch(open, (isOpen) => {
           :loading="loading"
           :disabled="!question.trim()"
           icon="i-lucide-send"
+          class="self-end"
           @click="submit"
         />
       </div>

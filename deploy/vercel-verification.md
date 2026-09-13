@@ -196,10 +196,40 @@ curl https://你的域名/api/ai/status
 
 ### 验证标准
 
-- [ ] `/api/ai/status` 返回 `enabled:true`、`keyConfigured:true`、`codeIndexLoaded:true`、`codeIndexFiles>0`
-- [ ] AI 抽屉不再显示"未启用"，显示"今日剩余 N"
-- [ ] 提问能拿到答案；**问本站代码类问题时 `sources` 非空**（索引随镜像进去了的证据）
-- [ ] 真实浏览器验证：抽屉打开、输入、提交、Markdown 回答渲染出来
+- [x] `/api/ai/status` 返回 `enabled:true`、`keyConfigured:true`、`codeIndexLoaded:true`、`codeIndexFiles>0`
+- [x] AI 抽屉不再显示"未启用"，显示"今日剩余 N"
+- [x] 提问能拿到答案；**问本站代码类问题时 `sources` 非空**（索引随镜像进去了的证据）
+- [x] 真实浏览器验证：抽屉打开、输入、提交、Markdown 回答渲染出来
 
 > ⚠️ 只凭 `/api/ai/status` 的 JSON 不足以证明前端可用：本项目经验档案里记录过
 > "SSR 的 HTML 会掩盖客户端失败"——页面打得开不代表交互能用。最终仍需一次真实浏览器验证。
+
+### 实测记录（2026-09-13）
+
+路径：`Vercel 面板新增 NVNIM_API_KEY（Production / Secret）→ Redeploy → 浏览器验证`。
+本机 `*.vercel.app` 被 DNS 污染，下列 `curl` 与真实浏览器均经代理 `127.0.0.1:7897` 访问。
+
+**① 接口自检（`curl https://studyplan-teal.vercel.app/api/ai/status`）**
+
+| 字段 | 实测值 | 结论 |
+| --- | --- | --- |
+| `enabled` | `true` | 通过 |
+| `keyConfigured` | `true` | 通过（Key 已进实例） |
+| `model` | `openai/gpt-oss-20b` | 通过（代码默认值生效） |
+| `codeIndexLoaded` | `true` | 通过（索引随镜像进入运行层） |
+| `codeIndexFiles` | `101` | 通过（≈预期 100） |
+| `remainingToday` / `limitPerDay` | `298` / `300` | 通过 |
+
+**② 真实浏览器验证（Playwright + Chromium，经代理）**
+
+截图：`deploy/ai-verify-1-home.png`（首页）、`deploy/ai-verify-2-drawer.png`（AI 抽屉）、`deploy/ai-verify-3-answer.png`（答案与来源）。
+
+| 检查项 | 实测 |
+| --- | --- |
+| 抽屉能否打开 | 能（点右下角悬浮按钮 → "AI 学习助手"滑出） |
+| 剩余额度徽标 | 提问前 `300` 档、提问后显示 **「今日剩余 297」**（正确扣减） |
+| 答案是否渲染 | 是（Markdown 正文渲染，约 271 字） |
+| `sources` 是否非空 | **是，4 个文件**：`apps/api/src/modules/ai/ai.service.ts`、`ai.controller.ts`、`ai.module.ts`、`schemas/ai-usage.schema.ts` |
+| 控制台报错 | 仅 2 条非阻断资源错误（匿名访问的 `401` 鉴权探测 + 1 个 `404` 静态资源），**无 JS 异常**，与 AI 流程无关 |
+
+**结论**：线上 AI 学习助手已真正可用——接口自检全绿、抽屉正常、额度正确扣减、提问有 Markdown 回答、且**问本站代码类问题时 `sources` 非空**，证明代码索引随镜像进入运行层并能被检索。根因（平台缺 `NVNIM_API_KEY`）已通过"配 Key + Redeploy"彻底解决。
