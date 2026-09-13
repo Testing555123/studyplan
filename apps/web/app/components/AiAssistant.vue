@@ -52,11 +52,39 @@ const contextLabel = computed(() => {
   return current ? `正在问：${current.fullName}` : '本站代码 · 技术问题'
 })
 
+/**
+ * 未启用时的可操作提示。
+ *
+ * 关键点：NVNIM_API_KEY 是**部署平台的环境变量**，前端没有、也不该有它的副本。
+ * 所以"没启用"这件事，普通用户看到能知道"功能没开"，但**部署者**需要知道下一步
+ * 是"去平台配 Key + 重新部署"。这里把动作写明确，免得部署者以为改完前端就行。
+ *
+ * 顺带把自检字段（codeIndexLoaded / codeIndexFiles）透出来：
+ * 即使 Key 没配，代码索引也可能已经随镜像进去了——这条信息能帮部署者一眼分清
+ * "是 Key 没配"还是"连索引都没进运行层"，而不是两个都去瞎猜。
+ */
+const disabledHint = computed(() => {
+  if (!status.value) return 'AI 功能未启用。'
+
+  const parts = [
+    '服务端未配置 NVNIM_API_KEY（这是部署平台的环境变量，不是前端配置）。',
+    '在平台环境变量里填入你的 NVIDIA NIM Key 后，必须触发一次重新部署才会生效。',
+  ]
+  if (status.value.codeIndexFiles !== undefined) {
+    parts.push(
+      status.value.codeIndexLoaded
+        ? `代码索引已就绪（${status.value.codeIndexFiles} 个文件）。`
+        : '代码索引未加载：索引未随构建产物进入运行层。',
+    )
+  }
+  return parts.join('')
+})
+
 /** 把后端给的 reason 翻译成用户能懂的一句提示 */
 const noticeText = computed(() => {
   switch (reason.value) {
     case 'not-configured':
-      return 'AI 功能尚未启用：服务端没有配置 NVNIM_API_KEY。'
+      return 'AI 功能未启用：服务端没有配置 NVNIM_API_KEY。它是部署平台的环境变量，不是前端配置——在平台环境变量里填入你的 NVIDIA NIM Key 后，必须重新部署才会生效。'
     case 'quota-exceeded':
       return '今日 AI 额度已用完，明天再来吧（已缓存的问题仍可查看）。'
     case 'rate-limited':
@@ -168,7 +196,7 @@ watch(open, (isOpen) => {
           variant="soft"
           icon="i-lucide-info"
           title="AI 功能未启用"
-          description="服务端尚未配置 NVNIM_API_KEY，配置后即可使用。"
+          :description="disabledHint"
         />
 
         <!-- 答案区 -->

@@ -203,6 +203,26 @@ $env:E2E_PROXY='http://127.0.0.1:7897'
 > 因此本机浏览器可能需要代理；正式对外使用应绑定**自有域名**。
 > 完整实测记录见 `deploy/vercel-verification.md`。
 
+### 线上启用 AI 学习助手（三步 + 一条自检命令）
+
+AI 是**增强功能**：不配 Key 也能正常部署与运行，只是 AI 入口显示"未启用"。要启用只需在平台配一个环境变量：
+
+1. 面板 `Project → Settings → Environment Variables` 新增 `NVNIM_API_KEY`，Environment 勾 **Production**，Type 选 **Secret**，值填你本地 `apps/api/.env` 里那一串（`nvapi-` 开头）；
+   - 可选：`NVNIM_MODEL=openai/gpt-oss-20b`（不填则用代码默认值）；
+2. **重新部署**：`Deployments → 最新一条 → ⋯ → Redeploy`（环境变量是运行时注入，**改完不自动生效**）；
+3. 打开线上站点 → 右下角 AI → 应显示"今日剩余 300"，并能提问。
+
+一条命令自查配好没有（不用翻日志、不用读代码）：
+
+```bash
+curl https://你的域名/api/ai/status
+# → {"enabled":true,"keyConfigured":true,"model":"openai/gpt-oss-20b",
+#     "codeIndexLoaded":true,"codeIndexFiles":100,"remainingToday":300,"limitPerDay":300}
+```
+
+> 未配 Key 时应用**照常启动**，`/ai/status` 返回 `enabled:false`，前端提示"去部署平台配置后重新部署"——这是设计行为，不是故障。完整踩坑见
+> [部署经验：上线时踩过的十个坑](./apps/docs/guide/deployment-lessons.md) 的「坑 11」。
+
 ### 路径 B：Dokploy + VPS（自托管回退方案）
 
 在自己的一台服务器上用 Docker 跑，前后端各一个镜像，网关自动签发 HTTPS。

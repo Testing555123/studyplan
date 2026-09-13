@@ -163,3 +163,43 @@ TCP 443 → 连接超时；对照 vercel.com → 200 / 0.96s
       unifont 字体 provider 初始化失败的影响。
       ⚠️ 注意：因为这一条，**"同一套测试本地与线上都绿"这个更强的结论目前尚未成立**——
       线上 6/6 是真实通过的，本地那条仍需单独修。
+
+## 八、AI 学习助手启用验证（步骤与预期）
+
+> 背景：本项目的 AI 模块是**增强功能**——不配 `NVNIM_API_KEY` 也能部署，只是降级为「未启用」。
+> 线上出现「AI 功能未启用」时，根因几乎总是"平台没配这个环境变量"，而非代码故障。
+> 本节能让部署者用**一条命令**确认状态，而不用翻日志或读代码。
+
+### 启用步骤
+
+1. `Project → Settings → Environment Variables` 新增 `NVNIM_API_KEY`（Environment 勾 **Production**，Type 选 **Secret**），值取本地 `apps/api/.env` 里 `nvapi-` 开头那串；
+2. **Redeploy**（`Deployments → 最新一条 → ⋯ → Redeploy`）—— 容器环境变量是**运行时注入**，改完不自动生效；
+3. 打开线上站点 → 右下角 AI 抽屉应显示"今日剩余 N"，可正常提问。
+
+### 自检命令与预期返回
+
+```bash
+curl https://你的域名/api/ai/status
+```
+
+| 字段 | 启用后预期 | 含义 |
+| --- | --- | --- |
+| `enabled` | `true` | AI 总开关（与 `keyConfigured` 同源） |
+| `keyConfigured` | `true` | Key 是否真的进了实例（配没配好的直白信号） |
+| `model` | `openai/gpt-oss-20b` | 当前模型 |
+| `codeIndexLoaded` | `true` | 代码索引是否随镜像进入运行层 |
+| `codeIndexFiles` | `> 0`（约 100） | 索引文件条数；`0` 表示索引没进运行层 |
+| `remainingToday` / `limitPerDay` | `300` / `300` | 今日剩余 / 每日上限 |
+
+预期里 `codeIndexLoaded: true` 这条很关键：它证明"问本站代码"所需的索引**随镜像进去了**。
+若它是 `false`，AI 答"本站代码"类问题会退化成"资料中没有提到"——而应用本身不会报错，只在运行时悄悄变笨。
+
+### 验证标准
+
+- [ ] `/api/ai/status` 返回 `enabled:true`、`keyConfigured:true`、`codeIndexLoaded:true`、`codeIndexFiles>0`
+- [ ] AI 抽屉不再显示"未启用"，显示"今日剩余 N"
+- [ ] 提问能拿到答案；**问本站代码类问题时 `sources` 非空**（索引随镜像进去了的证据）
+- [ ] 真实浏览器验证：抽屉打开、输入、提交、Markdown 回答渲染出来
+
+> ⚠️ 只凭 `/api/ai/status` 的 JSON 不足以证明前端可用：本项目经验档案里记录过
+> "SSR 的 HTML 会掩盖客户端失败"——页面打得开不代表交互能用。最终仍需一次真实浏览器验证。

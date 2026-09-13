@@ -83,4 +83,33 @@ export interface AiStatus {
   model: string
   remainingToday: number
   limitPerDay: number
+
+  /**
+   * Key 是否已配置。
+   *
+   * 与 `enabled` 同源（都来自 `client.enabled`），但语义更直白。
+   * 加它的唯一目的是**部署自检**：运维在平台上配完环境变量后，
+   * 不用去翻日志、不用读代码，直接打这个接口就知道"配进去了没有"。
+   *
+   * ⚠️ 一律可选：新前端 + 旧后端（没有这个字段）时，前端用可选链兜底，
+   * 不能因为缺字段而报错。
+   */
+  keyConfigured?: boolean
+
+  /**
+   * 代码索引是否真正可用。
+   *
+   * 以"加载到了文件（fileCount > 0）"为准，而不是"读过文件"。
+   * 原因见 `CodeIndexService`：它的 `loaded` 在"文件缺失 `load()` 返回空数组"
+   * 时也是 `true` —— 两个截然不同的处境给出同一个信号，
+   * 恰恰是部署排查时最该分清的。
+   */
+  codeIndexLoaded?: boolean
+
+  /**
+   * 索引里的文件条数。0 表示没加载到（文件缺失或内容非法）。
+   * 单独给一个数量，是为了让"索引随镜像进去了吗"这条验证有个可核对的数字，
+   * 而不是只给一个真假。
+   */
+  codeIndexFiles?: number
 }

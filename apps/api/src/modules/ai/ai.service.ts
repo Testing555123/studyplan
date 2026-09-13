@@ -200,11 +200,19 @@ export class AiService {
 
   /** 供 /ai/status 使用：前端据此决定要不要渲染 AI 入口 */
   async getStatus(): Promise<AiStatus> {
+    // `enabled` 与 `keyConfigured` 同源：都来自 client.enabled（key 是否非空）。
+    // 不做第二个事实来源，只是给"部署自检"一个语义更直白的字段。
+    const enabled = this.client.enabled
+    const indexFiles = this.codeIndex.fileCount
+
     return {
-      enabled: this.client.enabled,
+      enabled,
+      keyConfigured: enabled,
       model: this.client.currentModel,
       remainingToday: await this.remainingQuota(),
       limitPerDay: this.limitPerDay,
+      codeIndexLoaded: indexFiles > 0,
+      codeIndexFiles: indexFiles,
     }
   }
 

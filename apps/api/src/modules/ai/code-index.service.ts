@@ -100,6 +100,23 @@ export class CodeIndexService implements OnModuleInit {
   }
 
   /**
+   * 已加载的索引条数。
+   *
+   * 为什么新增这个只读计数？
+   *   `loaded` 只能回答"有没有读过文件"，而 `load()` 的失败路径会
+   *   把 `entries` 置成**空数组**（不是 null），于是"文件根本不存在"
+   *   和"成功加载了 100 个文件"在 `loaded` 下都是 `true`。
+   *
+   *   部署排查时这俩是天壤之别：前者意味着 AI 答"本站代码"会退化成
+   *   "资料中没有提到"，后者才是真的就绪。
+   *   对外语义以 `fileCount > 0` 为准，正好是部署者最该一眼看清的那条线。
+   *   保留 `loaded` 不动（它已有注释与潜在调用方），只做加法。
+   */
+  get fileCount(): number {
+    return this.entries?.length ?? 0
+  }
+
+  /**
    * 启动时主动预热索引。
    *
    * 为什么不等第一次提问时再惰性加载？

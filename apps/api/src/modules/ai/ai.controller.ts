@@ -27,7 +27,10 @@ export class AiController {
   @Get('status')
   @ApiOperation({
     summary: 'AI 功能状态',
-    description: '返回是否启用、当前模型与今日剩余额度。前端据此决定要不要渲染 AI 入口。',
+    description:
+      '返回是否启用、当前模型、今日剩余额度，以及部署自检字段' +
+      '（keyConfigured / codeIndexLoaded / codeIndexFiles）。' +
+      '前端据此决定要不要渲染 AI 入口；部署者据此一眼看清"Key 配进去了没、索引随镜像进去了没"。',
   })
   @ApiOkResponse({ description: 'AI 状态' })
   async getStatus(): Promise<AiStatus> {
@@ -48,10 +51,13 @@ export class AiController {
     /**
      * DTO → 契约的映射。
      *
-     * 为什么在这里转，而不是把 `dto.context` 直接传下去？
-     *   因为 `type: 'repo'` 这个判别字段是**服务端补的** ——
-     *   前端只关心"我在问哪个仓库"，没理由知道内部的上下文类型标记，
-     *   让它传就是把这个实现细节泄漏到接口上。
+     * 为什么 `type: 'repo'` 仍然在这里补、但 DTO 也要接收它？
+     *   两者并不矛盾，职责不同：
+     *     · DTO **必须**接收 `type` —— 共享契约 `RepoQuestionContext` 声明了它，
+     *       而校验开了 `forbidNonWhitelisted`，DTO 若不接收，前端"卡片问 AI"
+     *       每次都会被 400 拒掉（本项目踩过这个坑）。
+     *     · 服务端**仍然重新推导** `type: 'repo'` —— 前端传什么**不构成信任**，
+     *       这里只是把"为了兼容校验而不得不接收的字段"再归一化一遍。
      *
      *   顺带把 DTO 里的可选字段（description / language）收敛成明确的 null，
      *   下游只需处理一种"空"，不必再区分 undefined 与 null。

@@ -42,6 +42,7 @@ function createCodeIndexStub(): CodeIndexService {
       ]),
     ),
     loaded: true,
+    fileCount: 4,
   } as unknown as CodeIndexService
 }
 
@@ -235,6 +236,20 @@ describe('AiService', () => {
       expect(status.model).toBe('test/model-001')
       expect(status.limitPerDay).toBe(300)
       expect(status.remainingToday).toBe(258)
+      // 自检字段：enabled 与 keyConfigured 同源（都来自 client.enabled），
+      // 不做第二个事实来源；索引状态以"文件数 > 0"为准
+      expect(status.keyConfigured).toBe(true)
+      expect(status.codeIndexLoaded).toBe(true)
+      expect(status.codeIndexFiles).toBe(4)
+    })
+
+    it('未配置 Key 时 enabled 与 keyConfigured 同为 false', async () => {
+      const { service } = createService({ enabled: false })
+
+      const status = await service.getStatus()
+
+      expect(status.enabled).toBe(false)
+      expect(status.keyConfigured).toBe(false)
     })
   })
 })

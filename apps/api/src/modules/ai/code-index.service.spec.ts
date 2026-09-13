@@ -105,4 +105,33 @@ describe('CodeIndexService', () => {
 
     expect(matched.length).toBeLessThanOrEqual(4)
   })
+
+  describe('fileCount（对外自检信号）', () => {
+    it('索引正常加载时返回文件条数（> 0）', async () => {
+      const service = createService()
+      await service.search('缓存是怎么设计的？') // 触发加载
+
+      expect(service.fileCount).toBe(MOCK_INDEX.length)
+      expect(service.loaded).toBe(true)
+    })
+
+    it('索引文件缺失时 fileCount 为 0，但 loaded 仍为 true（这是要分清的盲区）', async () => {
+      mockExistsSync.mockReturnValue(false)
+      const service = createService()
+      await service.search('缓存是怎么设计的？')
+
+      expect(service.fileCount).toBe(0)
+      // 关键：缺失文件时 loaded 也是 true —— 这正是部署排查时
+      // 必须用 fileCount > 0 区分"没找到"与"真的加载了"的原因
+      expect(service.loaded).toBe(true)
+    })
+
+    it('索引内容非法时同样 fileCount 为 0', async () => {
+      mockReadFileSync.mockReturnValue('这不是 JSON')
+      const service = createService()
+      await service.search('缓存是怎么设计的？')
+
+      expect(service.fileCount).toBe(0)
+    })
+  })
 })
