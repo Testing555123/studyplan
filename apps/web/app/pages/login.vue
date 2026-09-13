@@ -1,20 +1,11 @@
 <script setup lang="ts">
 /**
- * 登录 / 注册页。
+ * 登录 / 注册页，用一个页签切换而不是两个路由：用户常在「想登录但没账号」和「注册时发现已有账号」之间切换，
+ * 放同一页少一次加载、也少一次心智跳转。
  *
- * 用一个页签切换而不是两个路由，理由很实际：
- * 用户常常是"想登录但没账号"，或者"注册时发现已经有了"。
- * 放在同一个页面切换，比跳来跳去少一次页面加载、少一次心智切换。
- *
- * ── 关于校验的分工（本页最重要的一课）──
- *
- * 这里的前端校验**只是体验优化**，不是安全措施。
- * 任何人都能打开开发者工具删掉这些规则，或者直接用 curl 调接口。
- * 真正的校验必须由后端再做一遍 —— 本项目的 `RegisterDto` / `LoginDto`
- * 用的就是这里同一批共享常量。
- *
- * 一个很常见的误解是"前端校验过了后端就不用校验"，
- * 那等于把规则写在用户可以随意修改的地方。
+ * 这里的前端校验只是体验优化，不是安全手段：任何人都能用开发者工具删掉规则，或拿 curl 直接调接口。
+ * 真正的校验必须由后端再做一遍——本项目的 `RegisterDto` / `LoginDto` 用的就是这里同一批共享常量。
+ * 以为「前端校验过了后端就不必校验」，等于把规则放在用户能随意改的地方。
  */
 import { LogIn } from 'lucide-vue-next'
 import { PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from '@studyplan/shared'
@@ -129,7 +120,7 @@ async function submit(): Promise<void> {
       >
         <LogIn :size="22" />
       </span>
-      <h1 class="mt-5 text-xl font-semibold tracking-tight text-highlighted">
+      <h1 class="mt-5 text-heading font-semibold tracking-tight text-highlighted">
         {{ mode === 'login' ? '欢迎回来' : '创建你的账号' }}
       </h1>
       <p class="mt-1.5 text-body text-muted">

@@ -60,6 +60,24 @@ export class AiService {
   }
 
   /**
+   * 消耗一次每日额度（供其它模块复用同一道闸）。
+   *
+   * 为什么不把 `consumeQuota` 直接改成 public 就算了：
+   *   名字要能表达意图。`consumeQuota` 是一个内部动作，
+   *   而对外暴露的语义是"**试着**用一次，可能不被允许" ——
+   *   调用方看到 `tryConsumeQuota` 才会自然地处理 `allowed === false`，
+   *   看到 `consumeQuota` 则会以为一定能拿到。
+   *
+   * 为什么要复用这道闸而不是给新功能单开一份计数：
+   *   `NVNIM_DAILY_LIMIT` 的语义本来就是"每天最多真调多少次模型"，
+   *   项目简介完全在它的语义范围内。同一个约束维护两份，
+   *   只会让"今天到底还能调多少次"变成一个算不清的问题。
+   */
+  async tryConsumeQuota(): Promise<{ allowed: boolean; remaining: number }> {
+    return this.consumeQuota()
+  }
+
+  /**
    * 生成摘要与推荐标签。
    *
    * @returns 清洗后的元数据；任何一步失败都返回 null

@@ -1,30 +1,22 @@
 <script setup lang="ts">
 /**
- * 横向筛选条。
+ * 横向筛选条，用 `defineModel` 做双向绑定：
+ *   父组件写 `<TagFilter v-model="activeTag" :tags="tags" />`，
+ *   子组件直接读写 `model.value`，免去手写 props + emit 的样板。
  *
- * 用 `defineModel` 实现双向绑定：
- *   父组件写 `<TagFilter v-model="activeTag" :tags="tags" />`
- *   子组件内部直接读写 `model.value`，不需要手写 props + emit。
- * 这是 Vue 3.4+ 的推荐写法，能把"受控组件"的样板代码减掉一半。
+ * `tags` 由 props 传入，而不是在组件内读 store：
+ *   筛选条只关心「有哪些选项」，不关心数据从哪来。
  *
- * `tags` 用 props 传进来而不是在这里读 store：
- * 筛选条只关心"有哪些选项可选"，不关心数据从哪来。
+ * 胶囊用 `UButton`（size="xs" + variant 切换选中态），
+ * 圆角、边框、hover、焦点环都交给组件库，不必再维护 `.tag-pill-*` 这类自定义类。
  *
- * ── Nuxt UI 化之后 ──
- * 胶囊改用 `UButton`（size="xs" + variant 切换选中态），
- * 于是圆角、边框、hover、焦点环全部由组件库统一提供，
- * 这里不用再维护 `.tag-pill-*` 那几个自定义类。
- *
- * 新增的 `nullable` prop：控制要不要显示"全部"这一项。
- * 语言筛选需要它（可以不筛），而**时间档不需要**（必须选一个档位），
- * 所以做成一个开关而不是硬编码，默认 true 以兼容既有用法。
+ * `nullable` 控制是否显示「全部」：语言筛选可不选，时间档则必须选一档，
+ * 所以做成开关而不是写死，默认 true 以兼容已有用法。
  */
 /**
- * 用 `withDefaults` 给出默认值，而不是在模板里到处判空。
- *
- * 默认值取 **true**（显示「全部」）：因为既有的标签筛选都依赖它，
- * 这样升级组件时老页面一行都不用改 ——
- * 新增能力时保持向后兼容，是改造既有组件的第一原则。
+ * 用 `withDefaults` 给 `nullable` 设默认值，避免模板里到处判空。
+ * 默认 true（显示「全部」），因为现存的标签筛选都依赖它；
+ * 升级组件时老页面无需改动，向后兼容优先。
  */
 const props = withDefaults(
   defineProps<{

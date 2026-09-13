@@ -29,6 +29,16 @@ interface GithubSearchItem {
 /** 拉取时保留的条数。取 100 是因为这是 Search API `per_page` 的上限 */
 export const GITHUB_SEARCH_PER_PAGE = 100
 
+/**
+ * README 清洗后保留的字符数上限。
+ *
+ * 这个数字是"信息量"和"token 成本"之间的取舍：
+ * 前 2000 字通常已经包含项目介绍、特性与快速上手，
+ * 再往后多是配置细节和贡献指南，对写报道没什么帮助，
+ * 却会实打实地吃掉 prompt 的 token 配额。
+ */
+export const README_MAX_CHARS = 2000
+
 /** 单次请求超时。GitHub 一般 1 秒内返回，给 10 秒足够容错又不至于拖垮请求 */
 const REQUEST_TIMEOUT_MS = 10_000
 
@@ -88,6 +98,93 @@ export class GithubClient {
     const items = Array.isArray(payload.items) ? payload.items : []
 
     return items.map((item) => this.toRepo(item))
+  }
+
+  /**
+   * 取单个仓库的详情，失败返回 `null`。
+   *
+   * 为什么失败要返回 null 而不是抛错：
+   *   详情页的数据是**三级回退**的（榜单缓存 → 已落库快照 → 现取 GitHub），
+   *   这里是最后一级。它失败时调用方要能继续往下走、给出 404，
+   *   而不是把一个上游错误原样甩给用户。
+   *   与 `fetchReadme` 同理：**可选能力用 null 表达失败。**
+   */
+  async fetchRepo(fullName: string): Promise<GithubRepo | null> {
+    const [owner, repo] = fullName.split('/')
+    if (!owner || !repo) return null
+
+    const url =
+      'https://api.github.com/repos/' +
+      `${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+
+    try {
+      const response = await this.request(url)
+      const item = (await response.json()) as GithubSearchItem
+      return this.toRepo(item)
+    } catch (error) {
+      this.logger.debug(
+        `抓取仓库详情失败（${fullName}）：${error instanceof Error ? error.message : String(error)}`,
+      )
+      return null
+    }
+  }
+
+  /**
+   * 抓取仓库 README 的纯文本，失败返回 `null`。
+   *
+   * 为什么失败要返回 null 而不是抛错：
+   *   README 是**可选素材** —— 没有它，报道还可以靠官方 `description` 写出来。
+   *   让一个"锦上添花"的东西把整条链路打断，不值得。
+   *   所以这里吞掉所有异常（404 没有 README、超时、限流…），交给调用方降级。
+   */
+  async fetchReadme(fullName: string): Promise<string | null> {
+    const [owner, repo] = fullName.split('/')
+    if (!owner || !repo) return null
+
+    const url =
+      'https://api.github.com/repos/' +
+      `${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/readme`
+
+    try {
+      const response = await this.request(url)
+      const payload = (await response.json()) as { content?: string; encoding?: string }
+
+      // 只认 base64。GitHub 现在只回这一种，但显式判断能避免哪天换了编码后静默产出乱码
+      if (!payload.content || payload.encoding !== 'base64') return null
+
+      const raw = Buffer.from(payload.content, 'base64').toString('utf8')
+      const cleaned = this.cleanReadme(raw)
+
+      return cleaned.length > 0 ? cleaned : null
+    } catch (error) {
+      this.logger.debug(
+        `抓取 README 失败（${fullName}）：${error instanceof Error ? error.message : String(error)}，将退回官方描述`,
+      )
+      return null
+    }
+  }
+
+  /**
+   * 把 README 的 Markdown 洗成"给模型看的纯文本"。
+   *
+   * 每一步都有明确目的：
+   *   - 去代码块：安装命令对"这项目解决什么问题"帮助很小，但非常占 token；
+   *   - 去图片、去链接 URL 只留文字：徽章（stars / build passing）占篇幅却无信息量；
+   *   - 去 HTML 标签：不少 README 用 `<div align="center">` 做排版；
+   *   - 压掉连续空行：Markdown 的空行对模型没有意义。
+   */
+  private cleanReadme(raw: string): string {
+    return raw
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/<[^>]+>/g, '')
+      .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+      .replace(/^\s{0,3}>\s?/gm, '')
+      .replace(/^\s*\|?[\s:|-]+\|[\s:|-]*$/gm, '')
+      .replace(/\n{2,}/g, '\n')
+      .trim()
+      .slice(0, README_MAX_CHARS)
   }
 
   /** 把 GitHub 的原始字段映射成我们的契约 */

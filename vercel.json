@@ -12,5 +12,11 @@
       "source": "/(.*)",
       "destination": { "service": "studyplan" }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/daily-digest",
+      "schedule": "0 1 * * *"
+    }
   ]
 }

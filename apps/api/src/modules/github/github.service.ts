@@ -32,9 +32,7 @@ import type { GithubRepo, TrendingRange, TrendingResponse } from '@studyplan/sha
 import { rangeToDays } from '@studyplan/shared'
 import { GithubClient } from './github.client'
 import { TrendingCache } from './schemas/trending-cache.schema'
-
-/** 缓存软过期时间的默认值（分钟）。6 小时对"新建项目榜"足够新鲜 */
-const DEFAULT_TTL_MINUTES = 360
+import { resolveTrendingTtlMs } from './utils/trending-ttl'
 
 /**
  * 两次真实请求之间的最小间隔（毫秒）。
@@ -59,10 +57,7 @@ export class GithubService {
     private readonly client: GithubClient,
     config: ConfigService,
   ) {
-    const minutes = Number(config.get<string>('GITHUB_TRENDING_CACHE_TTL_MINUTES'))
-    // Number('abc') 会得到 NaN，直接取默认；<=0 同样没意义
-    this.ttlMs =
-      Number.isFinite(minutes) && minutes > 0 ? minutes * 60 * 1000 : DEFAULT_TTL_MINUTES * 60 * 1000
+    this.ttlMs = resolveTrendingTtlMs(config)
   }
 
   /**

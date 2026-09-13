@@ -79,6 +79,18 @@ export class UsersService {
       .exec()
   }
 
+  /**
+   * 按邮箱查用户（不返回密码哈希）。
+   *
+   * 和上面的 `findByEmailWithPassword` 只差一个 `.select('+passwordHash')`，
+   * 但刻意分成两个方法：登录那类场景必须拿哈希，
+   * 而"查一下这个账号在不在"这类场景不该把哈希读进内存 ——
+   * 方法名把意图写清楚，比让调用方记住"记得别 select 那个字段"可靠。
+   */
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ email: email.toLowerCase() }).exec()
+  }
+
   /** 按 id 查用户（不返回密码哈希） */
   async findById(id: string): Promise<UserDocument | null> {
     // 非法 id 直接返回 null，而不是让数据库抛 CastError

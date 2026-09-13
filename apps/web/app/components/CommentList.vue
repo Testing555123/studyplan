@@ -1,14 +1,12 @@
 <script setup lang="ts">
 /**
- * 评论区：列表 + 发表框。
- *
- * 它同时演示了四种"真实应用必须有、但 demo 里经常被省略"的状态：
+ * 评论区：列表 + 发表框，集中演示四种真实应用必须有、而 demo 常省略的状态：
  *   1. 加载中     —— 显示骨架条，而不是空白
  *   2. 空列表     —— 给出引导文案，而不是一片虚无
- *   3. 未登录     —— 把输入框换成"登录后参与讨论"，而不是让用户写完才发现提交失败
+ *   3. 未登录     —— 把输入框换成「登录后参与讨论」，而不是让用户写完才发现提交失败
  *   4. 提交中     —— 按钮禁用 + 文案变化，防止重复提交
  *
- * 这四种状态才是"做完了"和"能用了"之间的差别。
+ * 把这些都覆盖到，「能跑」和「能用」之间才真正补齐。
  */
 import { MessageSquare } from 'lucide-vue-next'
 import { COMMENT_MAX_LENGTH, type Comment } from '@studyplan/shared'
@@ -42,7 +40,7 @@ const emit = defineEmits<{
 /**
  * 判断某条评论是不是当前用户发的。
  *
- * ⚠️ 这个判断**只用于决定要不要显示删除按钮**，它不是一个权限检查。
+ * 这个判断**只用于决定要不要显示删除按钮**，它不是一个权限检查。
  *    真正的权限判断在后端的 `findOneAndDelete({ _id, 'author.id': actor.id })` ——
  *    即使有人伪造请求删别人的评论，后端也会返回 403。
  */
@@ -187,7 +185,7 @@ function submit(): void {
             </UButton>
           </div>
 
-          <p class="mt-2.5 text-sm leading-7 text-toned">
+          <p class="mt-2.5 text-body leading-7 text-toned">
             {{ comment.content }}
           </p>
         </UCard>

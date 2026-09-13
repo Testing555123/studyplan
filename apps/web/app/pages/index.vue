@@ -2,18 +2,13 @@
 /**
  * 首页 · 帖子流。
  *
- * 三件事值得注意：
- *   1. 筛选条件同步到地址栏（?tag=Vue），这样筛选结果可分享、可前进后退；
- *   2. 用 `useAsyncData` 保证 SSR 时就把首屏帖子渲染好（对 SEO 与首屏体验都重要）；
- *   3. 三个状态（加载中 / 空结果 / 出错）都有专门界面，没有一个是"什么都不显示"。
+ * 三点：筛选条件同步到地址栏（?tag=Vue），结果可分享、可前进后退；
+ * 首屏用 `useAsyncData` 在服务端渲染好帖子，对 SEO 和首屏体验都重要；
+ * 加载中 / 空结果 / 出错三态都有专门界面，不会「什么都不显示」。
  *
- * ── Nuxt UI 化之后 ──
- * 容器用 `UContainer`，错误提示用 `UAlert`，空态用 `UEmpty`，
- * 骨架用 `USkeleton`，按钮用 `UButton` —— 过去这些全是手写 div + 一长串 class。
- * 文案颜色改用语义类（`text-highlighted` / `text-muted` / `text-toned`），
- * 不再为每个颜色写 `dark:` 变体。
- *
- * 剩下的是布局类（间距、flex、网格），按"务实保留"的约定照常使用。
+ * 容器用 `UContainer`，提示用 `UAlert`，空态用 `UEmpty`，骨架用 `USkeleton`，按钮用 `UButton`，
+ * 文字颜色用语义类（`text-highlighted` / `text-muted` / `text-toned`），不必再为每个颜色写 `dark:` 变体。
+ * 间距、flex、网格这类布局类 Nuxt UI 不提供，照常保留。
  */
 import { ServerOff } from 'lucide-vue-next'
 
@@ -74,7 +69,7 @@ onMounted(async () => {
     <section class="pt-10 pb-6">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-highlighted">帖子流</h1>
+          <h1 class="text-display font-semibold tracking-tight text-highlighted">帖子流</h1>
           <p class="mt-1.5 text-body text-muted">
             共
             <span class="font-medium text-toned tabular-nums">{{ postStore.total }}</span>

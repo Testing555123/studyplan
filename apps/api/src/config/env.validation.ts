@@ -1,5 +1,15 @@
 import { plainToInstance } from 'class-transformer'
-import { IsIn, IsInt, IsOptional, IsString, Max, Min, MinLength, validateSync } from 'class-validator'
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  validateSync,
+} from 'class-validator'
 
 /**
  * 环境变量校验。
@@ -205,6 +215,220 @@ export class EnvironmentVariables {
   @Min(5, { message: 'GITHUB_TRENDING_CACHE_TTL_MINUTES 至少 5 分钟' })
   @Max(10080, { message: 'GITHUB_TRENDING_CACHE_TTL_MINUTES 最多 10080 分钟（7 天）' })
   GITHUB_TRENDING_CACHE_TTL_MINUTES: number = 360
+
+  // ────────────────────────────────────────────────────────────────
+  // 每日 GitHub 项目报道（Daily Digest）
+  //
+  // 这一组变量**全部可选、全部带默认值**，没有一个例外。
+  //
+  // 原因很实际：`validateEnv` 是启动即 fail fast 的。
+  // 任何一个"必填但没有默认值"的新变量，都会让所有还没配它的环境
+  // ——同事的电脑、CI、以及正在运行的生产实例——**直接启动失败**。
+  // 对一个锦上添花的功能来说，这个代价完全不成比例。
+  //
+  // 总开关默认关闭，所以一个变量都不配时，这个装置等于不存在。
+  // ────────────────────────────────────────────────────────────────
+
+  /**
+   * 总开关。
+   *
+   * 默认关，是因为这个装置会**以机器人身份发帖** ——
+   * 那是写进数据库、所有用户都能看到的真实内容。
+   * 让它默认静默，是"宁可不发，也不能在别人不知情时自动发"。
+   */
+  @IsOptional()
+  @IsIn(['true', 'false', '1', '0'], { message: 'DAILY_DIGEST_ENABLED 只能是 true / false' })
+  DAILY_DIGEST_ENABLED: string = 'false'
+
+  /**
+   * 定时端点的令牌。
+   *
+   * **留空则端点直接 401，等于关闭。** 这是第二把锁：
+   * 总开关防的是"在错误的环境里跑起来"，这把锁防的是"被不相干的人跑起来"。
+   *
+   * 用 Vercel Cron 时，平台会把自己的 `CRON_SECRET` 放在
+   * `Authorization: Bearer <secret>` 里发过来，
+   * 所以把它和 `CRON_SECRET` 设成同一个值即可，不需要额外配置。
+   */
+  @IsOptional()
+  @IsString()
+  DAILY_DIGEST_CRON_TOKEN?: string
+
+  /**
+   * 计算"今天"所用的时区。
+   *
+   * 必须是 IANA 时区名（如 `Asia/Shanghai`）。
+   * 用它而不是 UTC，是为了让"每天一篇"符合人的直觉：
+   * 否则北京时间早上发的那篇会被记到前一天，当天再触发就被判成已发过。
+   */
+  @IsOptional()
+  @IsString()
+  DAILY_DIGEST_TIMEZONE: string = 'Asia/Shanghai'
+
+  /**
+   * 一天中从第几个小时开始允许发布（0-23，按上面的时区）。
+   *
+   * 它约束的是**惰性触发**：不到点就不补发，
+   * 否则凌晨有人访问一次，当天那篇就在半夜发出去了。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0, { message: 'DAILY_DIGEST_PUBLISH_HOUR 必须在 0-23 之间' })
+  @Max(23, { message: 'DAILY_DIGEST_PUBLISH_HOUR 必须在 0-23 之间' })
+  DAILY_DIGEST_PUBLISH_HOUR: number = 9
+
+  /**
+   * 候选项目的最小 star 数。
+   *
+   * 这是"新项目"和"有人用的新项目"之间的分界线。
+   * 调低会推到很多刚建好、还没人验证的仓库；调高则只能推到已经很火的项目，
+   * 而那些项目读者多半早就在别处看过了。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0, { message: 'DAILY_DIGEST_MIN_STARS 不能为负数' })
+  @Max(100000, { message: 'DAILY_DIGEST_MIN_STARS 过大' })
+  DAILY_DIGEST_MIN_STARS: number = 50
+
+  /**
+   * 只看最近多少天内新建的仓库。
+   *
+   * 它决定"新"的定义，也决定候选池的大小。
+   * 30 天是个平衡点：足够窄以保证新鲜，又足够宽以避免某天没得选。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: 'DAILY_DIGEST_LOOKBACK_DAYS 至少为 1' })
+  @Max(365, { message: 'DAILY_DIGEST_LOOKBACK_DAYS 最多 365 天' })
+  DAILY_DIGEST_LOOKBACK_DAYS: number = 30
+
+  /**
+   * 语言白名单，逗号分隔（如 `TypeScript,JavaScript`）。
+   *
+   * **留空表示不限语言** —— 这里的"空"是有意义的取值，不是"没配"。
+   * 想只推前端项目就填 `TypeScript,JavaScript,Vue`。
+   */
+  @IsOptional()
+  @IsString()
+  DAILY_DIGEST_LANGUAGES: string = ''
+
+  /** 从候选池里最多考虑前几个项目（榜单最多返回 100 条） */
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: 'DAILY_DIGEST_CANDIDATE_LIMIT 至少为 1' })
+  @Max(100, { message: 'DAILY_DIGEST_CANDIDATE_LIMIT 最多 100' })
+  DAILY_DIGEST_CANDIDATE_LIMIT: number = 100
+
+  /**
+   * 报道的 AI 输出上限。
+   *
+   * 比问答场景的 800 大得多，因为报道是几百字的长文。
+   * 但也不是越大越好：`max_tokens` 同时决定最坏等待时间，
+   * 给得太多，模型会一直写到撞上超时。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(200, { message: 'DAILY_DIGEST_AI_MAX_TOKENS 至少 200' })
+  @Max(8000, { message: 'DAILY_DIGEST_AI_MAX_TOKENS 过大，会显著拉长等待时间' })
+  DAILY_DIGEST_AI_MAX_TOKENS: number = 2000
+
+  /**
+   * 报道的 AI 超时。
+   *
+   * 上限放到 120 秒，是因为它跑在后台定时任务里，没有用户盯着等 ——
+   * 这正是它可以比 `NVNIM_TIMEOUT_MS`（上限 60 秒）宽松的原因。
+   * 仍然要设上限，是为了不让一次卡住的请求占着连接直到平台强制杀掉。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1000, { message: 'DAILY_DIGEST_AI_TIMEOUT_MS 至少 1000 毫秒' })
+  @Max(120000, { message: 'DAILY_DIGEST_AI_TIMEOUT_MS 最多 120000 毫秒' })
+  DAILY_DIGEST_AI_TIMEOUT_MS: number = 40000
+
+  /**
+   * 是否允许惰性触发（读取接口顺带补发）。
+   *
+   * 配置 Cron 之后可以关掉它，让发布时机完全由 Cron 决定；
+   * 没配 Cron 的环境则靠它兜底，避免"上线了却永远不发文"。
+   */
+  @IsOptional()
+  @IsIn(['true', 'false', '1', '0'], {
+    message: 'DAILY_DIGEST_LAZY_TRIGGER 只能是 true / false',
+  })
+  DAILY_DIGEST_LAZY_TRIGGER: string = 'true'
+
+  /**
+   * 机器人账号的用户名。
+   *
+   * 它会成为帖子上显示的作者名，也会用来推导机器人邮箱
+   * （`<用户名>@studyplan.local`）。改这个值等于换一个作者身份，
+   * 之前的报道仍然挂在旧账号名下 —— 所以**上线后不要随便改**。
+   */
+  @IsOptional()
+  @IsString()
+  @MinLength(2, { message: 'DAILY_DIGEST_BOT_USERNAME 至少 2 个字符' })
+  @MaxLength(20, { message: 'DAILY_DIGEST_BOT_USERNAME 最多 20 个字符' })
+  DAILY_DIGEST_BOT_USERNAME: string = 'github-daily'
+
+  // ────────────────────────────────────────────────────────────────
+  // 项目简介的 AI 润色（榜单卡片与仓库详情页）
+  //
+  // 同样全部可选、全部带默认值 —— 理由与每日报道那组一致：
+  // 一个可选功能不该有能力让整个应用启动失败。
+  // ────────────────────────────────────────────────────────────────
+
+  /**
+   * 总开关。关掉之后接口仍然可用，只是不再生成新简介（已生成的照常返回）。
+   */
+  @IsOptional()
+  @IsIn(['true', 'false', '1', '0'], { message: 'GITHUB_INTRO_ENABLED 只能是 true / false' })
+  GITHUB_INTRO_ENABLED: string = 'true'
+
+  /**
+   * 单次调用最多生成几条简介。
+   *
+   * 它直接决定"一次请求最坏要挂多久"：生成一条实测 20-40 秒。
+   * 所以必须和下面的时间预算放在一起看 ——
+   * 设得太大，请求会撞上平台的执行时长上限，结果一条都拿不到。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: 'GITHUB_INTRO_BATCH_LIMIT 至少为 1' })
+  @Max(20, { message: 'GITHUB_INTRO_BATCH_LIMIT 最多 20，再大请求会超时' })
+  GITHUB_INTRO_BATCH_LIMIT: number = 3
+
+  /** 单次调用的时间预算（毫秒）。到了就交卷，没做完的留给前端下一轮轮询 */
+  @IsOptional()
+  @IsInt()
+  @Min(1000, { message: 'GITHUB_INTRO_TIME_BUDGET_MS 至少 1000 毫秒' })
+  @Max(120000, { message: 'GITHUB_INTRO_TIME_BUDGET_MS 最多 120000 毫秒' })
+  GITHUB_INTRO_TIME_BUDGET_MS: number = 20000
+
+  /** 单条简介的输出上限。卡片只有两行，给多了会被截断成半句话 */
+  @IsOptional()
+  @IsInt()
+  @Min(100, { message: 'GITHUB_INTRO_AI_MAX_TOKENS 至少 100' })
+  @Max(1000, { message: 'GITHUB_INTRO_AI_MAX_TOKENS 最多 1000，简介不需要那么长' })
+  GITHUB_INTRO_AI_MAX_TOKENS: number = 300
+
+  @IsOptional()
+  @IsInt()
+  @Min(1000, { message: 'GITHUB_INTRO_AI_TIMEOUT_MS 至少 1000 毫秒' })
+  @Max(60000, { message: 'GITHUB_INTRO_AI_TIMEOUT_MS 最多 60000 毫秒' })
+  GITHUB_INTRO_AI_TIMEOUT_MS: number = 20000
+
+  /**
+   * 简介的有效期（天）。
+   *
+   * 到期后下次读取视为失效并重新生成。这是为了兜住
+   * "作者改了官方简介"这种情况：读取时我们手里只有仓库 id，
+   * 无法判断内容是否已经变了，用时间兜底最省事。
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1, { message: 'GITHUB_INTRO_TTL_DAYS 至少为 1' })
+  @Max(365, { message: 'GITHUB_INTRO_TTL_DAYS 最多 365 天' })
+  GITHUB_INTRO_TTL_DAYS: number = 30
 }
 
 export function validateEnv(config: Record<string, unknown>): EnvironmentVariables {

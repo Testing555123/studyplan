@@ -156,6 +156,24 @@ Resolve-DnsName -Type SRV _mongodb._tcp.cluster0.xxxxx.mongodb.net | Select Name
 所以这不是"哪个更好"，而是"在当前网络环境下哪个能用"——
 **能用的那个才是对的。** 如果你的环境 SRV 正常，优先用 `+srv`。
 
+### 连接串的 SRV 解析：为什么 PowerShell 能连、Node 连不上
+
+#### 实现方法
+连接串写在 `apps/api/.env` 的 `MONGODB_URI`。遇到 `querySrv ECONNREFUSED` 时，先分开验证：PowerShell 的 `Resolve-DnsName -Type SRV` 能解析，但 Node 的 `mongoose.connect('mongodb+srv://…')` 报 ECONNREFUSED，基本就是 c-ares 解析器被拦。修复办法是把 `+srv` 串展开成标准 `mongodb://` 串，手动列出三个 shard 节点，并补上 `ssl=true` 与 `authSource=admin`。
+
+#### 原理
+`mongodb+srv://` 是简写：只写一个域名，靠一条 DNS SRV 记录去发现集群的三个真实节点。Node 有两套 DNS 解析器——`dns.lookup()` 用操作系统的 `getaddrinfo`，`dns.resolve*()` 用内置的 c-ares 库。`+srv` 走的是后者，它在某些网络环境下拿到的地址是 `127.0.0.1` 这种没人监听的地址，连接于是被拒绝。问题不在证书、也不在密码，是 SRV 查询这一步就没拿到正确节点。
+
+#### 与相关技术栈的关系
+`+srv` 和标准 `mongodb://` 是同一协议的两个写法：标准串把所有信息（节点、端口、TLS、authSource）写死，不依赖 DNS SRV 记录；`+srv` 把节点发现交给 DNS，节点变更时连接串不用改。代价是 `+srv` 引入了对 DNS SRV 记录的依赖。所以在 SRV 被拦截的环境里，标准串反而更稳。
+
+#### 面试常见问题与解题思路
+**Q1：为什么同一个域名在 PowerShell 能解析、Node 里却不行？**
+怎么想 → 区分"谁在做 DNS 解析"；怎么答 → 指出 Node 的 c-ares 与系统 getaddrinfo 是两套实现，`+srv` 走 c-ares，环境把 c-ares 的 SRV 查询挡掉了；追问 → 如何不改连接串就验证到底哪套解析器出问题（用 `dns.setServers` 切换解析服务器）。
+
+**Q2：`+srv` 和标准串怎么选？**
+怎么想 → 看是否依赖 DNS SRV；怎么答 → 能用 `+srv` 就优先，节点漂移自动适应，环境不支持时再退化到标准串；追问 → 标准串漏了 `ssl=true` 或 `authSource=admin` 会分别报什么错。
+
 ---
 
 ## 三、NVIDIA NIM API Key（可选，用于 AI 摘要与学习助手）
@@ -175,6 +193,24 @@ Resolve-DnsName -Type SRV _mongodb._tcp.cluster0.xxxxx.mongodb.net | Select Name
 > （如 `meta/llama-3.1-8b-instruct` 已于 2026-08-26 下线）。
 > 因此模型名由 `NVNIM_MODEL` 配置而非写死。可用清单随时可查：
 > `GET https://integrate.api.nvidia.com/v1/models`
+
+### NVIDIA NIM 的 OpenAI 兼容接入
+
+#### 实现方法
+Key 填进 `apps/api/.env` 的 `NVNIM_API_KEY`，接口地址 `https://integrate.api.nvidia.com/v1`。因为接口是 OpenAI 兼容的，后端用 Node 内置 `fetch` 直接调 `/v1/chat/completions` 即可，不需要任何 SDK。模型名由 `NVNIM_MODEL` 配置而不是写死，避免某个模型下线后代码报错。缺 Key 时后端正常启动，发帖不生成摘要、AI 助手显示「未启用」。
+
+#### 原理
+OpenAI 兼容接口指请求体（messages / model / temperature）和响应体（choices[0].message.content）都沿用 OpenAI 的约定。NVIDIA NIM 在背后把请求转发给具体模型，对调用方而言和调 OpenAI 没区别。本项目把 AI 做成旁路：调用失败不影响主链路（发帖），所以少一个 SDK 依赖反而更简单、更稳。
+
+#### 与相关技术栈的关系
+相比原先的智谱方案（需要 LangChain 三件套 + zod），OpenAI 兼容接口只用 `fetch` 就能调，依赖更轻。和本地部署的 Ollama 类似，Ollama 也暴露 OpenAI 兼容端点，差别只是指向本地还是云端。模型层面，NIM 上的模型会下线（如 `meta/llama-3.1-8b-instruct` 于 2026-08-26 下线），所以模型名必须可配置、可热替换。
+
+#### 面试常见问题与解题思路
+**Q1：为什么把 AI 调用做成旁路而不是主链路？**
+怎么想 → 想"AI 挂了用户还能不能发帖"；怎么答 → AI 是增强功能，失败不应阻断核心业务，所以用 try/catch 包住、失败就降级；追问 → 降级时要不要重试、要不要告警、会不会静默丢失。
+
+**Q2：为什么选 OpenAI 兼容接口而不是专有 SDK？**
+怎么想 → 看依赖成本和可移植性；怎么答 → 兼容接口只需 fetch，换厂商只需改 base URL，不被 SDK 绑架；追问 → 兼容接口能不能覆盖流式输出、函数调用等高级能力。
 
 ---
 
@@ -213,6 +249,24 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 2. **密钥不要贴进聊天记录、issue、截图**。一旦贴出，立刻去平台重置；
 3. **不确定某个变量会不会泄漏时，走这条判断**：任何以 `NUXT_PUBLIC_` 或 `PUBLIC_`
    开头的东西，都会被打包进浏览器可见的产物里——**绝不能放密钥**。
+
+### 环境变量里的密钥边界：NUXT_PUBLIC_ 不存密钥
+
+#### 实现方法
+本项目 `.env` 不提交（已在 `.gitignore`），仓库只有空值的 `.env.example`；密钥不进聊天记录、issue、截图，一旦泄露立刻去平台重置。Nuxt 里任何以 `NUXT_PUBLIC_` 或 `PUBLIC_` 开头的变量都会被打包进浏览器可见的产物，所以这类变量只能放非敏感的配置（如接口 base URL），**绝不能放密钥**。真正需要保密的（JWT 密钥、数据库密码、API Key）只放在后端 `.env`，前端拿不到。
+
+#### 原理
+前端代码运行在用户浏览器里，构建时 `NUXT_PUBLIC_` 前缀的变量会被内联进 JS bundle，任何人打开页面、看网络请求或读源码都能拿到。后端 `.env` 只存在于服务器内存和进程环境里，不会进入前端产物。密钥该放哪，本质是"这段信息会不会出现在用户能下载到的文件里"。
+
+#### 与相关技术栈的关系
+这和"前端守卫不是安全边界"是同一类问题：浏览器里的东西用户都能改、都能读。对比 Vite 的 `import.meta.env.VITE_` 前缀、Create React App 的 `REACT_APP_` 前缀，约定不同但机制一样——带公开前缀的都会进 bundle。后端环境变量则参考 Twelve-Factor App 的 config 原则，靠运行环境注入，不进代码。
+
+#### 面试常见问题与解题思路
+**Q1：把 API Key 放在 `NUXT_PUBLIC_` 变量里会有什么后果？**
+怎么想 → 想"这个变量最后会出现在哪"；怎么答 → 它会进前端 bundle，用户能从源码或请求里拿到 Key，进而盗用额度或产生费用；追问 → 发现 Key 泄露后第一步该做什么（去平台重置 + 轮换）。
+
+**Q2：前端怎么安全地调用需要密钥的第三方接口？**
+怎么想 → 密钥不能在前端；怎么答 → 让后端持有密钥，前端调自己的后端、后端再带密钥调第三方，密钥始终不离开服务器；追问 → 这样会不会把后端变成用户的免费代理（要做限流 / 鉴权）。
 
 ---
 

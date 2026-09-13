@@ -17,6 +17,7 @@ export const POST_TAGS = [
   '工程化',
   '读书笔记',
   '求职面试',
+  'GitHub',
 ] as const
 
 /** 由数组推导出的联合类型：'JavaScript' | 'TypeScript' | ... */
@@ -26,6 +27,15 @@ export type PostTag = (typeof POST_TAGS)[number]
 export function isPostTag(value: string): value is PostTag {
   return (POST_TAGS as readonly string[]).includes(value)
 }
+
+/**
+ * 「每日 GitHub 项目报道」专用的**来源标签**。
+ *
+ * 它和其余标签不是一类：其余标签描述"这篇讲什么技术"，
+ * 而这个标签描述"这篇从哪来"。单独起名是为了让前端能靠它
+ * 识别出报道贴并加角标，也让用户能按它把报道筛出来或筛掉。
+ */
+export const GITHUB_SOURCE_TAG: PostTag = 'GitHub'
 
 // ---------- 全站共享的数值约束 ----------
 // 放在 shared 里，是为了让前端的"字数提示"和后端的校验规则永远一致。

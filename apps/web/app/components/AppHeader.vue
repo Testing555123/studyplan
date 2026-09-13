@@ -1,24 +1,16 @@
 <script setup lang="ts">
 /**
- * 全局吸顶导航栏。
+ * 全局吸顶导航栏。外壳用 `UHeader`（自带居中容器、明暗适配与移动端菜单），
+ * 导航项用 `UNavigationMenu`，右侧操作区用 `UButton` / `UDropdownMenu`。
  *
- * ── Nuxt UI 化之后 ──
- * 外壳改用 `UHeader`（自带 `UContainer` 居中、明暗适配与移动端菜单机制），
- * 导航项改用 `UNavigationMenu`，右侧操作区用 `UButton` / `UDropdownMenu`。
+ * 圆角、边框、hover、焦点环这些每个交互元素都要有的东西，全由组件库提供，
+ * 不再维护 `.glass-bar` / `.nav-link` 那套自定义 CSS，也不用为每个颜色写 `dark:` 变体。
  *
- * 于是圆角、边框、hover、焦点环这些**每个交互元素都要有的东西**
- * 全部由组件库统一提供，这里不再维护 `.glass-bar` / `.nav-link` 那套自定义 CSS，
- * 也不再需要为每个颜色写 `dark:` 变体 —— 语义类（`text-highlighted`、
- * `from-primary-500` …）会自动跟着明暗模式走。
+ * 保留的 Tailwind 都是布局类（`fixed` / `z-50` / `h-16`、内部的 `flex` / `gap-*`）：
+ * Nuxt UI 不提供布局原子类，这部分按约定照常写。
  *
- * 保留的两处 Tailwind 都是**布局类**：`fixed / z-50 / h-16` 定位，
- * 以及内部的 `flex / gap-*`。Nuxt UI 不提供布局原子类，这部分按约定照常使用。
- *
- * 关于图标：`lucide-vue-next` 的图标是普通 Vue 组件，
- * **不在 Nuxt 的自动导入范围内**，必须逐个显式 import。
- * 漏掉 import 不会报错，只会静默渲染不出来 —— 这是新手最容易踩的坑之一。
- * （UNavigationMenu 的 items 用的是 Iconify 名称 `i-lucide-*`，
- *   由 @nuxt/icon 解析，不需要 import。）
+ * 图标：`lucide-vue-next` 的图标是普通 Vue 组件，不在 Nuxt 自动导入范围内，必须逐个 import；
+ * 漏掉 import 不会报错，只是静默渲染不出图标。导航项的 `i-lucide-*` 由 @nuxt/icon 解析，不用 import。
  */
 import { Sparkles } from 'lucide-vue-next'
 

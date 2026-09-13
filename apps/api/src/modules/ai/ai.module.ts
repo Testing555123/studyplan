@@ -36,6 +36,10 @@ import { AiAnswerCache, AiAnswerCacheSchema, AiDailyUsage, AiDailyUsageSchema } 
   controllers: [AiController],
   providers: [AiService, NvNimClient, CodeIndexService],
   // PostsModule 要用它，所以必须导出
-  exports: [AiService],
+  //
+  // `NvNimClient` 一并导出，是因为"每日 GitHub 报道"要绕开 AiService
+  // 直接调客户端：它需要自己的 token 上限与超时（见 `ChatOptions`），
+  // 也不该占用给问答预留的每日额度。
+  exports: [AiService, NvNimClient],
 })
 export class AiModule {}

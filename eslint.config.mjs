@@ -42,6 +42,20 @@ export default tseslint.config(
         extraFileExtensions: ['.vue'],
       },
     },
+    rules: {
+      /**
+       * `.vue` 文件里必须关掉 `no-undef`。
+       *
+       * Nuxt 的自动导入（`ref` / `computed` / `watch` / `onMounted` /
+       * `useApi` / `useAsyncData`，以及 utils 下的 `formatRelativeTime` 等）
+       * 不会出现在任何 `import` 语句里 —— ESLint 无从知晓它们的存在，
+       * 于是把它们全部报成"未定义"，一个文件能报出十几个假错误。
+       *
+       * 这类检查交给 TypeScript 与 `nuxt typecheck` 去做才可靠：
+       * 让一个不做类型分析的规则去猜自动导入，只会淹没真正的错误。
+       */
+      'no-undef': 'off',
+    },
   },
 
   {

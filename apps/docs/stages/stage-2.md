@@ -51,6 +51,26 @@ app/pages/posts/[id].vue       →  /posts/任意值
 > Nuxt 会优先匹配**静态**路由，所以 `/posts/new` 进的是 `new.vue`，
 > 不会被 `[id]` 吃掉。这个优先级规则一定要记住。
 
+#### 实现方法
+
+本项目用 Nuxt 的文件路由：`app/pages/index.vue` 对应 `/`，`login.vue` 对应 `/login`，`posts/new.vue` 对应 `/posts/new`，`posts/[id].vue` 里的 `[id]` 是动态段，访问 `/posts/p-1001` 时 `useRoute().params.id` 为 `'p-1001'`。新页面只需新建文件，不用改路由表。
+
+#### 原理
+
+路由表由文件系统生成，框架在构建期扫描 `pages/` 目录、把路径编译成路由配置。静态段优先于动态段，所以 `/posts/new` 命中 `new.vue` 而不是被 `[id]` 吞掉。这样 URL 结构和文件结构一一对应，不容易写错路由。
+
+#### 与相关技术栈的关系
+
+和传统 Vue 项目手写 vue-router 配置相比，文件路由省掉了路由表维护，但牺牲了一点灵活性（复杂嵌套要遵循约定）。React 生态的 Next.js 也有同样的文件路由思路（app router），思想一致。Nuxt 默认用 history 模式，和 hash 路由的底层差异无关。
+
+#### 面试常见问题与解题思路
+
+**Q1：Nuxt 的文件路由是怎么工作的？**
+怎么想：从"目录即路由"切入。怎么答：构建期扫描 pages 目录生成路由配置，文件名即路径。追问：动态路由 `[id]` 和嵌套路由怎么写？静态段和动态段优先级如何？
+
+**Q2：`/posts/new` 为什么不会匹配到 `/posts/[id]`？**
+怎么想：从"静态优先"切入。怎么答：Nuxt 优先匹配静态路由，new 是静态段，所以先进 new.vue。追问：如果把文件名改成 `[new].vue` 会怎样？
+
 ### 2. 自动导入：省掉的不是两行 import，是设计压力
 
 Nuxt 会自动导入 `app/components`、`app/composables`、`app/utils`、`app/stores`
@@ -62,6 +82,26 @@ Nuxt 会自动导入 `app/components`、`app/composables`、`app/utils`、`app/s
 
 **例外**：第三方库（包括 `lucide-vue-next` 的图标）**不在**自动导入范围内。
 漏写 import 不会报错，只会静默渲染不出来 —— 见本文踩坑记录。
+
+#### 实现方法
+
+Nuxt 自动导入 `app/components`、`app/composables`、`app/utils`、`app/stores` 以及 Vue 的 `ref`/`computed`/`watch`，直接用不用 import。第三方库如 `lucide-vue-next` 的图标不在范围内，必须手写 import。
+
+#### 原理
+
+Nuxt 在编译期扫描约定目录，为每个导出生成隐式 import，页面和组件里就能当全局符号用。这降低了"新建文件"的心理成本，反过来鼓励把大文件拆小。自动导入是编译期注入，不影响运行时。
+
+#### 与相关技术栈的关系
+
+和 Vue CLI 时代手动 import 所有组件相比，自动导入更省事，但可读性上要依赖编辑器跳转才能知道符号从哪来。unplugin-auto-import 是通用实现，Nuxt 内置了它。和显式 import 相比，自动导入的代价是 newcomer 不易定位来源，所以本项目对第三方库仍要求显式 import。
+
+#### 面试常见问题与解题思路
+
+**Q1：Nuxt 的自动导入是怎么实现的？有什么坑？**
+怎么想：从"编译期注入"切入。怎么答：扫描约定目录生成隐式 import。追问：哪些东西不会被自动导入？漏了 import 会怎样？
+
+**Q2：自动导入会影响打包体积吗？**
+怎么想：从"tree-shaking"切入。怎么答：自动导入仍是按需静态分析，没用到的不会进包，但有循环或全局副作用时要小心。追问：和全量 import 一个 barrel 文件相比呢？
 
 ### 3. `ref` 与 `computed`：先问"能不能算出来"
 
@@ -82,6 +122,26 @@ const remaining = computed(() => MAX - draft.value.length)
 `CommentList.vue` 里的 `canSubmit`、`tooLong`、`remaining` 三个都是 `computed`，
 一个 `ref` 都没有 —— 这就是这条原则的落地样子。
 
+#### 实现方法
+
+本项目用 `computed` 表达能算出来的值：`CommentList.vue` 的 `remaining`、`tooLong`、`canSubmit` 全是 computed，一个 ref 都没有。判断标准只有一句：这个值能不能由别的状态算出来？能就用 computed，不能才用 ref。
+
+#### 原理
+
+`computed` 是派生状态：它依赖的响应式值变化时自动重算，且惰性求值、带缓存、没有中间态。`ref` 是独立可变状态，需要你手动 `watch` 去同步。把"算得出来的"写成 ref 加 watch，既多余又容易和源状态失同步。
+
+#### 与相关技术栈的关系
+
+和 React 的 `useState` 加 `useMemo` 对应：ref 近似 useState，computed 近似 useMemo 但更自动（自动追踪依赖）。和 `watch` 的区别是关键：computed 产出值、watch 执行副作用。把"派生展示"误用 watch 去更新另一个 ref 是常见的反模式。
+
+#### 面试常见问题与解题思路
+
+**Q1：computed 和 watch 的区别？**
+怎么想：从"产出值 vs 执行副作用"切入。怎么答：computed 返回派生值、自动缓存；watch 监听变化做副作用。追问：能用 watch 去同步派生状态吗？（能但容易失同步，优先 computed）
+
+**Q2：computed 的缓存机制是怎样的？**
+怎么想：从"依赖追踪"切入。怎么答：只有依赖的响应式值变化才重算，且取值时才算（惰性），不会暴露半算完的状态。追问：依赖是显式声明的还是自动收集的？
+
 ### 4. 组件粒度：`props` 进、`emit` 出
 
 `PostCard.vue` 值得反复看。它的设计约束是：
@@ -97,6 +157,26 @@ const remaining = computed(() => MAX - draft.value.length)
 > 一条实用的判断：**当一个组件开始"自己找数据"时，它就失去了复用性。**
 > 组件应该只负责"展示给定的数据"和"把用户意图报告出去"。
 
+#### 实现方法
+
+`PostCard.vue` 的数据从 `props` 进来（`post: Post`），交互用 `emit('toggle-like', post.id)` 出去，组件内部不自己取数据。这样同一张卡片能用在首页、搜索结果、作者主页。
+
+#### 原理
+
+组件只负责"展示给定数据"和"报告用户意图"，数据源由外部决定。一旦组件内部自己 `usePostStore().fetchList()`，它就和特定页面绑死，失去复用性。这条边界让组件成为可搬运的零件。
+
+#### 与相关技术栈的关系
+
+这就是"受控组件"思路，和 React 的 props 加回调（onToggleLike）一致。和"容器组件 / 展示组件"分层是同一套思想：展示组件不关心数据来源。和把数据请求塞进组件里（如 useEffect 里 fetch）相比，这种写法更利于测试和复用。
+
+#### 面试常见问题与解题思路
+
+**Q1：怎么判断一个组件该不该自己取数据？**
+怎么想：从"复用性"切入。怎么答：如果数据只在该组件用、不需跨页共享，可在组件内取；若会被多处复用或需跨页，把数据提到 store 或父级，组件只收 props。追问：什么时候把取数逻辑抽成 composable？
+
+**Q2：props 和 emit 分别解决什么问题？**
+怎么想：从"数据流方向"切入。怎么答：props 向下传数据（单向），emit 向上报事件；子组件不直接改 props。追问：Vue 怎么保证单向数据流？（props 只读，改了会警告）
+
 ### 5. Pinia：什么时候才需要它
 
 `app/stores/post.ts` 管了四类状态：列表、详情、评论、点赞。
@@ -110,6 +190,26 @@ const remaining = computed(() => MAX - draft.value.length)
 
 滥用 store 的典型症状是：**状态从一个路由泄漏到另一个路由**。
 你从详情页返回首页，发现它还记着上一篇的内容 —— 就是这个问题。
+
+#### 实现方法
+
+`app/stores/post.ts` 管四类状态：列表、详情、评论、点赞。判断该不该进 store 的标准是：这份状态需要跨页面存活，或被多个互不相邻的组件共享吗？需要就进 store；只一个页面自己用的（如发帖页的预览标签）留在组件里。
+
+#### 原理
+
+Pinia 是全局单例的状态容器。把"跨页或共享"状态放进 store，避免 `prop` 层层透传和重复取数；把"局部"状态留在组件，避免状态溢出到无关页面。滥用 store 的典型症状是状态从一个路由泄漏到另一个路由。
+
+#### 与相关技术栈的关系
+
+Pinia 是 Vuex 的继任者，去掉了 mutations、用组合式 API 风格定义 store，类型推导更好。和 React 的 Redux、Zustand 相比，Pinia 更轻、样板更少。和组件内 `ref` 相比，store 适合共享，组件 state 适合局部；混淆两者会导致状态泄漏和难以追踪的 bug。
+
+#### 面试常见问题与解题思路
+
+**Q1：什么时候用 Pinia，什么时候用组件内 ref？**
+怎么想：从"共享范围"切入。怎么答：跨组件或跨路由共享、需长期存活用 store；单组件局部用 ref。追问：store 用多了会有什么问题？（状态泄漏、排查困难）
+
+**Q2：Pinia 和 Vuex 的主要区别？**
+怎么想：从"样板量"切入。怎么答：Pinia 无 mutations、API 更组合式、类型更好。追问：Pinia 怎么持久化状态？怎么在 SSR 下避免状态串味？
 
 ### 6. SSR 与 `useAsyncData`
 
@@ -132,6 +232,26 @@ await useAsyncData('post-list-initial', async () => {
 所以详情页里评论是**并行**获取的（第二个 `useAsyncData`），
 它不会阻塞正文渲染。
 
+#### 实现方法
+
+首页首次取数包在 `useAsyncData('post-list-initial', ...)` 里，服务端就把帖子取好，HTML 里已有内容；数据序列化进 HTML，客户端 hydration 不重复请求。详情页的评论用第二个 `useAsyncData` 并行获取，不阻塞正文。
+
+#### 原理
+
+`useAsyncData` 在服务端执行一次数据获取，把结果随 HTML 一起下发，客户端复用这份数据而不重发请求，避免 FOUC（首屏闪烁）。代价是页面变成异步组件，首屏要等数据回来。把非关键数据（如评论）并行获取，能缩短阻塞时间。
+
+#### 与相关技术栈的关系
+
+和纯 CSR（客户端渲染）相比，SSR 首屏更快、利于 SEO，代价是服务端要能跑取数逻辑、注意状态不串味。Next.js 的 `getServerSideProps` 或 RSC 是类似思路。和 SSG（预渲染）相比，SSR 每次请求实时取数，适合个性化内容。和 `useFetch` 相比，`useAsyncData` 多了 key 去重，适合手动控制。
+
+#### 面试常见问题与解题思路
+
+**Q1：SSR 相比 CSR 有什么优缺点？**
+怎么想：从"首屏/SEO vs 复杂度"切入。怎么答：SSR 首屏快、利于 SEO、避免闪烁；代价是服务端要跑取数、注意并发与状态隔离。追问：hydration 是什么？为什么不能重复请求？
+
+**Q2：useAsyncData 和 useFetch 有什么区别？**
+怎么想：从"key 去重"切入。怎么答：useAsyncData 用 key 缓存去重、手动包函数；useFetch 更自动、默认基于当前 URL。追问：客户端 hydration 时怎么避免重复请求？
+
 ### 7. 四种状态：这才是"做完了"
 
 `CommentList.vue` 刻意覆盖了四种状态：
@@ -145,6 +265,26 @@ await useAsyncData('post-list-initial', async () => {
 
 **Demo 和可用产品的差别，几乎全在这四种状态里。**
 只做"有数据时"的情况，交付的是一张截图，不是一个页面。
+
+#### 实现方法
+
+`CommentList.vue` 刻意覆盖四种状态：加载中（骨架条）、空列表（引导文案）、未登录（替换为登录入口）、提交中（按钮禁用）。验收清单里专门列了这几项。
+
+#### 原理
+
+一个页面"做完了"的标志不是有数据时能用，而是加载、空、错误、提交中这些边界都被照顾到。只做"有数据"的情况，交付的是一张截图，不是可用产品。四种状态本质是给用户在每个可能的时刻一个明确的反馈。
+
+#### 与相关技术栈的关系
+
+和"happy path only"的 demo 相比，生产级 UI 必须处理边界。React 的 React Query、SWR 用 `isLoading`/`isError`/`data` 把这类状态标准化；Vue 生态里常在 composable 或 Pinia 里维护 `status` 字段。和只抛错误页相比，就地呈现可恢复的状态（如未登录引导）体验更好。
+
+#### 面试常见问题与解题思路
+
+**Q1：为什么一个页面要处理多种状态？**
+怎么想：从"可用性"切入。怎么答：加载、空、错误、提交中都是真实会发生的时刻，缺一则用户在某些时刻没有反馈。追问：怎么组织这几种状态的 UI 切换？（条件渲染、状态机、async 状态库）
+
+**Q2：骨架屏的作用是什么？和 loading 转圈比呢？**
+怎么想：从"感知性能"切入。怎么答：骨架屏用近似真实布局的占位，降低等待焦虑、避免布局跳动；转圈只表示"在加载"但不知内容结构。追问：SSR 下还需要骨架屏吗？
 
 ---
 

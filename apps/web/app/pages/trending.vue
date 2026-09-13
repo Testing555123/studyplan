@@ -1,27 +1,19 @@
 <script setup lang="ts">
 /**
- * GitHub 热门项目页。
+ * GitHub 热门项目页，三个设计点：
  *
- * 三个值得注意的设计：
+ * 1. 筛选条件双向同步到地址栏（`?range=7d&language=TypeScript`），
+ *    结果可分享、可前进后退——榜单页尤其重要，用户常把「最近一个月最火的 Rust 项目」这类链接发给别人。
  *
- * 1. **筛选条件双向同步到地址栏**（`?range=7d&language=TypeScript`）。
- *    这样结果可分享、可前进后退 —— 榜单页尤其重要，
- *    用户很可能会把"最近一个月最火的 Rust 项目"这样的链接发给别人。
+ * 2. 首屏用 `useAsyncData` 在服务端取好：数据全靠后端代理（浏览器不直连 GitHub），
+ *    走 SSR 让用户直接看到卡片，而不是先一屏骨架。
  *
- * 2. **首屏用 `useAsyncData` 在服务端取好**。
- *    这个页面的数据全靠后端代理（浏览器不直连 GitHub），
- *    走 SSR 能让用户直接看到卡片，而不是先看一屏骨架。
+ * 3. 三态齐全：加载骨架 / 空结果 / 失败重试。后端还有第四种状态 `stale`（用了过期缓存），
+ *    这里用琥珀色徽章如实告诉用户「数据可能不是最新」，而不是假装它是最新的。
  *
- * 3. **三态齐全**：加载骨架 / 空结果 / 失败重试。
- *    后端还有第四种状态 —— `stale`（用了过期缓存），
- *    这里用琥珀色徽章如实告诉用户"数据可能不是最新"，
- *    而不是假装它是最新的。
- *
- * ── 组件选型 ──
- * 时间档用 `UButton` 循环，语言筛选复用 `TagFilter`：
- * 时间档需要"显示中文标签、提交 '7d' 这样的值"，
- * 而 TagFilter 的模型值与显示文本是同一个，处理不了这层映射；
- * 语言的显示文本与值恰好一致，交给 TagFilter 正合适。
+ * 组件选型：时间档用 `UButton` 循环，语言筛选复用 `TagFilter`。
+ * 时间档需要「显示中文标签、提交 '7d' 这样的值」，而 TagFilter 的模型值与显示文本是同一个，
+ * 处理不了这层映射；语言的显示文本与值恰好一致，交给 TagFilter 正合适。
  */
 import { ExternalLink } from 'lucide-vue-next'
 import { DEFAULT_TRENDING_RANGE, TRENDING_RANGES, isTrendingRange } from '@studyplan/shared'
@@ -61,6 +53,27 @@ const { data, pending, error, refresh } = await useAsyncData(
 )
 
 const result = computed(() => data.value ?? null)
+
+const { ensure } = useRepoIntros()
+
+/**
+ * 为当前列表请求 AI 简介。
+ *
+ * **只在客户端做**：生成一条简介要真调一次模型（实测 20-40 秒），
+ * 放进 SSR 等于让首屏干等 —— 而这一屏真正该先出来的是项目卡片本身。
+ *
+ * 生成是异步且限量的，所以卡片会先把官方简介显示出来，
+ * 润色版就绪后再被替换掉，用户看到的是内容逐步变好，而不是一个转圈。
+ */
+watch(
+  () => result.value?.items,
+  (items) => {
+    if (!items || items.length === 0) return
+    if (!import.meta.client) return
+    void ensure(items)
+  },
+  { immediate: true },
+)
 
 /** 语言筛选：与地址栏同步 */
 const languageModel = computed<string | null>({
@@ -103,7 +116,7 @@ const freshnessText = computed(() => {
     <section class="pt-10 pb-6">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-semibold tracking-tight text-highlighted">GitHub 热门项目</h1>
+          <h1 class="text-display font-semibold tracking-tight text-highlighted">GitHub 热门项目</h1>
           <p class="mt-1.5 text-body text-muted">
             按创建时间筛选，取 star 最高的项目 · 共
             <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>

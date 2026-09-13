@@ -34,9 +34,36 @@ const DEFAULT_MODEL = 'openai/gpt-oss-20b'
 /** 单次调用超时。AI 问答是交互式的，25 秒是"能忍受"的上限 */
 const DEFAULT_TIMEOUT_MS = 25_000
 
+/** 默认输出上限，取值依据见下方 `chat()` 里的说明 */
+const DEFAULT_MAX_TOKENS = 800
+
+/** 默认采样温度。0.4 偏向稳定，避免同一个问题每次答案差很远 */
+const DEFAULT_TEMPERATURE = 0.4
+
 export interface ChatMessage {
   role: 'system' | 'user'
   content: string
+}
+
+/**
+ * 单次调用的覆盖项。
+ *
+ * 为什么需要它：`chat()` 的默认值是为**交互式问答**调的
+ * （800 token、25 秒）。而"每日 GitHub 报道"是完全不同的负载 ——
+ * 它要写一篇几百字的中文长文，且跑在定时任务的后台里，
+ * 用户不会盯着等，所以能容忍更长的时间。
+ *
+ * 用可选参数而不是给长文场景再写一个 `chatLong()`：
+ * 差异只有三个数字，不值得复制一整段请求逻辑。
+ * 默认值保持不变，所以现有调用方一行都不用改。
+ */
+export interface ChatOptions {
+  /** 输出 token 上限 */
+  maxTokens?: number
+  /** 本次调用的超时，覆盖实例默认值 */
+  timeoutMs?: number
+  /** 采样温度 */
+  temperature?: number
 }
 
 /**
@@ -88,13 +115,17 @@ export class NvNimClient {
    * 因为 Service 会把它原样放进响应的降级原因里。
    * "Error: request failed" 这种消息对用户毫无价值。
    */
-  async chat(messages: ChatMessage[]): Promise<string> {
+  async chat(messages: ChatMessage[], options: ChatOptions = {}): Promise<string> {
     if (!this.apiKey) {
       throw new Error('AI 功能未启用：服务端未配置 NVNIM_API_KEY')
     }
 
+    const maxTokens = options.maxTokens ?? DEFAULT_MAX_TOKENS
+    const temperature = options.temperature ?? DEFAULT_TEMPERATURE
+    const timeoutMs = options.timeoutMs ?? this.timeoutMs
+
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
       const response = await fetch(`${NVNIM_BASE_URL}/chat/completions`, {
@@ -117,8 +148,8 @@ export class NvNimClient {
         body: JSON.stringify({
           model: this.model,
           messages,
-          temperature: 0.4,
-          max_tokens: 800,
+          temperature,
+          max_tokens: maxTokens,
         }),
         signal: controller.signal,
       })
@@ -140,7 +171,7 @@ export class NvNimClient {
       return content
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`AI 响应超时（${this.timeoutMs}ms），请稍后再试`)
+        throw new Error(`AI 响应超时（${timeoutMs}ms），请稍后再试`)
       }
       throw error instanceof Error ? error : new Error(String(error))
     } finally {

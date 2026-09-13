@@ -7,6 +7,7 @@ import { validateEnv } from './config/env.validation'
 import { AiModule } from './modules/ai/ai.module'
 import { AuthModule } from './modules/auth/auth.module'
 import { CommentsModule } from './modules/comments/comments.module'
+import { DailyDigestModule } from './modules/daily-digest/daily-digest.module'
 import { GithubModule } from './modules/github/github.module'
 import { HealthController } from './modules/health/health.controller'
 import { LikesModule } from './modules/likes/likes.module'
@@ -144,6 +145,14 @@ import { UsersModule } from './modules/users/users.module'
      * 它自己带缓存 Model，不依赖其它业务模块，与其它模块也没有交集。
      */
     GithubModule,
+    /**
+     * 每日 GitHub 项目报道。
+     *
+     * 它单向依赖 github（候选池）/ ai（写稿）/ posts（发帖）/ users（机器人账号），
+     * 没有任何模块依赖它 —— 所以把它整个删掉，或者它运行时全程报错，
+     * 都不会影响用户发帖、评论、登录中的任何一条路径。
+     */
+    DailyDigestModule,
   ],
   controllers: [HealthController],
 })

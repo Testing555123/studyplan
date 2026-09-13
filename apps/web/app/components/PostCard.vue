@@ -1,27 +1,19 @@
 <script setup lang="ts">
 /**
- * 帖子卡片。
+ * 帖子卡片，列表页的视觉主体，也是「组件该切到什么粒度」的第一个例子：
+ *   - 只负责展示一篇帖子，不自己取数据；
+ *   - 数据走 props 进来，交互走 emit 出去；
+ *   - 因此首页列表、搜索结果页、作者主页都能复用它。
  *
- * 它是列表页的视觉主体，也是"组件该切到什么粒度"的第一个例子：
- *   - 它只负责**展示**一篇帖子，不负责取数据；
- *   - 数据通过 props 进来，交互通过 emit 出去；
- *   - 因此它能同时被首页列表、搜索结果页、作者主页复用。
+ * 若组件内部自己 `usePostStore().fetchList()`，它就只能用在首页了——这是新手最常见的设计失误。
  *
- * 如果这个组件内部自己 `usePostStore().fetchList()`，
- * 它就只能用在首页了 —— 这是新手最常见的组件设计错误。
- *
- * ── Nuxt UI 化之后的变化 ──
- * 卡片外壳改用 `UCard`，标签用 `UBadge`，点赞用 `UButton`，
- * 文字颜色改用语义类（`text-highlighted` / `text-muted` …）而不是
- * 手写 `text-slate-900 dark:text-white`。
- *
- * 语义类的好处在暗色模式下最明显：过去每个颜色都要写两遍
- * （亮色一遍 + `dark:` 一遍），现在一遍就够，而且全站口径统一。
- * 剩下没被替换掉的是**布局类**（间距、flex、绝对定位）——
- * 那是 Nuxt UI 不提供的部分，按"务实保留"的约定照常使用。
+ * 外壳用 `UCard`，标签用 `UBadge`，点赞用 `UButton`，文字颜色用语义类
+ * （`text-highlighted` / `text-muted`）而非手写的 `text-slate-900 dark:text-white`。
+ * 语义类在暗色模式下尤其省事：过去每个颜色要写两遍（亮色一遍 + `dark:` 一遍），现在一遍即可，
+ * 全站口径也统一。布局类（间距、flex、绝对定位）Nuxt UI 不提供，照常保留。
  */
-import { ChevronRight, Heart, MessageSquare } from 'lucide-vue-next'
-import type { Post } from '@studyplan/shared'
+import { ChevronRight, Heart, MessageSquare, Sparkles } from 'lucide-vue-next'
+import { GITHUB_SOURCE_TAG, type Post } from '@studyplan/shared'
 
 const props = defineProps<{
   post: Post
@@ -34,6 +26,16 @@ const emit = defineEmits<{
 /** 点赞态由 store 统一管理，这里只读不写 */
 const postStore = usePostStore()
 const liked = computed(() => postStore.isLiked(props.post.id))
+
+/**
+ * 这篇是不是「每日 GitHub 报道」。
+ *
+ * 靠来源标签 `GITHUB_SOURCE_TAG` 识别，而不是给帖子的类型定义加一个
+ * `isBotPost` 布尔字段：那样要改契约、改后端 mapper、还要处理老数据的默认值。
+ * 标签本来就是"这篇属于哪一类"的标准机制，直接复用它最省事，
+ * 也顺带让用户能按这个标签把报道筛出来或筛掉。
+ */
+const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
 </script>
 
 <template>
@@ -41,6 +43,21 @@ const liked = computed(() => postStore.isLiked(props.post.id))
     class="group relative transition-all duration-300 hover:border-primary hover:shadow-sm"
     :ui="{ body: 'p-5 sm:p-6' }"
   >
+    <!--
+      每日报道角标：放在标题**上方**，而不是塞进标签行。
+      标签行里那几个是可以点击筛选的技术标签，混进一个"不可筛选的来源标识"
+      会让用户以为它也是标签。独立成一行，语义上就清楚它是"这篇的来历"。
+    -->
+    <div v-if="isDailyPick" class="mb-2 flex items-center gap-1.5">
+      <UBadge variant="subtle" color="primary" size="xs">
+        <template #leading>
+          <Sparkles :size="12" />
+        </template>
+        AI 每日推荐
+      </UBadge>
+      <span class="text-meta text-muted">系统自动生成，请自行判断</span>
+    </div>
+
     <!-- 标题：唯一可点链接，用 ::after 拉伸覆盖整卡；避免整卡 <a> 内再嵌套标签 <a> 的非法结构 -->
     <h3 class="text-title leading-7 font-semibold tracking-tight">
       <NuxtLink

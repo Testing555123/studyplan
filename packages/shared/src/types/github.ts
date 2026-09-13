@@ -43,13 +43,13 @@ export interface GithubRepo {
   homepage: string | null
 
   /**
-   * 项目简介，即我们要展示的"简洁介绍"。
+   * 项目简介，即 GitHub 官方的 `description`，可能是 null。
    *
-   * 为什么直接用 GitHub 的 `description` 而不让 AI 生成？
-   *   1. 它是**作者自己写的**，比模型转述更准确；
-   *   2. 零成本、零延迟（AI 生成要消耗额度且要等）；
-   *   3. 官方字段，不存在"生成失败"的路径要处理。
-   * AI 在这个功能里的定位是**问答**（用户主动问），而不是批量改写。
+   * 它是**事实来源**：作者自己写的一句话，比任何转述都准确。
+   *
+   * 页面上另外展示的 AI 润色版（见 `RepoIntro`）由它（或在它缺失时由 README）
+   * 派生而来，展示时会替换掉这个值 —— 但**原始数据始终保留并可对照**。
+   * 这样即使模型理解偏了，用户也还有一处准确信息可以退回。
    */
   description: string | null
 
@@ -108,4 +108,86 @@ export interface TrendingResponse {
    *   后者会让人以为网站坏了。
    */
   stale: boolean
+}
+
+/**
+ * AI 润色后的项目简介。
+ *
+ * 为什么它是**独立的对象**而不是直接改写 `GithubRepo.description`：
+ *   `description` 是 GitHub 的事实，润色版是模型的演绎。
+ *   两者混在一个字段里，就等于用演绎覆盖了事实 ——
+ *   一旦模型理解偏了，用户看到的是一段通顺但错误的介绍，而且无从对照。
+ *   分开之后，展示时可以替换，数据上各自保留。
+ *
+ * `repoId` 而不是 `fullName` 做键，理由与去重键一致：仓库会改名、会转移，
+ * 而 GitHub 的数字 id 永久不变。
+ */
+export interface RepoIntro {
+  repoId: number
+
+  /**
+   * 润色后的中文简介。
+   *
+   * `null` 表示**还没生成出来**（正在生成、额度耗尽、或 AI 未启用），
+   * 此时前端应回退显示官方 `description`，而不是留出空白。
+   */
+  intro: string | null
+
+  /** 生成它的模型名。排查"换了模型要不要重生成"时有用 */
+  model: string | null
+
+  /** 生成时间（ISO 8601） */
+  updatedAt: string | null
+}
+
+/** 批量取简介的入参 */
+export interface RepoIntroBatchRequest {
+  repoIds: number[]
+}
+
+/**
+ * 批量取简介的返回。
+ *
+ * 为什么用「批量」而不是每个项目一个接口：
+ *   榜单一次要展示上百个项目，逐个请求会产生上百个并发连接，
+ *   且每个都要各自去查一次缓存。批量接口让"查缓存"变成一次数据库查询，
+ *   也让"限额生成"有了统一的调度点。
+ */
+export interface RepoIntroBatchResponse {
+  /** 已经生成好的简介（可能少于请求的数量） */
+  intros: RepoIntro[]
+
+  /**
+   * 还没生成的仓库 id。
+   * 前端据此决定要不要再轮询一次 —— 生成是异步的，一次调用只会做有限的工作量。
+   */
+  pending: number[]
+
+  /**
+   * 本次是否整体降级（AI 未启用，或当日额度已耗尽）。
+   * 为 true 时前端**不应继续轮询**：再问也是同样的结果。
+   */
+  degraded: boolean
+}
+
+/**
+ * 单个仓库的详情响应。
+ *
+ * `source` 为什么要在响应里如实交代：
+ *   详情页是可分享的路由，而数据来自三级回退（榜单缓存 → 已落库的快照 → 现取 GitHub）。
+ *   前端拿它决定要不要提示"数据可能不是最新"，排查时也能一眼看出走了哪条路径。
+ */
+export interface RepoDetailResponse {
+  repo: GithubRepo
+
+  /** 是否来自过期缓存（与榜单的 `stale` 同义） */
+  stale: boolean
+
+  /**
+   * 数据来源：
+   *   · `trending-cache` 榜单缓存里就有（零额外请求）
+   *   · `snapshot`       之前回源过并落库（零额外请求）
+   *   · `github`         本次刚从 GitHub 取的（会写进 snapshot）
+   */
+  source: 'trending-cache' | 'snapshot' | 'github'
 }

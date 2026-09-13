@@ -1,19 +1,15 @@
 <script setup lang="ts">
 /**
- * 点赞按钮。
+ * 点赞按钮，做成受控组件。
  *
- * 设计上刻意做成**受控组件**：
- *   props 传进来"当前是否已点赞、数量是多少"，
- *   点击只 emit 一个事件，由父组件（或 store）决定怎么改状态。
+ * 父组件通过 props 传入「是否已点赞」和「数量」，点击只向外 emit 一个 toggle 事件，
+ * 真正的状态改动交给父组件或 store 处理。
  *
- * 为什么不在这里自己改 props？
- *   因为 Vue 的单向数据流不允许子组件改 props。
- *   而且一旦数据要被多个地方共享（列表 + 详情），
- *   状态就必须收敛到一个地方，否则两处显示的数字会不一致。
+ * 不在这里直接改 props，原因有二：Vue 的单向数据流不允许子组件修改 props；
+ * 而且同一个点赞数会被列表和详情两处共用，状态必须收拢到一处，否则两边数字会对不上。
  *
- * 动画说明：`popping` 只在 500ms 内为 true，
- * 用来触发一次 CSS 缩放动画。动画结束后移除 class，
- * 这样连续点击时动画能重新触发（不然第二次点不会有反应）。
+ * `popping` 在点击后只保持 500ms，用来触发一次 CSS 缩放动画；
+ * 动画结束就移除 class，这样连点时能再次触发（否则第二次点击没有反馈）。
  */
 import { Heart } from 'lucide-vue-next'
 
@@ -61,9 +57,7 @@ const iconSize = computed(() => (props.size === 'sm' ? 14 : 17))
 
 <template>
   <!--
-    过去这里手写了一整串边框/背景/文字颜色，还要各配一套 dark: 变体。
-    改成 UButton 之后，选中态用 color="error"（语义色，自动适配明暗），
-    未选中用 color="neutral" + variant="outline"，一套就够。
+    选中态用 error 语义色、未选中用 neutral + outline，明暗主题都由组件库自动适配。
   -->
   <UButton
     :variant="liked ? 'soft' : 'outline'"

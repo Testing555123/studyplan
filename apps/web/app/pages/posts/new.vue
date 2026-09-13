@@ -1,21 +1,18 @@
 <script setup lang="ts">
 /**
- * 发帖页：Markdown 双栏编辑 + 实时预览 + 标签选择。
+ * 发帖页：Markdown 双栏编辑 + 实时预览 + 标签选择，这一版会把文章真正写入数据库。
  *
- * 阶段 5 的变化：这里**真的会把文章写进数据库**了。
- *
- * 三件事值得注意：
- *   1. `definePageMeta({ middleware: 'auth' })` —— 未登录会被守卫拦下，
- *      并带上 `?redirect=` 以便登录后回跳；
- *   2. 请求体里**只有标题、正文、标签**。作者信息由后端从 Token 里取 ——
- *      前端连"我是谁"都不需要告诉后端（那是 Token 已经证明过的事）。
- *   3. 校验规则来自 `packages/shared`，与后端 DTO 用的是同一批常量。
+ * 三点：用 `definePageMeta({ middleware: 'auth' })` 在入口拦未登录用户，
+ * 并带上 `?redirect=` 以便登录后回跳；
+ * 请求体只有标题、正文、标签——作者信息由后端从 Token 取，前端连「我是谁」都不必传；
+ * 校验规则来自 `packages/shared`，与后端 DTO 用同一批常量。
  */
 import { Eye } from 'lucide-vue-next'
 import type { Post } from '@studyplan/shared'
 import {
   CONTENT_MAX_LENGTH,
   CONTENT_MIN_LENGTH,
+  GITHUB_SOURCE_TAG,
   MAX_TAGS_PER_POST,
   POST_TAGS,
   TITLE_MAX_LENGTH,
@@ -24,10 +21,8 @@ import {
 import { ApiRequestError } from '~/composables/useApi'
 
 /**
- * 关键的一行：本页面需要登录。
- * 它只影响**体验**（未登录时不让进这个页面）。
- * 真正的安全边界在后端的 `@UseGuards(JwtAuthGuard)` ——
- * 即使有人绕过这里直接发请求，后端照样返回 401。
+ * 本页面需要登录，但这一行只影响体验（未登录时拦在页面外）。
+ * 真正的安全边界在后端的 `@UseGuards(JwtAuthGuard)`：即便有人绕过这里直接发请求，后端照样返回 401。
  */
 definePageMeta({ middleware: 'auth' })
 
@@ -49,6 +44,19 @@ const publishing = ref(false)
 
 const titleLength = computed(() => form.title.trim().length)
 const contentLength = computed(() => form.content.trim().length)
+
+/**
+ * 用户可选的标签 = 白名单去掉「每日报道」的来源标签。
+ *
+ * 为什么要去掉：`GITHUB_SOURCE_TAG` 是"这篇从哪来"的标记，
+ * 卡片靠它判断是否显示「AI 每日推荐」角标。
+ * 如果用户也能选它，那么人工写的帖子也会顶着那个角标 ——
+ * 一个看起来像小问题的显示错误，实际是在向读者谎报内容来源。
+ * 这类"来源标识"必须是**系统独占**的，否则它就不再是标识。
+ */
+const selectableTags = computed(() =>
+  POST_TAGS.filter((tag) => tag !== GITHUB_SOURCE_TAG),
+)
 
 /** 所有校验错误；提交过之后才显示，避免用户刚打开页面就一片红 */
 const errors = computed(() => {
@@ -112,9 +120,8 @@ async function publish(): Promise<void> {
   publishing.value = true
   try {
     /**
-     * 注意请求体只有三个字段。
-     * 作者信息由后端从 Access Token 里解析 ——
-     * 客户端**没有能力**指定作者，这是安全设计而不是省事。
+     * 请求体只有三个字段：作者由后端从 Access Token 解析，
+     * 客户端无法指定，这是安全设计而非图省事。
      */
     const created = await api.post<Post>('/posts', {
       title: form.title.trim(),
@@ -128,9 +135,8 @@ async function publish(): Promise<void> {
   } catch (caught) {
     if (caught instanceof ApiRequestError) {
       /**
-       * 后端的校验错误会带 `details`（一个字符串数组）。
-       * 把它拼进来，用户才知道具体是哪个字段不合规 ——
-       * 只显示"参数校验未通过"等于没说。
+       * 后端校验错误带 `details`（字符串数组），拼进来用户才知道具体哪个字段不合规；
+       * 只显示「参数校验未通过」等于没说。
        */
       result.value = {
         ok: false,
@@ -151,7 +157,7 @@ async function publish(): Promise<void> {
   <div class="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
     <!-- 页头 -->
     <header class="pt-10 pb-6">
-      <h1 class="text-2xl font-semibold tracking-tight text-highlighted">写文章</h1>
+      <h1 class="text-display font-semibold tracking-tight text-highlighted">写文章</h1>
       <p class="mt-1.5 text-body text-muted">
         用 Markdown 撰写。右侧实时预览的效果，与你发布后读者看到的完全一致。
       </p>
@@ -212,7 +218,7 @@ async function publish(): Promise<void> {
 
           <div class="flex flex-wrap gap-2">
             <UButton
-              v-for="tag in POST_TAGS"
+              v-for="tag in selectableTags"
               :key="tag"
               size="xs"
               :variant="form.tags.includes(tag) ? 'solid' : 'outline'"

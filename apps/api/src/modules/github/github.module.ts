@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
+import { AiModule } from '../ai/ai.module'
 import { GithubClient } from './github.client'
 import { GithubController } from './github.controller'
 import { GithubService } from './github.service'
+import { RepoDetailService } from './github-detail.service'
+import { RepoIntroService } from './repo-intro.service'
+import { RepoIntroDoc, RepoIntroSchema } from './schemas/repo-intro.schema'
+import { RepoSnapshotDoc, RepoSnapshotSchema } from './schemas/repo-snapshot.schema'
 import { TrendingCache, TrendingCacheSchema } from './schemas/trending-cache.schema'
 
 /**
@@ -18,10 +23,25 @@ import { TrendingCache, TrendingCacheSchema } from './schemas/trending-cache.sch
  */
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: TrendingCache.name, schema: TrendingCacheSchema }]),
+    MongooseModule.forFeature([
+      { name: TrendingCache.name, schema: TrendingCacheSchema },
+      { name: RepoIntroDoc.name, schema: RepoIntroSchema },
+      { name: RepoSnapshotDoc.name, schema: RepoSnapshotSchema },
+    ]),
+    /**
+     * 项目简介要用 AI 生成，所以这里引入 AiModule。
+     *
+     * 依赖方向是单向的 `github → ai`：AiModule 不认识"仓库"这个概念，
+     * 它只提供"给文本、还我文本"和"能不能用一次额度"。
+     * 这个方向不会形成环（AiModule 不依赖任何业务模块）。
+     */
+    AiModule,
   ],
   controllers: [GithubController],
-  providers: [GithubService, GithubClient],
-  exports: [GithubService],
+  providers: [GithubService, GithubClient, RepoDetailService, RepoIntroService],
+  //
+  // `GithubClient` 一并导出：榜单走 `GithubService`（带缓存），
+  // 而"每日报道"抓 README 是一次性的、不需要缓存的调用，直接用客户端更合适。
+  exports: [GithubService, GithubClient],
 })
 export class GithubModule {}
