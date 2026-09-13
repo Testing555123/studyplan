@@ -95,6 +95,20 @@
   /* 圆角与阴影：大圆角 + 克制阴影，是这个界面的性格 */
   --radius-card: 1rem;
   --radius-pill: 9999px;
+
+  /*
+   * 语义字号：收敛散落的 text-[Npx] 任意值，统一成命名令牌。
+   * 全站字号只有这一处来源，明暗主题与后续调整都只改这里。
+   */
+  --text-eyebrow: 0.6875rem;    /* 11px    页眉副标 / 极小字 */
+  --text-caption: 0.75rem;       /* 12px    头像字 / 小字 */
+  --text-meta: 0.78125rem;       /* 12.5px  元信息 / 时间 */
+  --text-body-sm: 0.8125rem;     /* 13px    次标题 / 用户名 */
+  --text-body: 0.84375rem;       /* 13.5px  正文 */
+  --text-subtitle: 0.9375rem;    /* 15px    卡片标题(小) */
+  --text-title: 1.0625rem;       /* 17px    卡片标题(大) */
+  --text-heading: 1.375rem;      /* 22px    区块大标题 / 预览标题 */
+  --text-display: 1.625rem;      /* 26px    文章页主标题 */
 }
 
 /* ------------------------------------------------------------------
@@ -113,6 +127,18 @@
   /* 键盘可达性：所有可聚焦元素都要有清晰但不刺眼的焦点环 */
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-brand-500;
+  }
+
+  /* 尊重 prefers-reduced-motion：关闭过渡与动画，避免眩晕（Pre-Delivery Checklist 必查项） */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -149,7 +175,7 @@
 
   /* Markdown 正文排版（颜色一律用语义类，自动适配明暗） */
   .prose-post {
-    @apply text-[15px] leading-8 text-toned;
+    @apply text-subtitle leading-8 text-toned;
   }
 
   .prose-post h2 {
@@ -177,11 +203,11 @@
   }
 
   .prose-post code {
-    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-primary;
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-body-sm text-primary;
   }
 
   .prose-post pre {
-    @apply my-5 overflow-x-auto rounded-xl bg-inverted p-4 text-[13px] leading-6 text-inverted;
+    @apply my-5 overflow-x-auto rounded-xl bg-inverted p-4 text-body-sm leading-6 text-inverted;
   }
 
   .prose-post pre code {

@@ -75,7 +75,7 @@ onMounted(async () => {
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold tracking-tight text-highlighted">帖子流</h1>
-          <p class="mt-1.5 text-[13.5px] text-muted">
+          <p class="mt-1.5 text-body text-muted">
             共
             <span class="font-medium text-toned tabular-nums">{{ postStore.total }}</span>
             篇文章 · 分享学习笔记与技术心得
@@ -172,14 +172,13 @@ onMounted(async () => {
         size="lg"
         color="neutral"
         variant="outline"
-        :loading="postStore.loading"
-        :disabled="postStore.loading"
+        loading-auto
         @click="postStore.loadMore"
       >
-        {{ postStore.loading ? '加载中…' : '加载更多' }}
+        加载更多
       </UButton>
 
-      <p v-else class="text-[13px] text-dimmed">
+      <p v-else class="text-body-sm text-muted">
         已经到底了 · 共 {{ postStore.total }} 篇
       </p>
     </div>

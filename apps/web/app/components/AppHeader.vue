@@ -69,15 +69,15 @@ async function handleLogout(): Promise<void> {
     <template #left>
       <NuxtLink to="/" class="group flex items-center gap-2.5">
         <span
-          class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/25 transition-transform duration-300 group-hover:scale-105"
+          class="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white shadow-sm transition-transform duration-300 group-hover:scale-105"
         >
           <Sparkles :size="18" />
         </span>
         <span class="flex flex-col leading-none">
-          <span class="text-[15px] font-semibold tracking-tight text-highlighted">
+          <span class="text-subtitle font-semibold tracking-tight text-highlighted">
             studyplan
           </span>
-          <span class="mt-0.5 text-[11px] text-muted">学习 · 技术分享</span>
+          <span class="mt-0.5 text-eyebrow text-muted">学习 · 技术分享</span>
         </span>
       </NuxtLink>
     </template>
@@ -102,12 +102,11 @@ async function handleLogout(): Promise<void> {
           :aria-label="`用户菜单：${auth.user.value?.username}`"
         >
           <span
-            class="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br text-[12px] font-semibold text-white"
-            :class="avatarGradient(auth.user.value?.username ?? '')"
+            class="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
           >
             {{ avatarInitial(auth.user.value?.username ?? '') }}
           </span>
-          <span class="hidden text-[13px] font-medium sm:inline">
+          <span class="hidden text-body-sm font-medium sm:inline">
             {{ auth.user.value?.username }}
           </span>
         </UButton>

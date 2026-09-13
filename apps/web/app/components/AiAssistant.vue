@@ -175,11 +175,11 @@ watch(open, (isOpen) => {
     <template #header>
       <div class="flex items-center justify-between gap-3 border-b border-default pb-3">
         <div class="min-w-0">
-          <p class="flex items-center gap-1.5 text-[13px] font-semibold text-highlighted">
+          <p class="flex items-center gap-1.5 text-body-sm font-semibold text-highlighted">
             <Sparkles :size="14" class="text-primary" />
             AI 学习助手
           </p>
-          <p class="mt-0.5 truncate text-[11.5px] text-muted">{{ contextLabel }}</p>
+          <p class="mt-0.5 truncate text-eyebrow text-muted">{{ contextLabel }}</p>
         </div>
         <UBadge
           v-if="status && status.enabled && remaining !== null"
@@ -212,16 +212,16 @@ watch(open, (isOpen) => {
           </div>
 
           <!-- 答案正文：Markdown 渲染（已禁用 HTML） -->
-          <div class="prose-post text-[13.5px]" v-html="renderedAnswer" />
+          <div class="prose-post text-body" v-html="renderedAnswer" />
 
           <!-- 引用到的本站代码文件：让答案可核对，对一个学习项目尤其重要 -->
           <div v-if="sources.length > 0" class="rounded-lg border border-default bg-muted p-3">
-            <p class="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-medium text-toned">
+            <p class="mb-1.5 flex items-center gap-1.5 text-eyebrow font-medium text-toned">
               <UIcon name="i-lucide-file" :size="13" class="text-muted" />
               回答参考了这些文件
             </p>
             <ul class="space-y-1">
-              <li v-for="source in sources" :key="source" class="text-[11.5px] text-muted">
+              <li v-for="source in sources" :key="source" class="text-eyebrow text-muted">
                 <code class="font-mono">{{ source }}</code>
               </li>
             </ul>
@@ -230,7 +230,7 @@ watch(open, (isOpen) => {
 
         <!-- 生成中 -->
         <div v-else-if="loading" class="space-y-2">
-          <p class="text-[12.5px] text-muted">AI 正在阅读…</p>
+          <p class="text-meta text-muted">AI 正在阅读…</p>
           <USkeleton class="h-3 w-full" />
           <USkeleton class="h-3 w-11/12" />
           <USkeleton class="h-3 w-4/5" />
@@ -246,7 +246,7 @@ watch(open, (isOpen) => {
         />
 
         <!-- 引导 -->
-        <div v-else class="space-y-2 text-[12.5px] text-muted">
+        <div v-else class="space-y-2 text-meta text-muted">
           <p>你可以这样问它：</p>
           <ul class="space-y-1">
             <li>· 这个项目是干什么的，适合我现在学吗？</li>

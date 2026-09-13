@@ -41,13 +41,13 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     同一行里的卡片照样等高，但内容多的那张会把行高撑开而不是溢出。
   -->
   <UCard
-    class="group flex flex-col transition-all duration-300 hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-500/5 dark:hover:border-primary-800"
+    class="group flex flex-col transition-all duration-300 hover:border-primary hover:shadow-sm"
     :ui="{ body: 'flex-1 p-5', footer: 'pt-0 pb-4 px-5' }"
   >
     <!-- 拥有者 -->
     <div class="flex items-center gap-2">
-      <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" />
-      <span class="truncate text-xs text-muted">{{ repo.ownerLogin }}</span>
+      <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
+      <span class="truncate text-caption text-muted">{{ repo.ownerLogin }}</span>
     </div>
 
     <!-- 项目名（外链直达 GitHub） -->
@@ -56,7 +56,7 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
         :to="repo.htmlUrl"
         target="_blank"
         rel="noopener"
-        class="inline-flex items-center gap-1.5 text-[15px] font-semibold tracking-tight text-highlighted transition-colors hover:text-primary"
+        class="inline-flex items-center gap-1.5 text-subtitle font-semibold tracking-tight text-highlighted transition-colors hover:text-primary"
       >
         <span class="truncate">{{ repo.name }}</span>
         <ExternalLink :size="13" class="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
@@ -64,10 +64,10 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     </h3>
 
     <!-- 简介：这就是需求里的"简洁介绍"，直接取 GitHub 官方 description -->
-    <p v-if="repo.description" class="mt-2 line-clamp-2 text-[13px] leading-6 text-muted">
+    <p v-if="repo.description" class="mt-2 line-clamp-2 text-body-sm leading-6 text-muted">
       {{ repo.description }}
     </p>
-    <p v-else class="mt-2 text-[13px] leading-6 italic text-dimmed">
+    <p v-else class="mt-2 text-body-sm leading-6 italic text-muted">
       这个项目还没有填写简介
     </p>
 
@@ -92,7 +92,7 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     </div>
 
     <!-- 元信息行 -->
-    <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-muted">
+    <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-meta text-muted">
       <span class="inline-flex items-center gap-1.5">
         <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: dotColor }" />
         <span>{{ repo.language ?? '未标注语言' }}</span>

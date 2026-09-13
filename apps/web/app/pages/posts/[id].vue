@@ -201,7 +201,7 @@ function onDeleteComment(commentId: string): void {
     <article v-else class="pt-6 pb-4">
       <header>
         <h1
-          class="text-[26px] leading-tight font-semibold tracking-tight text-highlighted"
+          class="text-display leading-tight font-semibold tracking-tight text-highlighted"
         >
           {{ post.title }}
         </h1>
@@ -209,22 +209,21 @@ function onDeleteComment(commentId: string): void {
         <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           <div class="flex items-center gap-2.5">
             <span
-              class="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br text-[13px] font-semibold text-white"
-              :class="avatarGradient(post.author.username)"
+              class="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-body-sm font-semibold text-primary"
             >
               {{ avatarInitial(post.author.username) }}
             </span>
-            <span class="text-[13.5px] font-medium text-toned">
+            <span class="text-body font-medium text-toned">
               {{ post.author.username }}
             </span>
           </div>
 
           <span class="text-dimmed">·</span>
-          <time class="text-[12.5px] text-muted" :datetime="post.createdAt">
+          <time class="text-meta text-muted" :datetime="post.createdAt">
             {{ formatDate(post.createdAt) }}
           </time>
           <span class="text-dimmed">·</span>
-          <span class="text-[12.5px] text-muted">约 {{ minutes }} 分钟读完</span>
+          <span class="text-meta text-muted">约 {{ minutes }} 分钟读完</span>
         </div>
 
         <div class="mt-4 flex flex-wrap items-center gap-2">
@@ -252,7 +251,7 @@ function onDeleteComment(commentId: string): void {
         :ui="{ icon: 'text-violet-500' }"
       >
         <template #description>
-          <p class="text-[13.5px] leading-7">{{ post.summary }}</p>
+          <p class="text-body leading-7">{{ post.summary }}</p>
 
           <!--
             AI 推荐标签与作者自己选的标签**分开显示**，样式也不同。
@@ -260,7 +259,7 @@ function onDeleteComment(commentId: string): void {
             作者也能清楚看到 AI 补充了什么。
           -->
           <div v-if="post.aiTags?.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-            <span class="text-[11.5px] text-violet-600 dark:text-violet-400">推荐标签</span>
+            <span class="text-eyebrow text-violet-600 dark:text-violet-400">推荐标签</span>
             <UBadge
               v-for="tag in post.aiTags"
               :key="tag"
@@ -278,7 +277,7 @@ function onDeleteComment(commentId: string): void {
         还没有摘要、但帖子很新 —— 说明 AI 正在生成中。
         这里给出"正在来"的预期，而不是留一片空白让用户以为坏了。
       -->
-      <p v-else-if="aiPending" class="mt-7 flex items-center gap-2 text-[12.5px] text-muted">
+      <p v-else-if="aiPending" class="mt-7 flex items-center gap-2 text-meta text-muted">
         <UIcon name="i-lucide-sparkles" class="animate-pulse text-violet-500" />
         AI 正在为这篇文章生成摘要与推荐标签，稍后刷新即可看到
       </p>
@@ -293,7 +292,7 @@ function onDeleteComment(commentId: string): void {
           :count="post.likeCount"
           @toggle="onToggleLike"
         />
-        <span class="text-[12.5px] text-dimmed">觉得有用就点个赞，作者会看到</span>
+        <span class="text-meta text-dimmed">觉得有用就点个赞，作者会看到</span>
       </div>
 
       <CommentList

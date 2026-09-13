@@ -1,4 +1,4 @@
-import { avatarGradientClass, avatarInitial as sharedAvatarInitial } from '@studyplan/shared'
+import { avatarInitial as sharedAvatarInitial } from '@studyplan/shared'
 
 /**
  * 展示层的格式化工具。
@@ -46,22 +46,10 @@ export function formatDate(iso: string): string {
 }
 
 /**
- * 下面两个是**转接函数**，真正的实现在 `packages/shared` 里。
- *
- * 为什么要多这一层，而不是在组件里直接从共享包 import？
- *   1. `utils/` 下的东西会被 Nuxt 自动导入，组件里不用写 import，
- *      少了 5 个组件的改动；
- *   2. 更重要的是**算法必须与后端一致**：后端注册用户时用共享包里的
- *      函数算头像颜色并存进数据库，前端展示时也要算出同一个结果。
- *      两边只要有一点差别，同一个用户就会显示两种颜色 ——
- *      而这种 bug 极难被发现，因为单看任何一端都是"对的"。
- *
- * ⚠️ 所以：**不要在这里重写算法**，改算法请改共享包。
+ * 薄封装：取首字母的真正逻辑在 `packages/shared` 里。
+ * 放在 `utils/` 下是为了被 Nuxt 自动导入，组件里直接用 `avatarInitial(...)`
+ * 而无需写 import。改算法请改共享包。
  */
-export function avatarGradient(seed: string): string {
-  return avatarGradientClass(seed)
-}
-
 export function avatarInitial(username: string): string {
   return sharedAvatarInitial(username)
 }

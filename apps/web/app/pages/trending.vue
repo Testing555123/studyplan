@@ -104,7 +104,7 @@ const freshnessText = computed(() => {
       <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 class="text-2xl font-semibold tracking-tight text-highlighted">GitHub 热门项目</h1>
-          <p class="mt-1.5 text-[13.5px] text-muted">
+          <p class="mt-1.5 text-body text-muted">
             按创建时间筛选，取 star 最高的项目 · 共
             <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>
             个
@@ -201,7 +201,7 @@ const freshnessText = computed(() => {
       </div>
 
       <!-- 数据来源说明：榜单口径必须交代清楚，否则容易被误读成"涨粉最快榜" -->
-      <p class="mt-8 flex items-center justify-center gap-1.5 text-[12px] text-dimmed">
+      <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-dimmed">
         数据来源：GitHub Search API · 统计口径为该时间区间内<b>新建</b>项目中 star 最高者
         <ULink
           to="https://docs.github.com/en/rest/search/search"

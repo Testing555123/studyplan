@@ -132,7 +132,7 @@ async function submit(): Promise<void> {
       <h1 class="mt-5 text-xl font-semibold tracking-tight text-highlighted">
         {{ mode === 'login' ? '欢迎回来' : '创建你的账号' }}
       </h1>
-      <p class="mt-1.5 text-[13.5px] text-muted">
+      <p class="mt-1.5 text-body text-muted">
         {{ mode === 'login' ? '继续记录你的学习与思考' : '开始分享你的学习笔记与技术心得' }}
       </p>
     </div>
@@ -212,7 +212,7 @@ async function submit(): Promise<void> {
         title="请先修正以下问题"
       >
         <ul class="mt-1 space-y-1">
-          <li v-for="error in visibleErrors" :key="error" class="text-[12.5px]">
+          <li v-for="error in visibleErrors" :key="error" class="text-meta">
             · {{ error }}
           </li>
         </ul>
@@ -227,7 +227,7 @@ async function submit(): Promise<void> {
         :title="serverError"
       >
         <ul v-if="serverDetails.length" class="mt-1 space-y-1">
-          <li v-for="detail in serverDetails" :key="detail" class="text-[12px]">
+          <li v-for="detail in serverDetails" :key="detail" class="text-caption">
             · {{ detail }}
           </li>
         </ul>
@@ -252,7 +252,7 @@ async function submit(): Promise<void> {
     </UForm>
 
     <!-- 辅助文案 -->
-    <p class="pt-4 text-center text-[12.5px] text-muted">
+    <p class="pt-4 text-center text-meta text-muted">
       <template v-if="mode === 'login'">
         还没有账号？
         <UButton variant="link" color="primary" size="xs" @click="switchMode('register')">
@@ -269,8 +269,8 @@ async function submit(): Promise<void> {
 
     <!-- 安全说明：这里描述的都是**本阶段已经真正实现**的行为 -->
     <UCard class="mt-8" :ui="{ body: 'p-4' }">
-      <p class="text-[12px] font-medium tracking-wide text-muted">这个登录是怎么保护你的</p>
-      <ul class="mt-2 space-y-1.5 text-[12px] leading-6 text-muted">
+      <p class="text-caption font-medium tracking-wide text-muted">这个登录是怎么保护你的</p>
+      <ul class="mt-2 space-y-1.5 text-caption leading-6 text-muted">
         <li>· 密码用 bcrypt 哈希后入库，数据库里看不到明文</li>
         <li>· Access Token 只存在内存里，刷新页面即失效（15 分钟）</li>
         <li>· Refresh Token 放进 httpOnly Cookie，JavaScript 读不到（7 天）</li>

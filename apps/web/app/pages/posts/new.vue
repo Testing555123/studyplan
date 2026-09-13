@@ -152,7 +152,7 @@ async function publish(): Promise<void> {
     <!-- 页头 -->
     <header class="pt-10 pb-6">
       <h1 class="text-2xl font-semibold tracking-tight text-highlighted">写文章</h1>
-      <p class="mt-1.5 text-[13.5px] text-muted">
+      <p class="mt-1.5 text-body text-muted">
         用 Markdown 撰写。右侧实时预览的效果，与你发布后读者看到的完全一致。
       </p>
     </header>
@@ -172,7 +172,7 @@ async function publish(): Promise<void> {
           />
           <div class="mt-1.5 flex justify-end">
             <span
-              class="text-[12px] tabular-nums"
+              class="text-caption tabular-nums"
               :class="titleLength > TITLE_MAX_LENGTH ? 'text-error' : 'text-dimmed'"
             >
               {{ titleLength }} / {{ TITLE_MAX_LENGTH }}
@@ -188,12 +188,12 @@ async function publish(): Promise<void> {
             :maxlength="CONTENT_MAX_LENGTH + 200"
             placeholder="## 小标题&#10;&#10;正文内容…支持 `行内代码`、```ts 代码块```、> 引用、- 列表&#10;&#10;> 提示：写完记得看看右侧预览里的代码块排版"
             aria-label="正文（Markdown）"
-            class="w-full font-mono text-[13.5px] leading-7"
+            class="w-full font-mono text-body leading-7"
           />
           <div class="mt-1.5 flex justify-between">
-            <span class="text-[12px] text-dimmed">最少 {{ CONTENT_MIN_LENGTH }} 字</span>
+            <span class="text-caption text-dimmed">最少 {{ CONTENT_MIN_LENGTH }} 字</span>
             <span
-              class="text-[12px] tabular-nums"
+              class="text-caption tabular-nums"
               :class="contentLength > CONTENT_MAX_LENGTH ? 'text-error' : 'text-dimmed'"
             >
               {{ contentLength }} 字
@@ -204,8 +204,8 @@ async function publish(): Promise<void> {
         <!-- 标签 -->
         <div>
           <div class="mb-2.5 flex items-center justify-between">
-            <span class="text-[13px] font-medium text-toned">标签</span>
-            <span class="text-[12px] text-dimmed">
+            <span class="text-body-sm font-medium text-toned">标签</span>
+            <span class="text-caption text-dimmed">
               已选 {{ form.tags.length }} / {{ MAX_TAGS_PER_POST }}
             </span>
           </div>
@@ -255,10 +255,10 @@ async function publish(): Promise<void> {
           :ui="{ icon: 'text-violet-500' }"
         >
           <template #description>
-            <p class="text-[13px] leading-6">
+            <p class="text-body-sm leading-6">
               系统会读取标题与正文，自动生成一句话摘要和推荐标签。
             </p>
-            <p class="mt-1.5 text-[12px] leading-6">
+            <p class="mt-1.5 text-caption leading-6">
               它走旁路：<strong class="font-medium">不会拖慢发布，也不会让发布失败</strong>。
               如果生成失败，你的文章照样发布成功，只是没有摘要。
               所以点完发布可以直接跳转，摘要会稍后出现在详情页。
@@ -275,7 +275,7 @@ async function publish(): Promise<void> {
           title="还有几处需要修改"
         >
           <ul class="mt-1 space-y-1">
-            <li v-for="error in visibleErrors" :key="error" class="text-[13px]">
+            <li v-for="error in visibleErrors" :key="error" class="text-body-sm">
               · {{ error }}
             </li>
           </ul>
@@ -305,7 +305,7 @@ async function publish(): Promise<void> {
             清空
           </UButton>
 
-          <span class="text-[12px] text-dimmed">作者信息由登录凭证决定，无法手动指定</span>
+          <span class="text-caption text-dimmed">作者信息由登录凭证决定，无法手动指定</span>
         </div>
       </section>
 
@@ -313,21 +313,21 @@ async function publish(): Promise<void> {
       <section :class="mobilePane === 'preview' ? 'block' : 'hidden lg:block'">
         <div class="sticky top-24">
           <div class="mb-2.5 flex items-center justify-between">
-            <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-toned">
+            <span class="inline-flex items-center gap-1.5 text-body-sm font-medium text-toned">
               <Eye :size="14" />
               实时预览
             </span>
-            <span class="text-[12px] text-dimmed">与读者看到的一致</span>
+            <span class="text-caption text-dimmed">与读者看到的一致</span>
           </div>
 
           <UCard :ui="{ body: 'p-6 max-h-[calc(100vh-10rem)] overflow-y-auto' }">
             <h1
               v-if="form.title"
-              class="text-[22px] leading-tight font-semibold tracking-tight text-highlighted"
+              class="text-heading leading-tight font-semibold tracking-tight text-highlighted"
             >
               {{ form.title }}
             </h1>
-            <p v-else class="text-[22px] leading-tight font-semibold text-dimmed">
+            <p v-else class="text-heading leading-tight font-semibold text-dimmed">
               文章标题会出现在这里
             </p>
 

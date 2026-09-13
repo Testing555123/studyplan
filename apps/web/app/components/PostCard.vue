@@ -38,85 +38,77 @@ const liked = computed(() => postStore.isLiked(props.post.id))
 
 <template>
   <UCard
-    class="group relative transition-all duration-300 hover:-translate-y-1 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-500/5 dark:hover:border-primary-800"
+    class="group relative transition-all duration-300 hover:border-primary hover:shadow-sm"
     :ui="{ body: 'p-5 sm:p-6' }"
   >
-    <!-- 整卡可点：用绝对定位的链接覆盖整张卡片，同时保持标题可被单独选中复制 -->
-    <NuxtLink
-      :to="`/posts/${post.id}`"
-      class="absolute inset-0 z-0 rounded-2xl"
-      :aria-label="`阅读：${post.title}`"
-    />
-
-    <div class="pointer-events-none relative z-10">
-      <!-- 标题 -->
-      <h3
-        class="text-[17px] leading-7 font-semibold tracking-tight transition-colors group-hover:text-primary text-highlighted"
+    <!-- 标题：唯一可点链接，用 ::after 拉伸覆盖整卡；避免整卡 <a> 内再嵌套标签 <a> 的非法结构 -->
+    <h3 class="text-title leading-7 font-semibold tracking-tight">
+      <NuxtLink
+        :to="`/posts/${post.id}`"
+        class="text-highlighted transition-colors after:absolute after:inset-0 after:rounded-2xl group-hover:text-primary"
+        :aria-label="`阅读：${post.title}`"
       >
         {{ post.title }}
-      </h3>
+      </NuxtLink>
+    </h3>
 
-      <!-- AI 摘要：没有摘要时不占位、不留空洞 -->
-      <p v-if="post.summary" class="mt-2 line-clamp-2 text-[13.5px] leading-6 text-muted">
-        {{ post.summary }}
-      </p>
-      <p v-else class="mt-2 text-[13px] leading-6 italic text-dimmed">
-        这篇还没有摘要
-      </p>
+    <!-- AI 摘要：没有摘要时不占位、不留空洞 -->
+    <p v-if="post.summary" class="mt-2 line-clamp-2 text-body leading-6 text-muted">
+      {{ post.summary }}
+    </p>
+    <p v-else class="mt-2 text-body-sm leading-6 italic text-muted">
+      这篇还没有摘要
+    </p>
 
-      <!-- 标签 -->
-      <div class="mt-3.5 flex flex-wrap items-center gap-2">
-        <NuxtLink
-          v-for="tag in post.tags"
-          :key="tag"
-          :to="`/?tag=${encodeURIComponent(tag)}`"
-          class="pointer-events-auto"
+    <!-- 标签：relative z-10 抬到拉伸链接之上，保证可独立点击 -->
+    <div class="relative z-10 mt-3.5 flex flex-wrap items-center gap-2">
+      <NuxtLink
+        v-for="tag in post.tags"
+        :key="tag"
+        :to="`/?tag=${encodeURIComponent(tag)}`"
+      >
+        <UBadge variant="subtle" color="neutral" size="xs">
+          {{ tag }}
+        </UBadge>
+      </NuxtLink>
+    </div>
+
+    <!-- 底部元信息 -->
+    <div class="relative z-10 mt-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <span
+          class="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
         >
-          <UBadge variant="subtle" color="neutral" size="xs">
-            {{ tag }}
-          </UBadge>
-        </NuxtLink>
+          {{ avatarInitial(post.author.username) }}
+        </span>
+        <span class="text-body-sm text-toned">
+          {{ post.author.username }}
+        </span>
+        <span class="text-dimmed">·</span>
+        <time class="text-meta text-muted" :datetime="post.createdAt">
+          {{ formatRelativeTime(post.createdAt) }}
+        </time>
       </div>
 
-      <!-- 底部元信息 -->
-      <div class="mt-4 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-2.5">
-          <span
-            class="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br text-[12px] font-semibold text-white"
-            :class="avatarGradient(post.author.username)"
-          >
-            {{ avatarInitial(post.author.username) }}
-          </span>
-          <span class="text-[13px] text-toned">
-            {{ post.author.username }}
-          </span>
-          <span class="text-dimmed">·</span>
-          <time class="text-[12.5px] text-muted" :datetime="post.createdAt">
-            {{ formatRelativeTime(post.createdAt) }}
-          </time>
-        </div>
+      <div class="flex items-center gap-4 text-meta text-muted">
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          :class="liked ? 'text-error' : ''"
+          :aria-pressed="liked"
+          @click.stop="emit('toggle-like', post.id)"
+        >
+          <template #leading>
+            <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+          </template>
+          {{ post.likeCount }}
+        </UButton>
 
-        <div class="flex items-center gap-4 text-[12.5px] text-muted">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            class="pointer-events-auto"
-            :class="liked ? 'text-rose-500' : ''"
-            :aria-pressed="liked"
-            @click.stop="emit('toggle-like', post.id)"
-          >
-            <template #leading>
-              <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
-            </template>
-            {{ post.likeCount }}
-          </UButton>
-
-          <span class="inline-flex items-center gap-1.5">
-            <MessageSquare :size="14" />
-            <span>{{ post.commentCount }}</span>
-          </span>
-        </div>
+        <span class="inline-flex items-center gap-1.5">
+          <MessageSquare :size="14" />
+          <span>{{ post.commentCount }}</span>
+        </span>
       </div>
     </div>
 

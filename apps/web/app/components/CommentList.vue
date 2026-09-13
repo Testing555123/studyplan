@@ -70,7 +70,7 @@ function submit(): void {
   <section class="mt-10">
     <header class="mb-5 flex items-center gap-2">
       <MessageSquare :size="18" class="text-dimmed" />
-      <h2 class="text-[15px] font-semibold text-highlighted">
+      <h2 class="text-subtitle font-semibold text-highlighted">
         评论
         <span class="ml-1 text-dimmed">{{ comments.length }}</span>
       </h2>
@@ -98,7 +98,7 @@ function submit(): void {
 
       <div class="mt-3 flex items-center justify-between">
         <span
-          class="text-[12px] tabular-nums"
+          class="text-caption tabular-nums"
           :class="tooLong ? 'text-error' : remaining < 50 ? 'text-warning' : 'text-dimmed'"
         >
           还可以写 {{ remaining }} 字
@@ -160,16 +160,15 @@ function submit(): void {
         >
           <div class="flex items-center gap-2.5">
             <span
-              class="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br text-[12px] font-semibold text-white"
-              :class="avatarGradient(comment.author.username)"
+              class="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
             >
               {{ avatarInitial(comment.author.username) }}
             </span>
-            <span class="text-[13px] font-medium text-toned">
+            <span class="text-body-sm font-medium text-toned">
               {{ comment.author.username }}
             </span>
             <span class="text-dimmed">·</span>
-            <time class="text-[12px] text-muted" :datetime="comment.createdAt">
+            <time class="text-caption text-muted" :datetime="comment.createdAt">
               {{ formatRelativeTime(comment.createdAt) }}
             </time>
 
@@ -188,7 +187,7 @@ function submit(): void {
             </UButton>
           </div>
 
-          <p class="mt-2.5 text-[14px] leading-7 text-toned">
+          <p class="mt-2.5 text-sm leading-7 text-toned">
             {{ comment.content }}
           </p>
         </UCard>
