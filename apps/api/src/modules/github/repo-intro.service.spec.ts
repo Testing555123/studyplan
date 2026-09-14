@@ -265,6 +265,41 @@ describe('RepoIntroService', () => {
       expect(update.$set.intro.startsWith('"')).toBe(false)
       expect(update.$set.intro).toContain('简介内容')
     })
+
+    it('超长输出在句末标点处收尾，不会从句子中间切断', async () => {
+      // 150 字 + 句号 + 99 字。硬截会切在 200 字处（句子中间），
+      // 按句末截断则应停在那个句号上。
+      const longText = '一'.repeat(150) + '。' + '二'.repeat(99)
+      const { service, introModel } = createService({
+        repos: [makeRepo()],
+        chatImpl: () => Promise.resolve(longText),
+      })
+
+      await service.ensureIntros([1])
+
+      const [, update] = introModel.updateOne.mock.calls[0] as [
+        unknown,
+        { $set: { intro: string } },
+      ]
+      expect(update.$set.intro.endsWith('。')).toBe(true)
+      expect(update.$set.intro).toHaveLength(151)
+    })
+
+    it('预算内找不到句末标点时退回硬截断，而不是砍掉大半内容', async () => {
+      // 整段没有句末标点，只能硬截到上限
+      const { service, introModel } = createService({
+        repos: [makeRepo()],
+        chatImpl: () => Promise.resolve('一'.repeat(250)),
+      })
+
+      await service.ensureIntros([1])
+
+      const [, update] = introModel.updateOne.mock.calls[0] as [
+        unknown,
+        { $set: { intro: string } },
+      ]
+      expect(update.$set.intro).toHaveLength(200)
+    })
   })
 
   describe('轮询接口', () => {

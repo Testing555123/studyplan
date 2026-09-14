@@ -404,18 +404,31 @@ export class EnvironmentVariables {
   @Max(120000, { message: 'GITHUB_INTRO_TIME_BUDGET_MS 最多 120000 毫秒' })
   GITHUB_INTRO_TIME_BUDGET_MS: number = 20000
 
-  /** 单条简介的输出上限。卡片只有两行，给多了会被截断成半句话 */
+  /**
+   * 单条简介的输出上限。
+   *
+   * 看着和"简介只有 120 字"很不成比例，但**不能按正文长度估**：
+   * 推理模型的思考链也从同一个额度里扣，而思考链长度波动很大。
+   * 实测同一份 prompt：300 与 1200 都被截断成空内容，2500 才稳定写出正文。
+   * 依据见 `repo-intro.service.ts` 里 `DEFAULTS` 的注释。
+   */
   @IsOptional()
   @IsInt()
-  @Min(100, { message: 'GITHUB_INTRO_AI_MAX_TOKENS 至少 100' })
-  @Max(1000, { message: 'GITHUB_INTRO_AI_MAX_TOKENS 最多 1000，简介不需要那么长' })
-  GITHUB_INTRO_AI_MAX_TOKENS: number = 300
+  @Min(200, { message: 'GITHUB_INTRO_AI_MAX_TOKENS 至少 200' })
+  @Max(8000, { message: 'GITHUB_INTRO_AI_MAX_TOKENS 最多 8000，再大只会拉长等待' })
+  GITHUB_INTRO_AI_MAX_TOKENS: number = 3000
 
+  /**
+   * 单条简介的 AI 超时（毫秒）。
+   *
+   * 比问答的 25 秒宽：这一条要连思考链一起生成，
+   * 实测耗时在 16～25 秒之间浮动，卡在 20 秒会有一部分直接超时。
+   */
   @IsOptional()
   @IsInt()
   @Min(1000, { message: 'GITHUB_INTRO_AI_TIMEOUT_MS 至少 1000 毫秒' })
   @Max(60000, { message: 'GITHUB_INTRO_AI_TIMEOUT_MS 最多 60000 毫秒' })
-  GITHUB_INTRO_AI_TIMEOUT_MS: number = 20000
+  GITHUB_INTRO_AI_TIMEOUT_MS: number = 45000
 
   /**
    * 简介的有效期（天）。

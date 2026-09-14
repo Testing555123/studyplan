@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common'
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import type { RepoDetailResponse, RepoIntroBatchResponse, TrendingResponse } from '@studyplan/shared'
@@ -84,6 +84,13 @@ export class GithubController {
    * 全站的问答与简介会一起不可用。
    */
   @Post('intros/batch')
+  /**
+   * 返回 200 而不是 Nest 对 POST 的默认 201。
+   *
+   * 这个接口是"取数据"（顺带为缺失项补生成），并没有创建任何资源，
+   * 201 会让读日志的人以为这里新增了什么东西 —— 与其余接口也不一致。
+   */
+  @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({

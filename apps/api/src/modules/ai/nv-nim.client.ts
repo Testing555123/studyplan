@@ -159,13 +159,26 @@ export class NvNimClient {
       }
 
       const payload = (await response.json()) as {
-        choices?: { message?: { content?: string } }[]
+        choices?: { message?: { content?: string }; finish_reason?: string }[]
       }
       const content = payload.choices?.[0]?.message?.content?.trim()
 
       if (!content) {
-        // 上游返回 200 但内容是空的，这种"成功却不给东西"的情况必须当成失败
-        throw new Error('AI 返回了空内容')
+        /**
+         * 上游返回 200 但内容是空的 —— 这种"成功却不给东西"必须当成失败。
+         *
+         * 为什么要把 finish_reason 与预算写进**日志**（而不是错误消息）：
+         *   这个故障几乎总是同一个原因 —— 推理模型的思考链把 max_tokens
+         *   吃光了，还没来得及写正文就被截断，此时 finish_reason 是 `length`。
+         *   错误消息会被展示给用户，不该出现参数名；但排查的人需要这些信息。
+         *   分开之后，两边都拿到自己该看的。
+         */
+        const finishReason = payload.choices?.[0]?.finish_reason ?? 'unknown'
+        this.logger.warn(
+          `AI 返回空内容：finish_reason=${finishReason}，max_tokens=${maxTokens}，model=${this.model}` +
+            (finishReason === 'length' ? '（输出预算被思考链耗尽，需调大 max_tokens）' : ''),
+        )
+        throw new Error('AI 返回了空内容，请稍后再试')
       }
 
       return content

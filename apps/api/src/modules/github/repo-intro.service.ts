@@ -16,8 +16,15 @@ import { RepoDetailService } from './github-detail.service'
 import { buildRepoIntroPrompt } from './prompts/repo-intro.prompt'
 import { RepoIntroDoc } from './schemas/repo-intro.schema'
 
-/** 简介的长度上限。超过它卡片两行放不下，会被截断成半句话 */
-const INTRO_MAX_LENGTH = 120
+/**
+ * 简介的长度上限。
+ *
+ * 它是**安全网**，不是目标长度：Prompt 要求写 60-90 字，这里是它的两倍余量。
+ * 留这么多余量，是因为模型经常不遵守字数要求 —— 实测要求 60-90 字时，
+ * 它写出了 444 字。上限的作用是防止超长文本把卡片和详情页撑坏，
+ * 而不是用来规定文风。
+ */
+const INTRO_MAX_LENGTH = 200
 
 /** 短于这个长度的 AI 输出视为无效（通常是模型偷懒或中途被截断） */
 const INTRO_MIN_LENGTH = 10
@@ -26,8 +33,29 @@ const DEFAULTS = {
   enabled: true,
   batchLimit: 3,
   timeBudgetMs: 20_000,
-  aiMaxTokens: 300,
-  aiTimeoutMs: 20_000,
+  /**
+   * 输出预算。简介正文只有 120 字，这里给到 3000 —— 看着极不成比例，
+   * 但**不能按正文长度估**：默认模型 `openai/gpt-oss-20b` 是推理模型，
+   * 它先写一段思考再落笔正文，而这段思考也从同一个额度里扣。
+   *
+   * 实测（同一项目、同一份 prompt）：
+   *   预算 300  → finish_reason=length，content 为 null
+   *   预算 1200 → finish_reason=length，content 仍为 null
+   *   预算 2500 → finish_reason=stop，正文 444 字
+   *
+   * 也就是说思考链的长度波动很大（短则四百多 token 就写完，
+   * 长则光思考就超过 1200）。预算必须按**思考链的最坏情况**留余量，
+   * 3000 是在实测能成功的 2500 之上再留两成。
+   */
+  aiMaxTokens: 3000,
+  /**
+   * 超时同样按推理模型的实际耗时放宽。
+   *
+   * 实测同一份 prompt 耗时在 16～25 秒之间浮动，原来的 20 秒会让其中
+   * 一部分直接超时 —— 那是一种很难查的失败：日志里只写着"超时"，
+   * 完全看不出是预算或超时配小了。
+   */
+  aiTimeoutMs: 45_000,
   ttlDays: 30,
 }
 
@@ -279,5 +307,30 @@ function cleanIntro(raw: string): string | null {
     .trim()
 
   if (text.length < INTRO_MIN_LENGTH) return null
-  return text.slice(0, INTRO_MAX_LENGTH)
+  return truncateAtSentence(text, INTRO_MAX_LENGTH)
+}
+
+/**
+ * 按句子边界截断。
+ *
+ * 为什么不直接 `slice`：那会把一句话从中间切断。卡片上有 CSS 的
+ * `line-clamp` 遮着看不太出来，但详情页显示的是完整文本 ——
+ * 读者会看到半句断掉的话，这比"少说一句"难看得多。
+ *
+ * 做法是在预算内找最后一个句末标点收尾。只有当那个标点出现得太靠前
+ * （不足一半长度）时才退回硬截：否则为了凑一句完整，
+ * 可能把内容砍掉大半，反而不如多留些信息。
+ */
+function truncateAtSentence(text: string, limit: number): string {
+  if (text.length <= limit) return text
+
+  const clipped = text.slice(0, limit)
+  const lastStop = Math.max(
+    clipped.lastIndexOf('。'),
+    clipped.lastIndexOf('！'),
+    clipped.lastIndexOf('？'),
+    clipped.lastIndexOf('；'),
+  )
+
+  return lastStop >= limit / 2 ? clipped.slice(0, lastStop + 1) : clipped
 }
