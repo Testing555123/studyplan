@@ -30,6 +30,8 @@ import {
   MAX_TAGS_PER_POST,
   isPostTag,
   mapRepoToTags,
+  type DailyDigestPick,
+  type DailyDigestStatusResponse,
   type GithubRepo,
   type TrendingRange,
 } from '@studyplan/shared'
@@ -235,10 +237,27 @@ export class DailyDigestService {
     }
   }
 
-  /** 今天这篇报道的状态（给前端展示用） */
-  async getTodayPick(): Promise<DailyPick | null> {
+  /**
+   * 今日状态 + 自检信息。
+   *
+   * 把"为什么没有推荐"的每一种原因都翻译成前端能直接展示的字段。
+   * 这个装置最糟糕的表现不是失败，而是**静默地什么都不做** ——
+   * 用户分不清"还没到点"和"根本没开"，只能去翻环境变量猜。
+   */
+  async getStatusResponse(): Promise<DailyDigestStatusResponse> {
     const settings = this.readSettings()
-    return this.pickModel.findOne({ date: this.todayKey(settings.timezone) }).lean()
+    const date = this.todayKey(settings.timezone)
+    const pick = await this.pickModel.findOne({ date }).lean()
+
+    return {
+      date,
+      pick: pick ? toPickView(pick) : null,
+      enabled: settings.enabled,
+      // 令牌本身绝不返回，只回答"配没配"
+      cronConfigured: Boolean(this.config.get<string>('DAILY_DIGEST_CRON_TOKEN')?.trim()),
+      lazyTrigger: settings.lazyTrigger,
+      aiEnabled: this.nvNimClient.enabled,
+    }
   }
 
   // ---------- 配置读取 ----------
@@ -475,6 +494,32 @@ export class DailyDigestService {
       }
       throw error
     }
+  }
+}
+
+/**
+ * 把数据库里的推荐记录转成对外契约（只暴露前端要用的字段，不泄漏内部字段）。
+ *
+ * 参数用**结构化类型**而不是 `DailyPick`：这里的入参来自 `.lean()`，
+ * 是一个普通对象而非 Mongoose 文档实例。写成结构化类型，
+ * 既准确表达了"我只需要这几个字段"，也顺手告诉读代码的人：
+ * 这个函数不会碰文档上的任何方法。
+ */
+function toPickView(pick: {
+  fullName: string
+  htmlUrl: string
+  language: string | null
+  stargazersCount: number
+  postId: string | null
+  source: 'ai' | 'template'
+}): DailyDigestPick {
+  return {
+    fullName: pick.fullName,
+    htmlUrl: pick.htmlUrl,
+    language: pick.language,
+    stargazersCount: pick.stargazersCount,
+    postId: pick.postId,
+    source: pick.source,
   }
 }
 

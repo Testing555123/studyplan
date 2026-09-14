@@ -14,6 +14,21 @@
  * 组件选型：时间档用 `UButton` 循环，语言筛选复用 `TagFilter`。
  * 时间档需要「显示中文标签、提交 '7d' 这样的值」，而 TagFilter 的模型值与显示文本是同一个，
  * 处理不了这层映射；语言的显示文本与值恰好一致，交给 TagFilter 正合适。
+ *
+ * ⚠️ 文件名必须是 `index.vue`，**不能**叫 `trending.vue`。
+ *
+ * 这是本项目踩过的一次真实的坑：Nuxt 的文件路由里，**同名文件 + 同名目录会被解释成父子路由**。
+ * 一旦把它写成 `pages/trending.vue`，它就会变成 `pages/trending/[owner]/[repo].vue`（详情页）的
+ * **父级组件**，而父级组件里必须有 `<NuxtPage />` 才有子路由的渲染出口 —— 它没有。
+ * 结果极其具有迷惑性：点击项目卡片后 **URL 确实变成了详情页地址**，
+ * 但屏幕上的 DOM 仍然是这份列表（父级还在，子级无出口），
+ * 用户看到的就是"点了没反应"。SSR 的 HTML 一切正常，控制台也没有报错，
+ * 只有那个链接上多出来的 `router-link-exact-active` 类暴露了真相。
+ *
+ * 所以：只要这个目录下还有子路由，列表页就必须是 `index.vue` ——
+ * 这样 `/trending` 与 `/trending/:owner/:repo` 才是**同级叶子路由**，各自独立渲染。
+ * 反过来，给 `trending.vue` 补一个 `<NuxtPage />` 是**错误**的修法：
+ * 那会把详情页嵌套进列表页的界面里。
  */
 import { ExternalLink } from 'lucide-vue-next'
 import { DEFAULT_TRENDING_RANGE, TRENDING_RANGES, isTrendingRange } from '@studyplan/shared'
@@ -156,6 +171,13 @@ const freshnessText = computed(() => {
         <TagFilter v-model="languageModel" :tags="result.languages" />
       </div>
     </section>
+
+    <!--
+      每日推荐区块：放在榜单之上。
+      它同时承担两件事 —— 展示今天推了哪个项目，以及**说明为什么没有**。
+      后者更重要：这个装置很可能"什么都没做却不报错"。
+    -->
+    <DailyDigestBanner />
 
     <!-- 出错 -->
     <section v-if="error" class="pb-10">

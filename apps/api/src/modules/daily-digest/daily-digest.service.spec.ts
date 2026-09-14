@@ -346,4 +346,52 @@ describe('DailyDigestService', () => {
       expect(github.getTrending).not.toHaveBeenCalled()
     })
   })
+
+  describe('今日状态与自检', () => {
+    it('今天还没有推荐时 pick 为 null，但开关状态如实返回', async () => {
+      const { service } = createService({
+        config: { DAILY_DIGEST_CRON_TOKEN: 'token-123' },
+      })
+
+      const status = await service.getStatusResponse()
+
+      expect(status.pick).toBeNull()
+      expect(status.enabled).toBe(true)
+      expect(status.cronConfigured).toBe(true)
+      expect(status.aiEnabled).toBe(true)
+      // 日期键必须是 YYYY-MM-DD，前端靠它判断"这篇是不是今天的"
+      expect(status.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    })
+
+    it('没配令牌时 cronConfigured 为 false（这正是"配了却没生效"的常见原因）', async () => {
+      const { service } = createService({})
+
+      const status = await service.getStatusResponse()
+
+      expect(status.cronConfigured).toBe(false)
+    })
+
+    it('今天已发过时带上推荐信息，且绝不返回令牌明文', async () => {
+      const { service } = createService({
+        existing: {
+          date: 'x',
+          fullName: 'acme/demo',
+          htmlUrl: 'https://github.com/acme/demo',
+          language: 'TypeScript',
+          stargazersCount: 1234,
+          postId: 'post-1',
+          source: 'ai',
+        },
+        config: { DAILY_DIGEST_CRON_TOKEN: 'super-secret-token' },
+      })
+
+      const status = await service.getStatusResponse()
+
+      expect(status.pick?.fullName).toBe('acme/demo')
+      expect(status.pick?.postId).toBe('post-1')
+      expect(status.pick?.source).toBe('ai')
+      // 自检只能说"配没配"，绝不能把令牌本身带出去
+      expect(JSON.stringify(status)).not.toContain('super-secret-token')
+    })
+  })
 })

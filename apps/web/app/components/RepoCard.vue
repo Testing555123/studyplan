@@ -48,7 +48,7 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     同一行里的卡片照样等高，但内容多的那张会把行高撑开而不是溢出。
   -->
   <UCard
-    class="group flex flex-col transition-all duration-300 hover:border-primary hover:shadow-sm"
+    class="group relative flex flex-col transition-all duration-300 hover:border-primary hover:shadow-sm"
     :ui="{ body: 'flex-1 p-5', footer: 'pt-0 pb-4 px-5' }"
   >
     <!-- 拥有者 -->
@@ -58,14 +58,24 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     </div>
 
     <!--
-      项目名：点进去看**站内详情**，外链降级成旁边的小图标。
+      项目名：点进去看**站内详情**。
+
+      整张卡片可点，靠的是标题链接上的 `after:inset-0` ——
+      它在卡片内拉伸出一层透明的点击区，覆盖整张卡片。
+      这样用户点哪里都能进详情，而不是只有这十来个字符是热区
+      （只有标题可点时，用户点标签、点简介都没反应，会以为功能没做）。
+
       两个链接必须**并列**：`<a>` 里再套 `<a>` 是非法结构，
       浏览器会把外层那个悄悄拆掉，表现为"点了没反应"且很难排查。
+
+      外链图标则用 `relative z-10` 抬到那层覆盖区**之上**，
+      否则它会被覆盖区盖住 —— 看得见却点不到，同样很难排查。
     -->
     <h3 class="mt-2 flex items-center gap-1.5">
       <NuxtLink
         :to="`/trending/${repo.ownerLogin}/${repo.name}`"
-        class="truncate text-subtitle font-semibold tracking-tight text-highlighted transition-colors hover:text-primary"
+        class="truncate text-subtitle font-semibold tracking-tight text-highlighted transition-colors after:absolute after:inset-0 after:rounded-2xl hover:text-primary group-hover:text-primary"
+        :aria-label="`查看 ${repo.fullName} 的项目详情`"
       >
         {{ repo.name }}
       </NuxtLink>
@@ -73,8 +83,9 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
         :to="repo.htmlUrl"
         target="_blank"
         rel="noopener"
-        class="shrink-0 text-muted opacity-0 transition-opacity hover:text-primary group-hover:opacity-100"
+        class="relative z-10 shrink-0 text-dimmed transition-colors hover:text-primary group-hover:text-primary"
         :aria-label="`在 GitHub 打开 ${repo.fullName}`"
+        @click.stop
       >
         <ExternalLink :size="13" />
       </ULink>
@@ -129,12 +140,17 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     </div>
 
     <template #footer>
+      <!--
+        `relative z-10` 同样是必须的：footer 也在标题那层覆盖区之下，
+        不抬起来的话「问 AI」会被整卡点击区吞掉。
+      -->
       <UButton
+        class="relative z-10"
         size="xs"
         variant="soft"
         color="primary"
         icon="i-lucide-sparkles"
-        @click="emit('ask', repo)"
+        @click.stop="emit('ask', repo)"
       >
         问 AI
       </UButton>

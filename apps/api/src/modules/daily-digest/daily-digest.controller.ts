@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { ApiExcludeEndpoint } from '@nestjs/swagger'
 import { UseGuards } from '@nestjs/common'
+import type { DailyDigestStatusResponse } from '@studyplan/shared'
 import { DailyDigestService, type DailyDigestResult } from './daily-digest.service'
 
 /**
@@ -77,41 +78,55 @@ export class DailyDigestController {
   }
 
   /**
-   * 今天的报道状态（公开、只读、限流）。
+   * 今天的报道状态 + 自检信息（公开、只读、限流）。
    *
    * 它同时承担惰性触发：在没有配置 Cron 的环境里，
    * 只要有人访问过这个接口（例如前端的每日推荐位），
    * 当天该发的那篇就会被补上。
+   *
+   * 返回体里带上了各项开关状态，是为了让前端能**说清楚为什么没有推荐**，
+   * 而不是只给一个空白区块让人去猜环境变量。
    */
   @Get('daily-digest/today')
   @ApiExcludeEndpoint()
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
-  async today(): Promise<{ date: string | null; pick: TodayPickView | null }> {
-    await this.dailyDigestService.maybeTriggerOnRead()
+  async today(): Promise<DailyDigestStatusResponse> {
+    /**
+     * 惰性补发**不等待**。
+     *
+     * 生成一篇报道要真调一次模型（实测 20-40 秒），
+     * 而这个接口是**页面一加载就会打**的 —— 等它就意味着用户对着一个
+     * 转圈区块干等半分钟，还可能撞上网关超时。
+     *
+     * 所以这里 fire-and-forget：立刻把"当前状态"交出去，
+     * 补发在后台继续跑，前端过几秒再取一次就能看到结果。
+     * （本项目的部署形态是常驻 Node 容器的入口进程，
+     *   响应返回后进程仍然活着，后台任务不会像纯 serverless 那样被冻结。）
+     */
+    void this.dailyDigestService.maybeTriggerOnRead()
 
-    const pick = await this.dailyDigestService.getTodayPick()
-    if (!pick) return { date: null, pick: null }
-
-    return {
-      date: pick.date,
-      pick: {
-        fullName: pick.fullName,
-        htmlUrl: pick.htmlUrl,
-        language: pick.language,
-        stargazersCount: pick.stargazersCount,
-        postId: pick.postId,
-        source: pick.source,
-      },
-    }
+    // 把"今天有没有、为什么没有"如实报给前端
+    return this.dailyDigestService.getStatusResponse()
   }
-}
 
-interface TodayPickView {
-  fullName: string
-  htmlUrl: string
-  language: string | null
-  stargazersCount: number
-  postId: string | null
-  source: 'ai' | 'template'
+  /**
+   * 手动生成今天的报道（公开、限流）。
+   *
+   * 这是页面「立即生成」按钮打的那个接口 —— 用户明确点了，所以这里**可以等**。
+   *
+   * 为什么公开端点也敢给触发能力：
+   *   `daily_picks.date` 唯一索引保证一天至多一篇，再多的人点，
+   *   也只会有一篇真正被发出来（其余拿到 already-published 并立刻返回）。
+   *   限流负责挡住"拿它当压力源"的用法，**正确性不依赖限流**。
+   */
+  @Post('daily-digest/generate')
+  @ApiExcludeEndpoint()
+  @HttpCode(200)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async generate(): Promise<DailyDigestStatusResponse> {
+    await this.dailyDigestService.runDailyDigest()
+    return this.dailyDigestService.getStatusResponse()
+  }
 }
