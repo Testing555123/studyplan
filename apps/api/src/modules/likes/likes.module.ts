@@ -22,5 +22,7 @@ import { LikesService } from './likes.service'
   ],
   controllers: [LikesController],
   providers: [LikesService],
+  /** 导出给"每日 GitHub 报道"用：撤回一篇报道时要连带删掉它的点赞 */
+  exports: [LikesService],
 })
 export class LikesModule {}

@@ -1,8 +1,10 @@
 import { ConfigService } from '@nestjs/config'
 import { CONTENT_MAX_LENGTH, GITHUB_SOURCE_TAG, type GithubRepo } from '@studyplan/shared'
 import type { NvNimClient } from '../ai/nv-nim.client'
+import type { CommentsService } from '../comments/comments.service'
 import type { GithubClient } from '../github/github.client'
 import type { GithubService } from '../github/github.service'
+import type { LikesService } from '../likes/likes.service'
 import type { PostsService } from '../posts/posts.service'
 import type { UsersService } from '../users/users.service'
 import { DailyDigestService } from './daily-digest.service'
@@ -22,6 +24,41 @@ const ENABLED_CONFIG: Record<string, string> = {
   DAILY_DIGEST_ENABLED: 'true',
   DAILY_DIGEST_TIMEZONE: 'Asia/Shanghai',
   DAILY_DIGEST_PUBLISH_HOUR: '0',
+}
+
+/**
+ * 在指定时区里算出"现在几点"。
+ *
+ * 测试发布时间闸门时必须自己算一遍：被测代码用的是同一套 `Intl` 逻辑，
+ * 而当前小时取决于跑测试的时刻 —— 写死一个 `publishHour` 会变成
+ * "白天跑是绿的、半夜跑是红的"这种最难查的假失败。
+ */
+function currentHourIn(zone: string): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    hour: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date())
+
+  return Number(parts.find((part) => part.type === 'hour')?.value ?? '0')
+}
+
+/**
+ * 挑一个"当前小时不是 23 点"的时区。
+ *
+ * 需要这个是为了能安全地取 `hour + 1` 当"还没到发布时间"。
+ * 这几个候选时区的偏移量彼此相差 1 小时以上，所以在任何时刻
+ * 至多只有一个会是 23 点 —— 一定挑得出来。
+ */
+function pickZoneBeforeMidnight(): { zone: string; hour: number } {
+  const zones = ['Asia/Shanghai', 'UTC', 'America/New_York', 'Europe/London', 'Asia/Tokyo']
+
+  for (const zone of zones) {
+    const hour = currentHourIn(zone)
+    if (hour < 23) return { zone, hour }
+  }
+
+  throw new Error('候选时区全都落在 23 点，这在同一次调用里不可能发生')
 }
 
 function createConfig(values: Record<string, string> = {}): ConfigService {
@@ -68,6 +105,26 @@ function createPickModel(options: {
         Promise.resolve((options.usedRepoIds ?? []).map((repoId) => ({ repoId }))),
     }),
     create: jest.fn(options.createImpl ?? (() => Promise.resolve({}))),
+    updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+    deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+  }
+}
+
+/**
+ * 伪造 `daily_pick_excludes` Model。
+ *
+ * `findOne` 对应"这天是不是已经撤回过"，`find` 对应候选筛选时取排除名单。
+ */
+function createExcludeModel(
+  options: { existing?: Record<string, unknown> | null; repoIds?: number[] } = {},
+) {
+  return {
+    findOne: jest.fn().mockReturnValue({
+      lean: () => Promise.resolve(options.existing ?? null),
+    }),
+    find: jest.fn().mockReturnValue({
+      lean: () => Promise.resolve((options.repoIds ?? []).map((repoId) => ({ repoId }))),
+    }),
     updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
   }
 }
@@ -118,6 +175,8 @@ function createPostsService() {
       commentCount: 0,
       createdAt: new Date().toISOString(),
     }),
+    // 撤回报道时用它删帖
+    remove: jest.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -126,6 +185,14 @@ function createAi(options: { enabled: boolean; chatImpl?: () => Promise<string> 
     enabled: options.enabled,
     chat: jest.fn(options.chatImpl ?? (() => Promise.resolve('报道正文。'.repeat(100)))),
   }
+}
+
+function createCommentsService(deletedCount = 2) {
+  return { deleteByPost: jest.fn().mockResolvedValue(deletedCount) }
+}
+
+function createLikesService(deletedCount = 3) {
+  return { deleteByPost: jest.fn().mockResolvedValue(deletedCount) }
 }
 
 interface ServiceOverrides {
@@ -138,6 +205,12 @@ interface ServiceOverrides {
   aiEnabled?: boolean
   chatImpl?: () => Promise<string>
   trendingImpl?: () => Promise<unknown>
+  /** 排除表里已有的记录（模拟"这天已经撤回过"） */
+  existingExclude?: Record<string, unknown> | null
+  /** 排除表里已有的仓库 id（模拟"这些项目已经被撤过"） */
+  excludedRepoIds?: number[]
+  commentsDeleted?: number
+  likesDeleted?: number
 }
 
 function createService(overrides: ServiceOverrides = {}) {
@@ -146,6 +219,12 @@ function createService(overrides: ServiceOverrides = {}) {
     usedRepoIds: overrides.usedRepoIds,
     createImpl: overrides.createImpl,
   })
+  const exclude = createExcludeModel({
+    existing: overrides.existingExclude,
+    repoIds: overrides.excludedRepoIds,
+  })
+  const comments = createCommentsService(overrides.commentsDeleted)
+  const likes = createLikesService(overrides.likesDeleted)
   const users = createUsersService()
   const github = createGithubService(overrides.items ?? [makeRepo()], overrides.trendingImpl)
   const client = createGithubClient(overrides.readme)
@@ -158,6 +237,9 @@ function createService(overrides: ServiceOverrides = {}) {
   const service = new DailyDigestService(
     createConfig(overrides.config),
     model as never,
+    exclude as never,
+    comments as unknown as CommentsService,
+    likes as unknown as LikesService,
     users as unknown as UsersService,
     github as unknown as GithubService,
     client as unknown as GithubClient,
@@ -165,7 +247,7 @@ function createService(overrides: ServiceOverrides = {}) {
     ai as unknown as NvNimClient,
   )
 
-  return { service, model, users, github, client, posts, ai }
+  return { service, model, exclude, comments, likes, users, github, client, posts, ai }
 }
 
 describe('DailyDigestService', () => {
@@ -239,6 +321,18 @@ describe('DailyDigestService', () => {
       const result = await service.runDailyDigest()
 
       expect(result.status).toBe('no-candidate')
+    })
+
+    it('minStars 配 0 时不再过滤 star（0 是有效值，不能被换成默认的 50）', async () => {
+      const { service, posts } = createService({
+        config: { DAILY_DIGEST_MIN_STARS: '0' },
+        items: [makeRepo({ stargazersCount: 0 })],
+      })
+
+      const result = await service.runDailyDigest()
+
+      expect(result.status).toBe('published')
+      expect(posts.create).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -361,6 +455,26 @@ describe('DailyDigestService', () => {
       expect(status.aiEnabled).toBe(true)
       // 日期键必须是 YYYY-MM-DD，前端靠它判断"这篇是不是今天的"
       expect(status.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      // 前端要靠这两个字段决定"立即生成"按钮灰不灰、以及灰了该写什么理由
+      expect(status.publishHour).toBe(0)
+      expect(status.canPublishNow).toBe(true)
+    })
+
+    it('publishHour 配 0 就按 0 生效，只有"没配"才用默认的 9 点', async () => {
+      /**
+       * 0 与"没配"必须区分开：校验规则里 `DAILY_DIGEST_PUBLISH_HOUR` 是
+       * `@Min(0)`，也就是说 0 被明确允许。如果读配置时把 0 当成"没配好"
+       * 退回默认值，用户配了 0 却按 9 点生效，界面只会说"还没到发布时间"。
+       */
+      const zero = await createService({
+        config: { DAILY_DIGEST_PUBLISH_HOUR: '0' },
+      }).service.getStatusResponse()
+      expect(zero.publishHour).toBe(0)
+
+      const unset = await createService({
+        config: { DAILY_DIGEST_PUBLISH_HOUR: '' },
+      }).service.getStatusResponse()
+      expect(unset.publishHour).toBe(9)
     })
 
     it('没配令牌时 cronConfigured 为 false（这正是"配了却没生效"的常见原因）', async () => {
@@ -392,6 +506,202 @@ describe('DailyDigestService', () => {
       expect(status.pick?.source).toBe('ai')
       // 自检只能说"配没配"，绝不能把令牌本身带出去
       expect(JSON.stringify(status)).not.toContain('super-secret-token')
+    })
+  })
+
+  describe('访客生成的发布时间闸门', () => {
+    // hour < 23，所以 hour + 1 一定是个合法的"还没到点"
+    const { zone, hour } = pickZoneBeforeMidnight()
+    const base = { DAILY_DIGEST_TIMEZONE: zone }
+
+    it('未到发布时间：什么都不做，但状态里说得清几点才行', async () => {
+      const publishHour = hour + 1
+      const { service, github, posts } = createService({
+        config: { ...base, DAILY_DIGEST_PUBLISH_HOUR: String(publishHour) },
+      })
+
+      await service.runDailyDigestByVisitor()
+
+      expect(github.getTrending).not.toHaveBeenCalled()
+      expect(posts.create).not.toHaveBeenCalled()
+
+      const status = await service.getStatusResponse()
+      expect(status.canPublishNow).toBe(false)
+      expect(status.publishHour).toBe(publishHour)
+    })
+
+    it('已过发布时间：正常发布', async () => {
+      const { service, posts } = createService({
+        config: { ...base, DAILY_DIGEST_PUBLISH_HOUR: String(hour) },
+      })
+
+      await service.runDailyDigestByVisitor()
+
+      expect(posts.create).toHaveBeenCalledTimes(1)
+    })
+
+    it('闸门不看 lazyTrigger：用户明确点了按钮，不该被"惰性触发"开关连坐', async () => {
+      const { service, posts } = createService({
+        config: {
+          ...base,
+          DAILY_DIGEST_PUBLISH_HOUR: String(hour),
+          DAILY_DIGEST_LAZY_TRIGGER: 'false',
+        },
+      })
+
+      await service.runDailyDigestByVisitor()
+
+      expect(posts.create).toHaveBeenCalledTimes(1)
+    })
+
+    it('装置关闭时点按钮也不发', async () => {
+      const { service, github } = createService({
+        config: {
+          DAILY_DIGEST_ENABLED: 'false',
+          ...base,
+          DAILY_DIGEST_PUBLISH_HOUR: String(hour),
+        },
+      })
+
+      await service.runDailyDigestByVisitor()
+
+      expect(github.getTrending).not.toHaveBeenCalled()
+    })
+
+    it('Cron 路径不受闸门约束：还没到发布时间，Cron 打进来照样发', async () => {
+      // 闸门只加在访客那条路径上。如果哪天有人把它挪进 runDailyDigest，
+      // 就会出现"Cron 按时打进来却什么都不发"的哑失败 —— 这条用例就是拦它的
+      const { service, posts } = createService({
+        config: { ...base, DAILY_DIGEST_PUBLISH_HOUR: String(hour + 1) },
+      })
+
+      await service.runDailyDigest()
+
+      expect(posts.create).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('撤回', () => {
+    const PUBLISHED_PICK = {
+      date: '2026-09-14',
+      repoId: 42,
+      fullName: 'acme/demo',
+      htmlUrl: 'https://github.com/acme/demo',
+      language: 'TypeScript',
+      stargazersCount: 500,
+      postId: 'post-1',
+      source: 'ai',
+    }
+
+    it('写排除表、删帖、级联删互动，并释放当天名额', async () => {
+      const { service, exclude, posts, comments, likes, model } = createService({
+        existing: PUBLISHED_PICK,
+        commentsDeleted: 2,
+        likesDeleted: 3,
+      })
+
+      const result = await service.runRevoke()
+
+      expect(result.status).toBe('revoked')
+      expect(result.date).toBe('2026-09-14')
+      expect(result.removed).toEqual({ comments: 2, likes: 3 })
+
+      // 最重要的一条：被撤的项目必须进排除表，否则明天它又会被选回来
+      expect(exclude.updateOne).toHaveBeenCalledWith(
+        { repoId: 42 },
+        expect.objectContaining({ $set: expect.objectContaining({ fullName: 'acme/demo' }) }),
+        { upsert: true },
+      )
+
+      expect(posts.remove).toHaveBeenCalledWith('post-1', expect.anything())
+      expect(comments.deleteByPost).toHaveBeenCalledWith('post-1')
+      expect(likes.deleteByPost).toHaveBeenCalledWith('post-1')
+      expect(model.deleteOne).toHaveBeenCalledWith({ date: '2026-09-14' })
+    })
+
+    it('顺序：释放名额必须排在最后', async () => {
+      /**
+       * 顺序写错不会报错，只会让"中途崩溃"停在一个会重复发布的中间态 ——
+       * 那是一种没有任何日志提示的坏法，所以拿顺序本身当断言。
+       */
+      const order: string[] = []
+      const { service, exclude, model, posts, comments, likes } = createService({
+        existing: PUBLISHED_PICK,
+      })
+
+      exclude.updateOne.mockImplementation(() => {
+        order.push('排除表')
+        return Promise.resolve({ acknowledged: true })
+      })
+      posts.remove.mockImplementation(() => {
+        order.push('删帖')
+        return Promise.resolve(undefined)
+      })
+      comments.deleteByPost.mockImplementation(() => {
+        order.push('删评论')
+        return Promise.resolve(0)
+      })
+      likes.deleteByPost.mockImplementation(() => {
+        order.push('删点赞')
+        return Promise.resolve(0)
+      })
+      model.deleteOne.mockImplementation(() => {
+        order.push('释放名额')
+        return Promise.resolve({ deletedCount: 1 })
+      })
+
+      await service.runRevoke()
+
+      expect(order).toEqual(['排除表', '删帖', '删评论', '删点赞', '释放名额'])
+    })
+
+    it('已撤回过：返回 already-revoked 而不是报错（幂等）', async () => {
+      const { service, model } = createService({
+        existing: null,
+        existingExclude: {
+          fullName: 'acme/demo',
+          htmlUrl: 'https://github.com/acme/demo',
+          postId: 'post-1',
+        },
+      })
+
+      const result = await service.runRevoke()
+
+      expect(result.status).toBe('already-revoked')
+      expect(result.repo?.fullName).toBe('acme/demo')
+      // 已经撤过了就不该再动任何东西
+      expect(model.deleteOne).not.toHaveBeenCalled()
+    })
+
+    it('当天本来就没有报道：返回 no-pick，多半是日期敲错了', async () => {
+      const { service } = createService({ existing: null, existingExclude: null })
+
+      const result = await service.runRevoke('2026-01-01')
+
+      expect(result.status).toBe('no-pick')
+      expect(result.date).toBe('2026-01-01')
+    })
+
+    it('帖子已经不在时仍然完成撤回（否则名额永远释放不出来）', async () => {
+      const { service, model, posts } = createService({ existing: PUBLISHED_PICK })
+      posts.remove.mockRejectedValueOnce(new Error('找不到该帖子'))
+
+      const result = await service.runRevoke()
+
+      expect(result.status).toBe('revoked')
+      expect(model.deleteOne).toHaveBeenCalled()
+    })
+
+    it('被撤回过的项目不会再被推荐', async () => {
+      const { service, posts } = createService({
+        items: [makeRepo({ id: 7, stargazersCount: 999 })],
+        excludedRepoIds: [7],
+      })
+
+      const result = await service.runDailyDigest()
+
+      expect(result.status).toBe('no-candidate')
+      expect(posts.create).not.toHaveBeenCalled()
     })
   })
 })

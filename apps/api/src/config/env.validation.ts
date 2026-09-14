@@ -330,20 +330,25 @@ export class EnvironmentVariables {
   @IsInt()
   @Min(200, { message: 'DAILY_DIGEST_AI_MAX_TOKENS 至少 200' })
   @Max(8000, { message: 'DAILY_DIGEST_AI_MAX_TOKENS 过大，会显著拉长等待时间' })
-  DAILY_DIGEST_AI_MAX_TOKENS: number = 2000
+  DAILY_DIGEST_AI_MAX_TOKENS: number = 3000
 
   /**
    * 报道的 AI 超时。
    *
-   * 上限放到 120 秒，是因为它跑在后台定时任务里，没有用户盯着等 ——
-   * 这正是它可以比 `NVNIM_TIMEOUT_MS`（上限 60 秒）宽松的原因。
-   * 仍然要设上限，是为了不让一次卡住的请求占着连接直到平台强制杀掉。
+   * 默认 90 秒是实测出来的：一篇 400 到 800 字的中文报道，模型耗时在
+   * 27 到 41 秒之间浮动。原本的 40 秒让**线上每一篇都退回了模板版**，
+   * 而且不报错，只是在日志里留一句 warn。
+   *
+   * 上限 120 秒的依据是平台量级：Hobby 套餐的 Vercel Function 默认值与
+   * 上限都是 300 秒（Services 的后端同样跑在 Function 上），
+   * 所以 90 秒很安全，120 秒也仍然在安全区内。
+   * 仍然设上限，是为了不让一次卡住的请求一直占着连接。
    */
   @IsOptional()
   @IsInt()
   @Min(1000, { message: 'DAILY_DIGEST_AI_TIMEOUT_MS 至少 1000 毫秒' })
   @Max(120000, { message: 'DAILY_DIGEST_AI_TIMEOUT_MS 最多 120000 毫秒' })
-  DAILY_DIGEST_AI_TIMEOUT_MS: number = 40000
+  DAILY_DIGEST_AI_TIMEOUT_MS: number = 90000
 
   /**
    * 是否允许惰性触发（读取接口顺带补发）。

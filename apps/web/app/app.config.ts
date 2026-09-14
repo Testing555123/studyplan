@@ -22,8 +22,13 @@ export default defineAppConfig({
        */
       primary: 'brand',
 
-      /** 中性色 → slate。页面背景、边框、次要文字都取自它 */
-      neutral: 'slate',
+      /**
+       * 中性色 → stone（暖灰）。
+       *
+       * 原先用 slate（冷灰）；改为 stone 后页面背景、边框、次要文字
+       * 都带上一点暖调，更接近"护眼舒适"的暖灰中性，也和 indigo 主色更搭。
+       */
+      neutral: 'stone',
     },
   },
 })

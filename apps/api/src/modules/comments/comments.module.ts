@@ -29,5 +29,12 @@ import { CommentsService } from './comments.service'
   ],
   controllers: [CommentsController],
   providers: [CommentsService],
+  /**
+   * 导出给"每日 GitHub 报道"用：撤回一篇报道时要连带删掉它的评论。
+   *
+   * 和上面那句 `exports: [PostsService]` 属于同一类东西 ——
+   * 它们看起来"暂时没人用"，但删掉会让**别的模块启动时**直接报依赖解析失败。
+   */
+  exports: [CommentsService],
 })
 export class CommentsModule {}

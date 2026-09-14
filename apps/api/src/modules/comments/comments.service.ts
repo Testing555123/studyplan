@@ -116,6 +116,33 @@ export class CommentsService {
   }
 
   /**
+   * 删除某篇帖子的**全部**评论，返回删除条数。
+   *
+   * 与 `remove` 的关键区别：它**不看作者**。调用它的是系统级清理
+   * （目前只有"撤回每日报道"一处），不是用户操作，所以不存在
+   * "只能删自己的"这回事。也正因为它放开了权限，**不要把它接到任何
+   * HTTP 端点上** —— 那等于给所有人一个批量删评论的接口。
+   *
+   * 它**不调整帖子的 `commentCount`**：目前唯一的调用场景里，
+   * 帖子本身紧接着就被删掉了，去 `$inc` 一个即将消失的字段没有意义。
+   * 将来若有"只删评论、留着帖子"的场景，这里必须补上计数调整。
+   *
+   * 不在这里校验 `postId` 的合法性：调用方传的是刚从数据库读出来的 id。
+   * 为一种不可能发生的情况加一个分支，只会让撤回路径多一条要维护的岔路。
+   */
+  async deleteByPost(postId: string): Promise<number> {
+    const result = await this.commentModel
+      .deleteMany({ postId: new Types.ObjectId(postId) })
+      .exec()
+
+    if (result.deletedCount > 0) {
+      this.logger.log(`删除帖子 ${postId} 的全部评论，共 ${result.deletedCount} 条`)
+    }
+
+    return result.deletedCount
+  }
+
+  /**
    * 校验 postId 是不是合法的 ObjectId。
    *
    * 不校验的话，`new Types.ObjectId('abc')` 会抛异常 ——

@@ -219,11 +219,11 @@ function onDeleteComment(commentId: string): void {
       <UAlert
         v-if="post.summary"
         class="animate-fade-up mt-7"
-        color="info"
+        color="neutral"
         variant="soft"
         icon="i-lucide-sparkles"
         title="AI 摘要"
-        :ui="{ icon: 'text-violet-500' }"
+        :ui="{ icon: 'text-ai-500' }"
       >
         <template #description>
           <p class="text-body leading-7">{{ post.summary }}</p>
@@ -234,7 +234,7 @@ function onDeleteComment(commentId: string): void {
             作者也能清楚看到 AI 补充了什么。
           -->
           <div v-if="post.aiTags?.length" class="mt-3 flex flex-wrap items-center gap-1.5">
-            <span class="text-eyebrow text-violet-600 dark:text-violet-400">推荐标签</span>
+            <span class="text-eyebrow text-ai-600 dark:text-ai-400">推荐标签</span>
             <UBadge
               v-for="tag in post.aiTags"
               :key="tag"
@@ -253,7 +253,7 @@ function onDeleteComment(commentId: string): void {
         这里给出"正在来"的预期，而不是留一片空白让用户以为坏了。
       -->
       <p v-else-if="aiPending" class="mt-7 flex items-center gap-2 text-meta text-muted">
-        <UIcon name="i-lucide-sparkles" class="animate-pulse text-violet-500" />
+        <UIcon name="i-lucide-sparkles" class="animate-pulse text-ai-500" />
         AI 正在为这篇文章生成摘要与推荐标签，稍后刷新即可看到
       </p>
 

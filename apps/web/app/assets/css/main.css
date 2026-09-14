@@ -40,36 +40,31 @@
    ------------------------------------------------------------------ */
 @theme static {
   /*
-   * 主色：科技青蓝（Tailwind cyan 标准色阶）。
+   * 主色：柔和靛蓝（Tailwind indigo 标准色阶）。
    *
-   * 为什么换掉原来的鸢尾紫蓝 #5b5bd6？
-   *   这个项目的主界面是「GitHub 热门项目榜」这类技术内容，
-   *   冷调青蓝更贴近 Vercel / Tailwind 官网那类技术站的气质；
-   *   而且它在**亮色**背景下比紫色更通透、层次更清楚
-   *   （紫色在浅底上容易发闷，青蓝不会）。
+   * 这是本次重设计的"单一克制强调色"：低饱和、安静，长时间阅读不刺眼，
+   * 与暖灰中性背景（neutral: stone）形成冷暖对比，层次清楚又不喧宾夺主。
+   * 它同时是全站按钮 / 链接 / 选中态的来源——改这一处，全站强调色一起变。
    */
-  --color-brand-50: #ecfeff;
-  --color-brand-100: #cffafe;
-  --color-brand-200: #a5f3fc;
-  --color-brand-300: #67e8f9;
-  --color-brand-400: #22d3ee;
-  --color-brand-500: #06b6d4;
-  --color-brand-600: #0891b2;
-  --color-brand-700: #0e7490;
-  --color-brand-800: #155e75;
-  --color-brand-900: #164e63;
-  --color-brand-950: #083344;
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
 
   /*
-   * 语义色：AI 相关内容用紫罗兰，和主色形成冷暖对比。
+   * 语义色：AI 相关内容用柔和紫罗兰，和主色形成冷暖对比。
    *
-   * 这里原来是青绿 #12b886，必须换掉：主色改成青蓝 #06b6d4 后，青绿与青蓝同为冷色且色相接近，
-   * AI 面板和 AI 按钮会"融"进主色，用户分不清哪块是 AI 功能。
-   *
-   * 改用紫罗兰 #8b5cf6 有两个好处：紫与青蓝冷暖对立，辨识度一眼就有；
-   * "青蓝→紫"的渐变也是当下 AI 类产品主流的视觉语言，AI 助手按钮用上很自然。
-   *
-   * 这也是"换主色必须连带检查语义色"的典型例子：只改主色不改配套色，界面不会报错，却会悄悄变难用。
+   * 主色是靛蓝后，AI 面板若也用靛蓝会"融"进主色，用户分不清哪块是 AI 功能。
+   * 改用低饱和紫罗兰 #8b5cf6：紫与靛蓝冷暖对立，辨识度一眼就有，
+   * 且"靛蓝→紫"的渐变是当下 AI 类产品主流的视觉语言，AI 助手按钮用上很自然。
+   * 这是"换主色必须连带检查语义色"的典型例子。
    */
   --color-ai-50: #f5f3ff;
   --color-ai-100: #ede9fe;
@@ -104,6 +99,9 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* 字体：Inter（西文/数字）优先，Noto Sans SC 承接中文，再退化到系统_ui */
+    font-family: 'Inter', 'Noto Sans SC', 'PingFang SC', system-ui, -apple-system,
+      'Segoe UI', Roboto, sans-serif;
   }
 
   body {
@@ -154,7 +152,7 @@
    * "Cannot apply unknown utility class"，所以它们必须留在全局样式里。
    */
 
-  /* Markdown 正文排版（颜色一律用语义类，自动适配明暗） */
+  /* Markdown 正文排版（颜色一律用语义类，自动适配明暗；行高放宽到 32px 护眼） */
   .prose-post {
     @apply text-subtitle leading-8 text-toned;
   }
@@ -222,6 +220,18 @@
   }
 }
 
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @layer utilities {
   /* AI 摘要渐入，让"生成结果出现"这件事有存在感 */
   .animate-fade-up {
@@ -233,15 +243,29 @@
     animation: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  @keyframes pop {
-    0% {
-      transform: scale(1);
-    }
-    45% {
-      transform: scale(1.28);
-    }
-    100% {
-      transform: scale(1);
-    }
+  /*
+   * Vue <Transition name="fade-up"> 的进入/离开类（卡片淡入、列表错落浮现）。
+   * 退出略快于进入；整体时长 150–300ms，缓动统一 cubic-bezier(0.22,1,0.36,1)。
+   * reduced-motion 由基础层全局媒体查询兜底（transition-duration 被压成 0.01ms）。
+   */
+  .fade-up-enter-active,
+  .fade-up-leave-active {
+    transition:
+      opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .fade-up-enter-from,
+  .fade-up-leave-to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  /*
+   * 列表错落：给父容器加 .stagger，子项按自身 --i（索引）递增延迟。
+   * 通常与 <TransitionGroup name="fade-up"> 配合；无动画上下文时延迟无效，安全。
+   */
+  .stagger > * {
+    transition-delay: calc(var(--i, 0) * 45ms);
   }
 }

@@ -58,4 +58,25 @@ export interface DailyDigestStatusResponse {
    * 所以这不是错误状态，但值得让用户知道今天这篇不是 AI 写的。
    */
   aiEnabled: boolean
+
+  /**
+   * 每天从第几个小时起才允许生成（按配置时区，0-23）。
+   *
+   * 它存在的唯一理由是让前端**说得出"几点才行"**：
+   * 只给一个 `canPublishNow: false` 而不说清时间，
+   * 用户看到的仍然是一个没反应的按钮，问题只是从"为什么没动"
+   * 变成了"到底要等到什么时候"。
+   */
+  publishHour: number
+
+  /**
+   * 现在是否可以生成。
+   *
+   * **已经包含了 `enabled`**，即 `enabled && 当前小时 >= publishHour`。
+   * 之所以把它做成一个"拿来就能决定按钮灰不灰"的字段，而不是让前端
+   * 自己拿 `enabled` 和 `publishHour` 去拼：这个判断只能有一份实现。
+   * 放两份的结果就是"前端算出来能点、后端却拒绝"这类分歧，
+   * 而那种 bug 只在特定时刻出现，最难查。
+   */
+  canPublishNow: boolean
 }

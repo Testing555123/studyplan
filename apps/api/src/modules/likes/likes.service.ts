@@ -98,6 +98,26 @@ export class LikesService {
     return { liked: false, likeCount: likeCount ?? 0 }
   }
 
+  /**
+   * 删除某篇帖子的**全部**点赞，返回删除条数。
+   *
+   * 和评论那边同构：系统级清理，**不看是谁点的赞**，
+   * 所以只该由内部流程调用，不要挂到任何 HTTP 端点上。
+   *
+   * 同样**不调整 `likeCount`**：唯一的调用场景是整篇帖子被撤回，
+   * 帖子马上就没了，`$inc` 一个即将消失的计数字段没有意义。
+   * 将来若有别的场景复用（比如删帖子但保留数据），必须在这里补上。
+   */
+  async deleteByPost(postId: string): Promise<number> {
+    const result = await this.likeModel.deleteMany({ postId: new Types.ObjectId(postId) }).exec()
+
+    if (result.deletedCount > 0) {
+      this.logger.log(`删除帖子 ${postId} 的全部点赞，共 ${result.deletedCount} 条`)
+    }
+
+    return result.deletedCount
+  }
+
   private async ensurePostExists(postId: string): Promise<void> {
     if (!isValidObjectId(postId)) {
       throw new NotFoundException(`找不到 id 为 ${postId} 的帖子`)

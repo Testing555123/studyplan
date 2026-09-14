@@ -258,7 +258,7 @@ async function publish(): Promise<void> {
           variant="soft"
           icon="i-lucide-sparkles"
           title="发布后自动完成"
-          :ui="{ icon: 'text-violet-500' }"
+          :ui="{ icon: 'text-ai-500' }"
         >
           <template #description>
             <p class="text-body-sm leading-6">

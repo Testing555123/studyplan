@@ -123,16 +123,23 @@ const freshnessText = computed(() => {
   const relative = formatRelativeTime(current.fetchedAt)
   return current.stale ? `${relative}更新（可能不是最新）` : `${relative}更新`
 })
+
+/** 移动端筛选抽屉：受控挂载，避免 v-model 不渲染的坑（见 AiAssistant.vue） */
+const filtersOpen = ref(false)
 </script>
 
 <template>
   <UContainer>
     <!-- 页头 -->
-    <section class="pt-10 pb-6">
-      <div class="flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <section class="pt-12 pb-8 sm:pt-16">
+      <div class="flex flex-wrap items-end justify-between gap-5">
+        <div class="max-w-2xl">
+          <div class="mb-3 inline-flex items-center gap-2 text-eyebrow font-medium uppercase tracking-wider text-muted">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary" />
+            GitHub 热门
+          </div>
           <h1 class="text-display font-semibold tracking-tight text-highlighted">GitHub 热门项目</h1>
-          <p class="mt-1.5 text-body text-muted">
+          <p class="mt-2 text-body text-muted">
             按创建时间筛选，取 star 最高的项目 · 共
             <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>
             个
@@ -151,24 +158,41 @@ const freshnessText = computed(() => {
         </UBadge>
       </div>
 
-      <!-- 时间档：必选其一，所以不用 TagFilter（它没有"无全部"以外的语义） -->
-      <div class="mt-6 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <UButton
-          v-for="item in TRENDING_RANGES"
-          :key="item.value"
-          size="xs"
-          :variant="range === item.value ? 'solid' : 'outline'"
-          :color="range === item.value ? 'primary' : 'neutral'"
-          class="shrink-0 rounded-full"
-          @click="range = item.value"
-        >
-          {{ item.label }}
-        </UButton>
+      <!-- 桌面端筛选：时间档 + 语言 -->
+      <div class="mt-7 hidden items-start gap-6 sm:flex">
+        <div>
+          <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">时间范围</p>
+          <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <UButton
+              v-for="item in TRENDING_RANGES"
+              :key="item.value"
+              size="xs"
+              :variant="range === item.value ? 'solid' : 'outline'"
+              :color="range === item.value ? 'primary' : 'neutral'"
+              class="shrink-0 rounded-full"
+              @click="range = item.value"
+            >
+              {{ item.label }}
+            </UButton>
+          </div>
+        </div>
+
+        <div v-if="result && result.languages.length > 0" class="min-w-0 flex-1">
+          <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">语言</p>
+          <TagFilter v-model="languageModel" :tags="result.languages" />
+        </div>
       </div>
 
-      <!-- 语言筛选：选项来自当前结果集，切换时间档后会自动更新 -->
-      <div v-if="result && result.languages.length > 0" class="mt-3">
-        <TagFilter v-model="languageModel" :tags="result.languages" />
+      <!-- 移动端：筛选入口（滑出抽屉） -->
+      <div class="mt-7 sm:hidden">
+        <UButton
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-sliders-horizontal"
+          @click="filtersOpen = true"
+        >
+          筛选
+        </UButton>
       </div>
     </section>
 
@@ -224,16 +248,26 @@ const freshnessText = computed(() => {
       description="换个时间范围或语言试试 —— 时间越短、语言越小众，结果通常越少"
     />
 
-    <!-- 项目网格 -->
+    <!-- 项目网格：错落淡入（stagger + fade-up），reduced-motion 下由全局媒体查询降级 -->
     <section v-else-if="result">
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <RepoCard
-          v-for="repo in result.items"
+      <TransitionGroup
+        name="fade-up"
+        tag="div"
+        class="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      >
+        <div
+          v-for="(repo, index) in result.items"
           :key="repo.id"
-          :repo="repo"
-          @ask="ai.askAboutRepo"
-        />
-      </div>
+          :style="{ '--i': index }"
+          class="flex"
+        >
+          <RepoCard
+            class="h-full flex-1"
+            :repo="repo"
+            @ask="ai.askAboutRepo"
+          />
+        </div>
+      </TransitionGroup>
 
       <!-- 数据来源说明：榜单口径必须交代清楚，否则容易被误读成"涨粉最快榜" -->
       <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-dimmed">
@@ -248,5 +282,48 @@ const freshnessText = computed(() => {
         </ULink>
       </p>
     </section>
+
+    <!-- 移动端筛选抽屉 -->
+    <USlideover
+      v-if="filtersOpen"
+      :open="true"
+      side="left"
+      :ui="{ content: 'w-full sm:max-w-sm' }"
+      @update:open="(value: boolean) => { if (!value) filtersOpen = false }"
+    >
+      <template #header>
+        <p class="text-body-sm font-semibold text-highlighted">筛选</p>
+      </template>
+
+      <template #body>
+        <div class="space-y-6">
+          <div>
+            <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">时间范围</p>
+            <div class="flex flex-wrap gap-2">
+              <UButton
+                v-for="item in TRENDING_RANGES"
+                :key="item.value"
+                size="xs"
+                :variant="range === item.value ? 'solid' : 'outline'"
+                :color="range === item.value ? 'primary' : 'neutral'"
+                class="rounded-full"
+                @click="range = item.value"
+              >
+                {{ item.label }}
+              </UButton>
+            </div>
+          </div>
+
+          <div v-if="result && result.languages.length > 0">
+            <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">语言</p>
+            <TagFilter v-model="languageModel" :tags="result.languages" />
+          </div>
+        </div>
+      </template>
+
+      <template #footer>
+        <UButton block color="primary" @click="filtersOpen = false">完成</UButton>
+      </template>
+    </USlideover>
   </UContainer>
 </template>

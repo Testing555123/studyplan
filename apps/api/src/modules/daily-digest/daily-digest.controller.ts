@@ -1,10 +1,24 @@
-import { Controller, Get, Headers, HttpCode, Logger, Post, UnauthorizedException } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  Logger,
+  Post,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { ApiExcludeEndpoint } from '@nestjs/swagger'
-import { UseGuards } from '@nestjs/common'
 import type { DailyDigestStatusResponse } from '@studyplan/shared'
-import { DailyDigestService, type DailyDigestResult } from './daily-digest.service'
+import {
+  DailyDigestService,
+  type DailyDigestResult,
+  type DailyDigestRevokeResult,
+} from './daily-digest.service'
+import { RevokeDailyPickDto } from './dto/revoke-daily-pick.dto'
 
 /**
  * 每日报道的触发入口。
@@ -115,10 +129,21 @@ export class DailyDigestController {
    *
    * 这是页面「立即生成」按钮打的那个接口 —— 用户明确点了，所以这里**可以等**。
    *
-   * 为什么公开端点也敢给触发能力：
-   *   `daily_picks.date` 唯一索引保证一天至多一篇，再多的人点，
-   *   也只会有一篇真正被发出来（其余拿到 already-published 并立刻返回）。
-   *   限流负责挡住"拿它当压力源"的用法，**正确性不依赖限流**。
+   * ── 它为什么必须受发布时间约束 ──
+   *
+   * 这个端点没有鉴权，谁都能打。如果它直通 `runDailyDigest()`，
+   * 那么半夜第一个打开页面的人就把当天那篇在半夜发掉了，
+   * 早上来的人看到的却是"今天已经发过了" —— 等于**任何一个访客
+   * 都能决定今天的发布时间**。所以它走 `runDailyDigestByVisitor()`，
+   * 在每天 `DAILY_DIGEST_PUBLISH_HOUR` 之前什么都不做。
+   *
+   * 未到时间时**返回 200 而不是报错**：这不是请求出错，只是时机不对。
+   * 响应体里的 `canPublishNow` / `publishHour` 会把原因说清楚，
+   * 前端据此把按钮置灰 —— 而不是让人对着一个没反应的按钮猜。
+   *
+   * 顺带说明为什么公开端点也敢给触发能力：`daily_picks.date` 唯一索引
+   * 保证一天至多一篇，再多的人点也只会有一篇真正发出来。
+   * 限流负责挡住"拿它当压力源"的用法，**正确性不依赖限流**。
    */
   @Post('daily-digest/generate')
   @ApiExcludeEndpoint()
@@ -126,7 +151,38 @@ export class DailyDigestController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   async generate(): Promise<DailyDigestStatusResponse> {
-    await this.dailyDigestService.runDailyDigest()
+    await this.dailyDigestService.runDailyDigestByVisitor()
     return this.dailyDigestService.getStatusResponse()
+  }
+
+  /**
+   * 撤回某一天的报道（不传日期就是今天）。
+   *
+   * ── 为什么必须单独做这个端点 ──
+   *
+   * 机器人账号是拿随机密码建的，**没有登录能力**；而删帖的权限校验绑定
+   * `author.id`，应用里也没有管理员入口。结果是：一篇报道发出去之后，
+   * 从界面上根本删不掉，只能直接改数据库。这条路径补的就是那个缺口。
+   *
+   * 令牌校验与 Cron 走的是同一套（同一个 `DAILY_DIGEST_CRON_TOKEN`，
+   * 同时认 `x-daily-token` 与 `Authorization: Bearer`），没配令牌就是 401。
+   * 它**不做时间判断**：撤回是运维的明确意图，什么时候撤都该生效。
+   */
+  @Post('internal/daily-digest/revoke')
+  @ApiExcludeEndpoint()
+  @HttpCode(200)
+  async revoke(
+    @Body() dto: RevokeDailyPickDto,
+    @Headers('x-daily-token') token: string | undefined,
+    @Headers('authorization') authorization: string | undefined,
+  ): Promise<DailyDigestRevokeResult> {
+    const expected = this.config.get<string>('DAILY_DIGEST_CRON_TOKEN')
+
+    if (!expected || !this.matchesToken(expected, token, authorization)) {
+      throw new UnauthorizedException('定时令牌无效')
+    }
+
+    this.logger.log(`收到撤回请求（${dto.date ?? '今天'}）`)
+    return this.dailyDigestService.runRevoke(dto.date)
   }
 }

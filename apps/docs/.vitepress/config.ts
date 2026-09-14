@@ -71,6 +71,7 @@ export default defineConfig({
           { text: '部署经验：上线时踩过的十个坑', link: '/guide/deployment-lessons' },
           { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
           { text: '集成经验：从接口到浏览器', link: '/guide/integration-lessons' },
+          { text: '每日 GitHub 报道装置：设计与运维', link: '/guide/daily-digest' },
         ],
       },
       {
@@ -119,6 +120,7 @@ export default defineConfig({
           { text: '部署经验：上线时踩过的十个坑', link: '/guide/deployment-lessons' },
           { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
           { text: '集成经验：从接口到浏览器', link: '/guide/integration-lessons' },
+          { text: '每日 GitHub 报道装置：设计与运维', link: '/guide/daily-digest' },
         ],
       },
       {

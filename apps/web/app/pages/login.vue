@@ -116,7 +116,7 @@ async function submit(): Promise<void> {
     <!-- 品牌与标语 -->
     <div class="text-center">
       <span
-        class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-lg shadow-primary-500/25"
+        class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-sm"
       >
         <LogIn :size="22" />
       </span>

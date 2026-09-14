@@ -48,6 +48,16 @@ export function useDailyDigest() {
 
   /** 显式生成：用户点了按钮，愿意等 */
   async function generate(): Promise<void> {
+    /**
+     * 未到发布时间就不发请求。
+     *
+     * 后端也有同一个闸门，但那要等一次往返才能知道结果；更重要的是
+     * **按钮本来就该是灰的** —— 能点动却什么都不发生，本身就是界面缺陷。
+     * 这里再挡一道，只为让"点了没反应"不可能发生。
+     * 原因由页面上的文案说明（见 `DailyDigestBanner` 的 `notice`）。
+     */
+    if (status.value && !status.value.canPublishNow) return
+
     generating.value = true
     error.value = null
     try {
@@ -66,8 +76,11 @@ export function useDailyDigest() {
 
     await refresh()
 
-    // 装置没开、或今天已经有了，就没什么可等的
+    // 装置没开、今天已经有了、或者还没到发布时间，都没有什么可等的。
+    // 最后一项能省掉一次 8 秒的空轮询：闸门没开时后端不会补发，
+    // 一直轮询只是在等一件不会发生的事。
     if (!status.value?.enabled || status.value.pick) return
+    if (!status.value.canPublishNow) return
 
     for (let round = 0; round < POLL_MAX_ROUNDS; round += 1) {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))

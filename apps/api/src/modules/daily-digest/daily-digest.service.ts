@@ -36,14 +36,21 @@ import {
   type TrendingRange,
 } from '@studyplan/shared'
 import type { AuthenticatedUser } from '../../common/types/authenticated-user'
-import { boolSetting, numberSetting } from '../../common/utils/config-values'
+import {
+  boolSetting,
+  nonNegativeSetting,
+  numberSetting,
+} from '../../common/utils/config-values'
 import { isDuplicateKeyError } from '../../common/utils/mongo-errors'
 import { NvNimClient } from '../ai/nv-nim.client'
+import { CommentsService } from '../comments/comments.service'
 import { GithubClient } from '../github/github.client'
 import { GithubService } from '../github/github.service'
+import { LikesService } from '../likes/likes.service'
 import { PostsService } from '../posts/posts.service'
 import { UsersService } from '../users/users.service'
 import { buildDailyReportPrompt } from './prompts/daily-report.prompt'
+import { DailyPickExclude } from './schemas/daily-pick-exclude.schema'
 import { DailyPick } from './schemas/daily-pick.schema'
 import { buildFallbackReport, buildReportTitle } from './utils/report-template'
 
@@ -65,8 +72,33 @@ const DEFAULTS = {
   minStars: 50,
   lookbackDays: 30,
   candidateLimit: 100,
-  aiMaxTokens: 2000,
-  aiTimeoutMs: 40_000,
+  /**
+   * 报道的输出上限。
+   *
+   * 实测（同一份 prompt、同一个模型）模型自己会在 800 到 1100 token 处停下
+   * （`finish_reason=stop`），所以 2000 通常够用。给到 3000 是留余量：
+   * 推理模型的思考链长度波动很大，一旦思考把预算吃光，`content` 会直接是空的
+   * （现象是日志里"AI 返回了空内容"，详见 `NvNimClient`）。
+   */
+  aiMaxTokens: 3000,
+  /**
+   * 报道的 AI 超时。
+   *
+   * ⚠️ 这一项原本是 40 秒，结果**线上每一篇都退回模板版**，而界面上
+   * 完全看不出来。日志原话是：
+   *
+   *     AI 生成报道失败，改用模板兜底：AI 响应超时（40000ms），请稍后再试
+   *
+   * 实测一篇 400 到 800 字的中文报道，模型耗时在 27 到 41 秒之间浮动
+   * （最慢的一次正好 40.6 秒，卡在旧上限上）。也就是说 40 秒不是"偶尔不够"，
+   * 而是**大多数时候都不够**，只是失败得太安静。
+   *
+   * 敢直接给到 90 秒，是因为平台的量级先查过了：Hobby 套餐的 Vercel Function
+   * 默认值与上限都是 300 秒，Services 的后端同样跑在 Function 上。
+   * 90 秒连上限的三分之一都不到，整条流程（GitHub + README + AI + 发帖）
+   * 最坏也不超过 100 秒。
+   */
+  aiTimeoutMs: 90_000,
   lazyTrigger: true,
   botUsername: 'github-daily',
 }
@@ -103,6 +135,28 @@ export interface DailyDigestResult {
   reason?: string
 }
 
+/**
+ * 撤回的结果。
+ *
+ * 分成四种而不是"成功/失败"两种，是因为运维敲完那条命令之后要能判断
+ * **接下来该干什么**：
+ *   · `revoked`        真的撤下来了
+ *   · `already-revoked` 之前撤过，不需要再动（这是幂等，不是错误）
+ *   · `no-pick`        那天本来就没有报道，多半是日期敲错了
+ *   · `failed`         出了别的错，看 reason
+ */
+export type DailyDigestRevokeStatus = 'revoked' | 'already-revoked' | 'no-pick' | 'failed'
+
+export interface DailyDigestRevokeResult {
+  status: DailyDigestRevokeStatus
+  date: string
+  repo?: { fullName: string; htmlUrl: string }
+  postId?: string
+  /** 连带删掉的互动数据，用来确认"帖子没了、它的评论也没剩下" */
+  removed?: { comments: number; likes: number }
+  reason?: string
+}
+
 @Injectable()
 export class DailyDigestService {
   private readonly logger = new Logger(DailyDigestService.name)
@@ -111,6 +165,10 @@ export class DailyDigestService {
     private readonly config: ConfigService,
     @InjectModel(DailyPick.name)
     private readonly pickModel: Model<DailyPick>,
+    @InjectModel(DailyPickExclude.name)
+    private readonly excludeModel: Model<DailyPickExclude>,
+    private readonly commentsService: CommentsService,
+    private readonly likesService: LikesService,
     private readonly usersService: UsersService,
     private readonly githubService: GithubService,
     private readonly githubClient: GithubClient,
@@ -208,6 +266,146 @@ export class DailyDigestService {
   }
 
   /**
+   * 撤回某一天的报道（不传日期就是今天）。
+   *
+   * ── 四步的顺序不能换 ──
+   *
+   *   1. 写「不再推荐」名单：被撤的项目从此不进候选池
+   *   2. 删帖
+   *   3. 级联删掉它的评论与点赞
+   *   4. **最后**才释放当天名额（删掉 `daily_picks` 里那一行）
+   *
+   * 把释放名额放到最后，是为了让"中途失败"停在**安全状态**：
+   * 排除表已经写了 ⇒ 那个项目不会被再选中；当天记录还在 ⇒ 当天不会重复发布。
+   * 反过来，如果先删记录，一次崩溃之后就同时具备两个问题 ——
+   * "可能重复发布"和"可能把刚撤掉的项目又选回来"。
+   *
+   * 与 `runDailyDigest` 一致，这个方法**不抛异常**：调用它的是运维命令，
+   * 需要的是一句能读懂的结果，不是一个堆栈。
+   */
+  async runRevoke(date?: string): Promise<DailyDigestRevokeResult> {
+    const settings = this.readSettings()
+    const targetDate = date?.trim() || this.todayKey(settings.timezone)
+
+    try {
+      const pick = await this.pickModel.findOne({ date: targetDate }).lean()
+
+      if (!pick) {
+        // 没有当天记录：可能之前已经撤过（台账在排除表里），也可能压根没发过。
+        // 这两种要分开回答 —— 前者是幂等，后者多半是日期敲错了。
+        const revoked = await this.excludeModel.findOne({ date: targetDate }).lean()
+        if (revoked) {
+          return {
+            status: 'already-revoked',
+            date: targetDate,
+            repo: { fullName: revoked.fullName, htmlUrl: revoked.htmlUrl },
+            postId: revoked.postId ?? undefined,
+          }
+        }
+        return { status: 'no-pick', date: targetDate, reason: `${targetDate} 没有发布过报道` }
+      }
+
+      // ── 1. 先在排除表上登记。用 upsert 而不是 create：
+      //      同一个项目在不同日期被撤两次时，它只该占一行，也不该报错 ──
+      await this.excludeModel.updateOne(
+        { repoId: pick.repoId },
+        {
+          $set: {
+            date: targetDate,
+            fullName: pick.fullName,
+            htmlUrl: pick.htmlUrl,
+            language: pick.language,
+            stargazersCount: pick.stargazersCount,
+            postId: pick.postId,
+            revokedAt: new Date(),
+          },
+        },
+        { upsert: true },
+      )
+
+      // ── 2. 删帖。走 `PostsService.remove` 而不是直接删 Model：
+      //      它的权限条件内嵌在查询里（`'author.id': actor.id`），
+      //      传机器人身份进去，就物理上不可能删掉任何真实用户的帖子 ──
+      const bot = await this.ensureBotUser(settings.botUsername)
+      if (pick.postId) {
+        try {
+          await this.postsService.remove(pick.postId, bot)
+        } catch (error) {
+          // 帖子已经不在（人工删过，或上一次撤到一半）不该让撤回失败
+          this.logger.warn(
+            `撤回时删帖未成功（${pick.postId}）：${error instanceof Error ? error.message : String(error)}`,
+          )
+        }
+      }
+
+      // ── 3. 级联删互动。帖子都没了，它的评论和点赞就只是孤儿数据 ──
+      const removed = pick.postId
+        ? {
+            comments: await this.commentsService.deleteByPost(pick.postId),
+            likes: await this.likesService.deleteByPost(pick.postId),
+          }
+        : { comments: 0, likes: 0 }
+
+      // ── 4. 释放当天名额，今天可以换一个项目重新发 ──
+      await this.pickModel.deleteOne({ date: targetDate })
+
+      this.logger.log(
+        `已撤回 ${targetDate} 的报道：${pick.fullName}` +
+          `（帖子 ${pick.postId ?? '无'}，连带删除评论 ${removed.comments} 条、点赞 ${removed.likes} 条）`,
+      )
+
+      return {
+        status: 'revoked',
+        date: targetDate,
+        postId: pick.postId ?? undefined,
+        repo: { fullName: pick.fullName, htmlUrl: pick.htmlUrl },
+        removed,
+      }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      this.logger.error(`撤回 ${targetDate} 的报道失败：${reason}`)
+      return { status: 'failed', date: targetDate, reason }
+    }
+  }
+
+  /**
+   * 游客点「立即生成」时走这条路。
+   *
+   * ── 闸门为什么不加在 `runDailyDigest()` 里 ──
+   *
+   * 那个方法服务两条路径：Cron（`trigger`）和这个按钮。两者的时间语义不同：
+   *   · Cron 的触发时刻由 `vercel.json` 决定，它打进来就是要发；
+   *   · 按钮是**任何访客**都能点的 —— 不设闸门的话，半夜第一个打开页面的人
+   *     就会把当天那篇在半夜发出去，而早上来的人看到的是"今天已经发过了"。
+   *
+   * 如果把闸门写进 `runDailyDigest`，将来有人只改了 Cron 时刻、没改
+   * `publishHour`，就会得到一个"Cron 打进来却什么都不发"的哑失败。
+   * 所以闸门只加在这一条路径上。
+   *
+   * 另外，闸门**不看 `lazyTrigger`**：那是"读取时顺带补发"的开关，
+   * 而点按钮是用户的明确意图，不该被它连坐。
+   */
+  async runDailyDigestByVisitor(): Promise<void> {
+    const settings = this.readSettings()
+
+    if (!settings.enabled) return
+
+    if (!this.canPublishNow(settings)) {
+      this.logger.log(
+        `访客请求生成被时间闸门拦下：按 ${settings.timezone} 还没到 ${settings.publishHour} 点`,
+      )
+      return
+    }
+
+    await this.runDailyDigest()
+  }
+
+  /** 现在是否允许生成。**已含 `enabled`**，前端拿它当"按钮能不能点" */
+  private canPublishNow(settings: DigestSettings): boolean {
+    return settings.enabled && this.currentHour(settings.timezone) >= settings.publishHour
+  }
+
+  /**
    * 惰性触发：给"没有配置 Cron"的环境兜底。
    *
    * 它会在读取类接口被调用时顺带检查一次，因此**必须是廉价的**：
@@ -257,6 +455,10 @@ export class DailyDigestService {
       cronConfigured: Boolean(this.config.get<string>('DAILY_DIGEST_CRON_TOKEN')?.trim()),
       lazyTrigger: settings.lazyTrigger,
       aiEnabled: this.nvNimClient.enabled,
+      // 把"几点才能生成"告诉前端。少了这两个字段，用户能看到的就只是
+      // 一个点了没反应的按钮 —— 与"什么都没发生"是同一种体验问题
+      publishHour: settings.publishHour,
+      canPublishNow: this.canPublishNow(settings),
     }
   }
 
@@ -273,8 +475,15 @@ export class DailyDigestService {
     return {
       enabled: boolSetting(this.config, 'DAILY_DIGEST_ENABLED', DEFAULTS.enabled),
       timezone: this.config.get<string>('DAILY_DIGEST_TIMEZONE')?.trim() || DEFAULTS.timezone,
-      publishHour: numberSetting(this.config, 'DAILY_DIGEST_PUBLISH_HOUR', DEFAULTS.publishHour),
-      minStars: numberSetting(this.config, 'DAILY_DIGEST_MIN_STARS', DEFAULTS.minStars),
+      // 这两项的校验规则是 @Min(0)，所以 0 是**有效值**：
+      // 0 点即可生成、不限 star。必须用 nonNegativeSetting，
+      // 否则配 0 会被悄悄换成默认的 9 点 / 50 star
+      publishHour: nonNegativeSetting(
+        this.config,
+        'DAILY_DIGEST_PUBLISH_HOUR',
+        DEFAULTS.publishHour,
+      ),
+      minStars: nonNegativeSetting(this.config, 'DAILY_DIGEST_MIN_STARS', DEFAULTS.minStars),
       lookbackDays: numberSetting(
         this.config,
         'DAILY_DIGEST_LOOKBACK_DAYS',
@@ -366,16 +575,25 @@ export class DailyDigestService {
     const range = rangeForDays(settings.lookbackDays)
     const { items } = await this.githubService.getTrending(range, null)
 
-    const usedRepoIds = new Set(
-      (await this.pickModel.find({}, { repoId: 1 }).lean()).map((pick) => pick.repoId),
-    )
+    // 不该再出现的项目 = 已经推过的 + 被撤回过的。
+    // 两张表都只取 `repoId`，且都是"每天至多长一条"的低频数据，
+    // 与候选池 100 条的上限同一量级。并行查是为了不让这两次读串行累加 ——
+    // 它们之间没有任何依赖。
+    const [used, excluded] = await Promise.all([
+      this.pickModel.find({}, { repoId: 1 }).lean(),
+      this.excludeModel.find({}, { repoId: 1 }).lean(),
+    ])
+    const blockedRepoIds = new Set([
+      ...used.map((pick) => pick.repoId),
+      ...excluded.map((item) => item.repoId),
+    ])
 
     const earliestCreatedAt = Date.now() - settings.lookbackDays * MS_PER_DAY
     const allowedLanguages = settings.languages
 
     return (
       items.slice(0, settings.candidateLimit).find((repo) => {
-        if (usedRepoIds.has(repo.id)) return false
+        if (blockedRepoIds.has(repo.id)) return false
         if (repo.stargazersCount < settings.minStars) return false
         if (new Date(repo.createdAt).getTime() < earliestCreatedAt) return false
         // 语言白名单为空表示不限

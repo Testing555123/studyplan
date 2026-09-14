@@ -1,0 +1,41 @@
+$ nuxt dev
+
+[43m[30m WARN [39m[49m Could not fetch from [36mhttps://fonts.google.com/metadata/fonts[39m. Will retry in [36m1000ms[39m. [36m3[39m retries left.
+
+
+[43m[30m WARN [39m[49m Could not fetch from [36mhttps://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true[39m. Will retry in [36m1000ms[39m. [36m3[39m retries left.
+
+
+[43m[30m WARN [39m[49m Could not fetch from [36mhttps://fonts.google.com/metadata/fonts[39m. Will retry in [36m1000ms[39m. [36m2[39m retries left.
+
+
+[43m[30m WARN [39m[49m Could not fetch from [36mhttps://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true[39m. Will retry in [36m1000ms[39m. [36m2[39m retries left.
+
+
+[43m[30m WARN [39m[49m Could not fetch from [36mhttps://fonts.google.com/metadata/fonts[39m. Will retry in [36m1000ms[39m. [36m1[39m retries left.
+
+
+[43m[30m WARN [39m[49m Could not fetch from [36mhttps://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true[39m. Will retry in [36m1000ms[39m. [36m1[39m retries left.
+
+
+[41m[30m ERROR [39m[49m Could not initialize provider [36mgoogle[39m. [36munifont[39m will not be able to process fonts provided by this provider. fetch failed
+
+  
+
+  [cause]: Connect Timeout Error (attempted address: fonts.google.com:443, timeout: 10000ms)
+
+      [90mat [39monConnectTimeout ([36mnode:internal/deps/undici/undici:1991:23[39m)
+      [90mat [39mImmediate._onImmediate ([36mnode:internal/deps/undici/undici:1957:35[39m)
+      [90mat [39mprocess.processImmediate ([36mnode:internal/timers:574:21[39m)
+
+
+[41m[30m ERROR [39m[49m Could not initialize provider [36mgoogleicons[39m. [36munifont[39m will not be able to process fonts provided by this provider. fetch failed
+
+  
+
+  [cause]: Connect Timeout Error (attempted address: fonts.google.com:443, timeout: 10000ms)
+
+      [90mat [39monConnectTimeout ([36mnode:internal/deps/undici/undici:1991:23[39m)
+      [90mat [39mImmediate._onImmediate ([36mnode:internal/deps/undici/undici:1957:35[39m)
+      [90mat [39mprocess.processImmediate ([36mnode:internal/timers:574:21[39m)
+

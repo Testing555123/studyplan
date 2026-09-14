@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { AiModule } from '../ai/ai.module'
+import { CommentsModule } from '../comments/comments.module'
 import { GithubModule } from '../github/github.module'
+import { LikesModule } from '../likes/likes.module'
 import { PostsModule } from '../posts/posts.module'
 import { UsersModule } from '../users/users.module'
 import { DailyDigestController } from './daily-digest.controller'
 import { DailyDigestService } from './daily-digest.service'
+import { DailyPickExclude, DailyPickExcludeSchema } from './schemas/daily-pick-exclude.schema'
 import { DailyPick, DailyPickSchema } from './schemas/daily-pick.schema'
 
 /**
@@ -22,8 +25,9 @@ import { DailyPick, DailyPickSchema } from './schemas/daily-pick.schema'
  * ```text
  *   DailyDigestModule ──▶ GithubModule（候选池 + README）
  *                    ──▶ AiModule（NvNimClient）
- *                    ──▶ PostsModule（发帖）
+ *                    ──▶ PostsModule（发帖 / 删帖）
  *                    ──▶ UsersModule（bot 账号）
+ *                    ──▶ CommentsModule / LikesModule（撤回时级联删互动）
  * ```
  *
  * 没有任何一个上游需要知道"每日报道"的存在，
@@ -31,11 +35,19 @@ import { DailyPick, DailyPickSchema } from './schemas/daily-pick.schema'
  */
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: DailyPick.name, schema: DailyPickSchema }]),
+    MongooseModule.forFeature([
+      { name: DailyPick.name, schema: DailyPickSchema },
+      // 「不再推荐」名单。索引同样由 Mongoose 的 autoIndex 自动创建，
+      // 与 daily_picks 一个机制，不需要手工建索引
+      { name: DailyPickExclude.name, schema: DailyPickExcludeSchema },
+    ]),
     UsersModule,
     GithubModule,
     PostsModule,
     AiModule,
+    // 撤回报道时要连带删掉那篇帖子的评论与点赞
+    CommentsModule,
+    LikesModule,
   ],
   controllers: [DailyDigestController],
   providers: [DailyDigestService],

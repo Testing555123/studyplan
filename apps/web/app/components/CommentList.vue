@@ -57,10 +57,14 @@ const canSubmit = computed(
   () => draft.value.trim().length > 0 && !tooLong.value && !props.submitting,
 )
 
+/** 评论撰写弹窗：受控挂载，避免 v-model 不渲染的坑（见 AiAssistant.vue） */
+const composing = ref(false)
+
 function submit(): void {
   if (!canSubmit.value) return
   emit('submit', draft.value.trim())
   draft.value = ''
+  composing.value = false
 }
 </script>
 
@@ -74,45 +78,18 @@ function submit(): void {
       </h2>
     </header>
 
-    <!-- 发表框 -->
-    <UCard v-if="canComment" :ui="{ body: 'p-4' }">
-      <UTextarea
-        v-model="draft"
-        :rows="3"
-        :maxlength="COMMENT_MAX_LENGTH + 50"
-        placeholder="说说你的看法，或者补充一个你踩过的坑…"
-        class="w-full"
-      />
-
-      <!-- 发表失败提示 -->
-      <UAlert
-        v-if="error"
-        class="mt-2"
-        color="error"
-        variant="soft"
-        icon="i-lucide-alert-circle"
-        :description="error"
-      />
-
-      <div class="mt-3 flex items-center justify-between">
-        <span
-          class="text-caption tabular-nums"
-          :class="tooLong ? 'text-error' : remaining < 50 ? 'text-warning' : 'text-dimmed'"
-        >
-          还可以写 {{ remaining }} 字
-        </span>
-
-        <UButton
-          size="sm"
-          icon="i-lucide-send"
-          :disabled="!canSubmit"
-          :loading="submitting"
-          @click="submit"
-        >
-          {{ submitting ? '发表中…' : '发表评论' }}
-        </UButton>
-      </div>
-    </UCard>
+    <!-- 发表入口：已登录时点击弹出 UModal 撰写 -->
+    <UButton
+      v-if="canComment"
+      block
+      color="neutral"
+      variant="outline"
+      icon="i-lucide-pen-line"
+      class="rounded-xl"
+      @click="composing = true"
+    >
+      写评论
+    </UButton>
 
     <!-- 未登录时把输入框替换为引导，避免用户白写一段再被拒 -->
     <UAlert
@@ -126,6 +103,59 @@ function submit(): void {
         <UButton to="/login" size="xs" variant="outline" color="primary">去登录</UButton>
       </template>
     </UAlert>
+
+    <!-- 撰写弹窗 -->
+    <UModal
+      v-if="composing"
+      :open="true"
+      :ui="{ content: 'sm:max-w-lg' }"
+      @update:open="(value: boolean) => { if (!value) composing = false }"
+    >
+      <template #header>
+        <p class="text-body-sm font-semibold text-highlighted">写评论</p>
+      </template>
+
+      <template #body>
+        <UTextarea
+          v-model="draft"
+          :rows="4"
+          :maxlength="COMMENT_MAX_LENGTH + 50"
+          placeholder="说说你的看法，或者补充一个你踩过的坑…"
+          class="w-full"
+          autofocus
+        />
+
+        <UAlert
+          v-if="error"
+          class="mt-2"
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-circle"
+          :description="error"
+        />
+
+        <p
+          class="mt-2 text-caption tabular-nums"
+          :class="tooLong ? 'text-error' : remaining < 50 ? 'text-warning' : 'text-dimmed'"
+        >
+          还可以写 {{ remaining }} 字
+        </p>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton variant="ghost" color="neutral" @click="composing = false">取消</UButton>
+          <UButton
+            icon="i-lucide-send"
+            :disabled="!canSubmit"
+            :loading="submitting"
+            @click="submit"
+          >
+            {{ submitting ? '发表中…' : '发表评论' }}
+          </UButton>
+        </div>
+      </template>
+    </UModal>
 
     <!-- 列表 -->
     <div class="mt-6 space-y-4">
@@ -149,11 +179,17 @@ function submit(): void {
         description="来说第一句吧"
       />
 
-      <!-- 正常列表 -->
-      <template v-else>
+      <!-- 正常列表：错落淡入，与首页/榜单一致；reduced-motion 下由全局媒体查询降级 -->
+      <TransitionGroup
+        v-else
+        name="fade-up"
+        tag="div"
+        class="stagger space-y-4"
+      >
         <UCard
-          v-for="comment in comments"
+          v-for="(comment, index) in comments"
           :key="comment.id"
+          :style="{ '--i': index }"
           :ui="{ body: 'p-4' }"
         >
           <div class="flex items-center gap-2.5">
@@ -189,7 +225,7 @@ function submit(): void {
             {{ comment.content }}
           </p>
         </UCard>
-      </template>
+      </TransitionGroup>
     </div>
   </section>
 </template>

@@ -36,7 +36,30 @@ const notice = computed<string | null>(() => {
   if (!current.cronConfigured && !current.lazyTrigger) {
     return '已启用，但既没有配置定时令牌、也关掉了惰性触发，因此不会自动发布。'
   }
+  if (!current.canPublishNow) {
+    return `今天的推荐要等到 ${current.publishHour} 点之后才会生成，现在还没到时间。`
+  }
   return '今天的推荐还没生成，点右侧「立即生成」可以补一篇。'
+})
+
+/**
+ * 「立即生成」要不要置灰。
+ *
+ * 只在**没有推荐、且未到发布时间**时置灰。今天已经有推荐时按钮是「刷新」，
+ * 那只是读取状态，任何时候都该能点 —— 把读取也一起禁掉就过度了。
+ */
+const generateBlocked = computed(
+  () => Boolean(status.value?.enabled) && !pick.value && !status.value?.canPublishNow,
+)
+
+/**
+ * 按钮文案跟着状态走，让"为什么点不了"直接写在按钮上。
+ * 置灰却不给理由，用户只会以为界面坏了。
+ */
+const actionLabel = computed(() => {
+  if (pick.value) return '刷新'
+  if (generateBlocked.value) return `${status.value?.publishHour ?? 0} 点后可生成`
+  return '立即生成'
 })
 </script>
 
@@ -45,7 +68,7 @@ const notice = computed<string | null>(() => {
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-1.5">
-          <Sparkles :size="14" class="text-primary" />
+          <Sparkles :size="14" class="text-ai-500" />
           <span class="text-body-sm font-medium text-toned">每日 GitHub 项目报道</span>
           <UBadge v-if="status" variant="subtle" color="neutral" size="xs">
             {{ status.date }}
@@ -94,10 +117,11 @@ const notice = computed<string | null>(() => {
         variant="soft"
         color="primary"
         :loading="generating || loading"
+        :disabled="generateBlocked"
         :icon="pick ? 'i-lucide-refresh-cw' : 'i-lucide-sparkles'"
         @click="pick ? refresh() : generate()"
       >
-        {{ pick ? '刷新' : '立即生成' }}
+        {{ actionLabel }}
       </UButton>
     </div>
   </UCard>

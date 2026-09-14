@@ -66,11 +66,15 @@ onMounted(async () => {
 <template>
   <UContainer>
     <!-- 页头 -->
-    <section class="pt-10 pb-6">
-      <div class="flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <section class="pt-12 pb-8 sm:pt-16">
+      <div class="flex flex-wrap items-end justify-between gap-5">
+        <div class="max-w-2xl">
+          <div class="mb-3 inline-flex items-center gap-2 text-eyebrow font-medium uppercase tracking-wider text-muted">
+            <span class="h-1.5 w-1.5 rounded-full bg-primary" />
+            学习社区
+          </div>
           <h1 class="text-display font-semibold tracking-tight text-highlighted">帖子流</h1>
-          <p class="mt-1.5 text-body text-muted">
+          <p class="mt-2 text-body text-muted">
             共
             <span class="font-medium text-toned tabular-nums">{{ postStore.total }}</span>
             篇文章 · 分享学习笔记与技术心得
@@ -94,7 +98,7 @@ onMounted(async () => {
       </div>
 
       <!-- 标签筛选条 -->
-      <div class="mt-6">
+      <div class="mt-7">
         <TagFilter v-model="tagModel" :tags="postStore.availableTags" />
       </div>
     </section>
@@ -121,7 +125,7 @@ onMounted(async () => {
     </section>
 
     <!-- 帖子列表 -->
-    <section v-else class="space-y-4">
+    <section v-else>
       <!-- 首屏加载骨架：形状要和真实卡片一致，否则内容出现时会"跳一下" -->
       <template v-if="postStore.loading && postStore.items.length === 0">
         <UCard v-for="index in 4" :key="`skeleton-${index}`">
@@ -149,15 +153,19 @@ onMounted(async () => {
         </template>
       </UEmpty>
 
-      <!-- 真实列表 -->
-      <template v-else>
-        <PostCard
-          v-for="post in postStore.items"
+      <!-- 真实列表：错落淡入（stagger + fade-up），reduced-motion 下由全局媒体查询降级 -->
+      <TransitionGroup v-else name="fade-up" tag="div" class="stagger space-y-4">
+        <div
+          v-for="(post, index) in postStore.items"
           :key="post.id"
-          :post="post"
-          @toggle-like="postStore.toggleLike"
-        />
-      </template>
+          :style="{ '--i': index }"
+        >
+          <PostCard
+            :post="post"
+            @toggle-like="postStore.toggleLike"
+          />
+        </div>
+      </TransitionGroup>
     </section>
 
     <!-- 加载更多 -->
