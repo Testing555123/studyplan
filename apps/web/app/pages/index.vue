@@ -40,6 +40,26 @@ const tagModel = computed<string | null>({
   },
 })
 
+const toast = useToast()
+
+/** 点赞反馈：乐观更新后给轻提示，失败（store 内部已吞掉）保持静默 */
+function onToggleLike(postId: string): void {
+  const willLike = !postStore.isLiked(postId)
+  postStore.toggleLike(postId)
+  toast.add({
+    title: willLike ? '已点赞' : '已取消点赞',
+    icon: willLike ? 'i-lucide-heart' : 'i-lucide-heart-off',
+    color: willLike ? 'error' : 'neutral',
+    duration: 2000,
+  })
+}
+
+/** 分页：与 postStore.page 双向同步，跳转交由 goToPage 处理 */
+const page = computed<number>({
+  get: () => postStore.page,
+  set: (value) => { void postStore.goToPage(value) },
+})
+
 /** 浏览器前进 / 后退时，地址栏变了要跟着重新筛选 */
 watch(
   () => route.query.tag,
@@ -65,22 +85,17 @@ onMounted(async () => {
 
 <template>
   <UContainer>
-    <!-- 页头 -->
-    <section class="pt-12 pb-8 sm:pt-16">
-      <div class="flex flex-wrap items-end justify-between gap-5">
-        <div class="max-w-2xl">
-          <div class="mb-3 inline-flex items-center gap-2 text-eyebrow font-medium uppercase tracking-wider text-muted">
-            <span class="h-1.5 w-1.5 rounded-full bg-primary" />
-            学习社区
-          </div>
-          <h1 class="text-display font-semibold tracking-tight text-highlighted">帖子流</h1>
-          <p class="mt-2 text-body text-muted">
-            共
-            <span class="font-medium text-toned tabular-nums">{{ postStore.total }}</span>
-            篇文章 · 分享学习笔记与技术心得
-          </p>
-        </div>
-
+    <!-- 页头：UPageHeader 统一节奏，替代手搓 section -->
+    <UPageHeader
+      headline="学习社区"
+      title="帖子流"
+    >
+      <template #description>
+        共
+        <span class="font-medium text-toned tabular-nums">{{ postStore.total }}</span>
+        篇文章 · 分享学习笔记与技术心得
+      </template>
+      <template #links>
         <!-- 后端连通状态 -->
         <UBadge
           :color="backendOnline === false ? 'warning' : 'neutral'"
@@ -95,13 +110,13 @@ onMounted(async () => {
           <span v-else-if="backendOnline">后端已连接</span>
           <span v-else>后端未启动（当前为本地数据）</span>
         </UBadge>
-      </div>
+      </template>
+    </UPageHeader>
 
-      <!-- 标签筛选条 -->
-      <div class="mt-7">
-        <TagFilter v-model="tagModel" :tags="postStore.availableTags" />
-      </div>
-    </section>
+    <!-- 标签筛选条 -->
+    <div class="mt-7">
+      <TagFilter v-model="tagModel" :tags="postStore.availableTags" />
+    </div>
 
     <!-- 出错 -->
     <section v-if="postStore.error" class="pb-6">
@@ -162,27 +177,25 @@ onMounted(async () => {
         >
           <PostCard
             :post="post"
-            @toggle-like="postStore.toggleLike"
+            @toggle-like="onToggleLike"
           />
         </div>
       </TransitionGroup>
     </section>
 
-    <!-- 加载更多 -->
-    <div v-if="!postStore.error && postStore.items.length > 0" class="mt-8 flex justify-center">
-      <UButton
-        v-if="postStore.hasMore"
-        size="lg"
-        color="neutral"
-        variant="outline"
-        loading-auto
-        @click="postStore.loadMore"
-      >
-        加载更多
-      </UButton>
+    <!-- 分页：用 UPagination 替代"加载更多"，可直达任意页 -->
+    <div v-if="!postStore.error && postStore.items.length > 0" class="mt-8 flex flex-col items-center gap-3">
+      <UPagination
+        v-if="postStore.total > postStore.pageSize"
+        v-model:page="page"
+        :total="postStore.total"
+        :items-per-page="postStore.pageSize"
+        :sibling-count="1"
+        show-edges
+      />
 
-      <p v-else class="text-body-sm text-muted">
-        已经到底了 · 共 {{ postStore.total }} 篇
+      <p class="text-body-sm text-muted">
+        共 {{ postStore.total }} 篇
       </p>
     </div>
   </UContainer>

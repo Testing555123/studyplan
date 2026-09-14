@@ -49,7 +49,12 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
       会让用户以为它也是标签。独立成一行，语义上就清楚它是"这篇的来历"。
     -->
     <div v-if="isDailyPick" class="mb-2 flex items-center gap-1.5">
-      <UBadge variant="subtle" color="primary" size="xs">
+      <UBadge
+        variant="subtle"
+        color="neutral"
+        size="xs"
+        class="!bg-ai-500/10 !text-ai-600 dark:!text-ai-400"
+      >
         <template #leading>
           <Sparkles :size="12" />
         </template>
@@ -73,17 +78,11 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
     <p v-if="post.summary" class="mt-2 line-clamp-2 text-body leading-6 text-muted">
       {{ post.summary }}
     </p>
-    <p v-else class="mt-2 text-body-sm leading-6 italic text-muted">
-      这篇还没有摘要
-    </p>
+    <p v-else class="mt-2 text-body-sm leading-6 italic text-muted">这篇还没有摘要</p>
 
     <!-- 标签：relative z-10 抬到拉伸链接之上，保证可独立点击 -->
     <div class="relative z-10 mt-3.5 flex flex-wrap items-center gap-2">
-      <NuxtLink
-        v-for="tag in post.tags"
-        :key="tag"
-        :to="`/?tag=${encodeURIComponent(tag)}`"
-      >
+      <NuxtLink v-for="tag in post.tags" :key="tag" :to="`/?tag=${encodeURIComponent(tag)}`">
         <UBadge variant="subtle" color="neutral" size="xs">
           {{ tag }}
         </UBadge>

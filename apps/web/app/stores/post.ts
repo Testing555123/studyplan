@@ -120,6 +120,37 @@ export const usePostStore = defineStore('post', () => {
     }
   }
 
+  /**
+   * 跳转到指定页（分页模式）。
+   *
+   * 与 loadMore 的"追加"不同，这里直接把列表重置为该页内容，
+   * 配合页面的 UPagination 使用。切换标签时仍走 selectTag（内部会重置到第一页）。
+   */
+  async function goToPage(target: number): Promise<void> {
+    if (loading.value || target === page.value) return
+    page.value = target
+    loading.value = true
+    error.value = null
+    try {
+      const query: { page: number; pageSize: number; tag?: string } = {
+        page: page.value,
+        pageSize: pageSize.value,
+      }
+      if (activeTag.value) query.tag = activeTag.value
+      const result = await api.get<PostListResponse>('/posts', query)
+      items.value = result.items
+      total.value = result.total
+    } catch (caught) {
+      const apiError =
+        caught instanceof ApiRequestError
+          ? caught
+          : new ApiRequestError({ statusCode: 0, message: '加载失败，请稍后重试' })
+      error.value = apiError.message
+    } finally {
+      loading.value = false
+    }
+  }
+
   /** 切换标签筛选 */
   async function selectTag(tag: string | null): Promise<void> {
     if (activeTag.value === tag) return
@@ -301,6 +332,7 @@ export const usePostStore = defineStore('post', () => {
     availableTags,
     fetchList,
     loadMore,
+    goToPage,
     selectTag,
     // 详情
     current,

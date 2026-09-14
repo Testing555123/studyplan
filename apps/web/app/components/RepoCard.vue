@@ -23,7 +23,17 @@ const emit = defineEmits<{
 /** 语言色点：没有语言时用中性灰，而不是不显示 */
 const dotColor = computed(() => languageColor(props.repo.language))
 
-const { introFor } = useRepoIntros()
+const { introFor, ensure, isPending } = useRepoIntros()
+
+const toast = useToast()
+
+/** 手动触发生成 AI 简介；成功后轻提示，失败（无素材/已降级）保持静默，符合"增强功能不报错"策略 */
+async function generateIntro(): Promise<void> {
+  await ensure([props.repo])
+  if (introFor(props.repo.id)) {
+    toast.add({ title: '简介已生成', icon: 'i-lucide-check', color: 'success', duration: 3000 })
+  }
+}
 
 /**
  * 展示用的简介：优先 AI 润色版，没有就退回 GitHub 官方 `description`。
@@ -141,19 +151,35 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
 
     <template #footer>
       <!--
-        `relative z-10` 同样是必须的：footer 也在标题那层覆盖区之下，
-        不抬起来的话「问 AI」会被整卡点击区吞掉。
+        footer 用 UFieldGroup 把两个按钮并排咬合：`问 AI` 走 primary 强调色，
+        `自动编写简介` 走 neutral 次级色，视觉权重一主一次、对齐统一。
+        `relative z-10` 同样是必须的：footer 在标题那层覆盖区之下，
+        不抬起来的话按钮会被整卡点击区吞掉（看起来"点了没反应"）。
       -->
-      <UButton
-        class="relative z-10"
-        size="xs"
-        variant="soft"
-        color="primary"
-        icon="i-lucide-sparkles"
-        @click.stop="emit('ask', repo)"
-      >
-        问 AI
-      </UButton>
+      <UFieldGroup class="relative z-10">
+        <UButton
+          class="relative z-10"
+          size="xs"
+          variant="soft"
+          color="primary"
+          icon="i-lucide-sparkles"
+          @click.stop="emit('ask', repo)"
+        >
+          问 AI
+        </UButton>
+
+        <UButton
+          class="relative z-10"
+          size="xs"
+          variant="soft"
+          color="neutral"
+          icon="i-lucide-wand-2"
+          :loading="isPending(repo.id)"
+          @click.stop="generateIntro"
+        >
+          自动编写简介
+        </UButton>
+      </UFieldGroup>
     </template>
   </UCard>
 </template>

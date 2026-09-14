@@ -39,3 +39,45 @@ $ nuxt dev
       [90mat [39mImmediate._onImmediate ([36mnode:internal/deps/undici/undici:1957:35[39m)
       [90mat [39mprocess.processImmediate ([36mnode:internal/timers:574:21[39m)
 
+
+[41m[30m ERROR [39m[49m [uncaughtException] EPERM: operation not permitted, watch
+
+    [90mat [39mFSWatcher._handle.onchange ([36mnode:internal/fs/watchers:269:21[39m)
+
+Could not fetch from `https://fonts.google.com/metadata/fonts`. Will retry in `1000ms`. `3` retries left.
+Could not fetch from `https://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true`. Will retry in `1000ms`. `3` retries left.
+Could not fetch from `https://fonts.google.com/metadata/fonts`. Will retry in `1000ms`. `2` retries left.
+Could not fetch from `https://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true`. Will retry in `1000ms`. `2` retries left.
+Could not fetch from `https://fonts.google.com/metadata/fonts`. Will retry in `1000ms`. `1` retries left.
+Could not fetch from `https://fonts.google.com/metadata/icons?key=material_symbols&incomplete=true`. Will retry in `1000ms`. `1` retries left.
+Could not initialize provider `google`. `unifont` will not be able to process fonts provided by this provider. [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: fonts.google.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:1991:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:1957:35)
+      at process.processImmediate (node:internal/timers:574:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+Could not initialize provider `googleicons`. `unifont` will not be able to process fonts provided by this provider. [TypeError: fetch failed] {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: fonts.google.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:1991:23)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:1957:35)
+      at process.processImmediate (node:internal/timers:574:21) {
+    code: 'UND_ERR_CONNECT_TIMEOUT'
+  }
+}
+node:events:505
+    throw er; // Unhandled 'error' event
+    ^
+
+Error: EPERM: operation not permitted, watch
+    at FSWatcher._handle.onchange (node:internal/fs/watchers:269:21)
+Emitted 'error' event on FSWatcher instance at:
+    at FSWatcher._handle.onchange (node:internal/fs/watchers:275:12) {
+  errno: -4048,
+  syscall: 'watch',
+  code: 'EPERM',
+  filename: null
+}
+
+Node.js v24.21.0

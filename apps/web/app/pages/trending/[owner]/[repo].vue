@@ -11,6 +11,7 @@
  */
 import { ArrowLeft, ExternalLink, GitFork, Star } from 'lucide-vue-next'
 import { languageColor, type RepoDetailResponse } from '@studyplan/shared'
+import type { BreadcrumbItem } from '@nuxt/ui'
 
 const route = useRoute()
 const api = useApi()
@@ -19,6 +20,12 @@ const { introFor, ensure } = useRepoIntros()
 
 const owner = computed(() => String(route.params.owner ?? ''))
 const repoName = computed(() => String(route.params.repo ?? ''))
+
+/** 详情页面包屑：热门项目 → owner/repo，最后一项为当前页（不可点） */
+const breadcrumbItems = computed<BreadcrumbItem[]>(() => [
+  { label: 'GitHub 热门项目', icon: 'i-lucide-trending-up', to: '/trending' },
+  { label: `${owner.value}/${repoName.value}` },
+])
 
 const { data, pending, error, refresh } = await useAsyncData(
   () => `repo-${owner.value}-${repoName.value}`,
@@ -53,16 +60,10 @@ onMounted(() => {
 
 <template>
   <UContainer>
-    <!-- 返回榜单 -->
-    <div class="pt-10 pb-4">
-      <ULink
-        to="/trending"
-        class="inline-flex items-center gap-1.5 text-body-sm text-muted transition-colors hover:text-primary"
-      >
-        <ArrowLeft :size="14" />
-        返回 GitHub 热门项目
-      </ULink>
-    </div>
+    <!-- 面包屑：可点路径导航，替代裸返回链接 -->
+    <UBreadcrumb :items="breadcrumbItems" class="pt-10" />
+
+    <USeparator class="my-6" />
 
     <!-- 加载骨架 -->
     <UCard v-if="pending && !repo" :ui="{ body: 'p-6' }">

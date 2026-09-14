@@ -13,6 +13,7 @@ import { ApiRequestError } from '~/composables/useApi'
 
 const route = useRoute()
 const auth = useAuth()
+const toast = useToast()
 
 const mode = ref<'login' | 'register'>('login')
 
@@ -96,6 +97,12 @@ async function submit(): Promise<void> {
      * 路由守卫在拦截时会把原地址放进 `?redirect=`，
      * 这里读出来跳回去，用户就不用"再点一遍"。
      */
+    toast.add({
+      title: mode.value === 'login' ? '登录成功' : '注册成功',
+      icon: 'i-lucide-check',
+      color: 'success',
+      duration: 2000,
+    })
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
     await navigateTo(redirect)
   } catch (caught) {

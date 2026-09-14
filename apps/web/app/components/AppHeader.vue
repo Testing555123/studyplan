@@ -16,10 +16,14 @@ import { Sparkles } from 'lucide-vue-next'
 
 const auth = useAuth()
 
-/** 主导航项。新增的「热门项目」指向 /trending */
+/** 全局命令面板开关：与 app.vue 共享同一份 useState */
+const commandOpen = useState<boolean>('command-palette-open', () => false)
+
+/** 主导航项。新增的「热门项目」指向 /trending，「学习路线」为时间线视图 */
 const navItems = computed(() => [
   { label: '帖子流', to: '/', icon: 'i-lucide-flame' },
   { label: '热门项目', to: '/trending', icon: 'i-lucide-trending-up' },
+  { label: '学习路线', to: '/roadmap', icon: 'i-lucide-route' },
 ])
 
 /**
@@ -79,7 +83,19 @@ async function handleLogout(): Promise<void> {
 
     <!-- 操作区 -->
     <template #right>
-      <UColorModeButton color="neutral" variant="ghost" />
+      <UTooltip text="搜索（⌘K）">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-search"
+          label="搜索"
+          @click="commandOpen = true"
+        />
+      </UTooltip>
+
+      <UTooltip text="切换明暗主题">
+        <UColorModeButton color="neutral" variant="ghost" />
+      </UTooltip>
 
       <UButton to="/posts/new" icon="i-lucide-pen-line" class="font-medium">
         <span class="hidden sm:inline">写文章</span>

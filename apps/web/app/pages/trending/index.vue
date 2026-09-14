@@ -130,22 +130,17 @@ const filtersOpen = ref(false)
 
 <template>
   <UContainer>
-    <!-- 页头 -->
-    <section class="pt-12 pb-8 sm:pt-16">
-      <div class="flex flex-wrap items-end justify-between gap-5">
-        <div class="max-w-2xl">
-          <div class="mb-3 inline-flex items-center gap-2 text-eyebrow font-medium uppercase tracking-wider text-muted">
-            <span class="h-1.5 w-1.5 rounded-full bg-primary" />
-            GitHub 热门
-          </div>
-          <h1 class="text-display font-semibold tracking-tight text-highlighted">GitHub 热门项目</h1>
-          <p class="mt-2 text-body text-muted">
-            按创建时间筛选，取 star 最高的项目 · 共
-            <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>
-            个
-          </p>
-        </div>
-
+    <!-- 页头：用 UPageHeader 统一页头节奏（eyebrow / 主标题 / 描述 / 右侧操作），替代手搓 section -->
+    <UPageHeader
+      headline="GitHub 热门"
+      title="GitHub 热门项目"
+    >
+      <template #description>
+        按创建时间筛选，取 star 最高的项目 · 共
+        <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>
+        个
+      </template>
+      <template #links>
         <!-- 数据新鲜度：过期缓存会变成琥珀色，如实告知 -->
         <UBadge
           v-if="result"
@@ -156,9 +151,10 @@ const filtersOpen = ref(false)
         >
           {{ freshnessText }}
         </UBadge>
-      </div>
+      </template>
+    </UPageHeader>
 
-      <!-- 桌面端筛选：时间档 + 语言 -->
+    <!-- 桌面端筛选：时间档 + 语言 -->
       <div class="mt-7 hidden items-start gap-6 sm:flex">
         <div>
           <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">时间范围</p>
@@ -248,26 +244,27 @@ const filtersOpen = ref(false)
       description="换个时间范围或语言试试 —— 时间越短、语言越小众，结果通常越少"
     />
 
-    <!-- 项目网格：错落淡入（stagger + fade-up），reduced-motion 下由全局媒体查询降级 -->
+    <!-- 项目网格：用 UPageGrid 统一响应式列数与间距，错落淡入（stagger + fade-up）沿用既有动画 -->
     <section v-else-if="result">
-      <TransitionGroup
-        name="fade-up"
-        tag="div"
-        class="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+      <UPageGrid
+        :ui="{ base: 'relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' }"
+        class="stagger"
       >
-        <div
-          v-for="(repo, index) in result.items"
-          :key="repo.id"
-          :style="{ '--i': index }"
-          class="flex"
-        >
-          <RepoCard
-            class="h-full flex-1"
-            :repo="repo"
-            @ask="ai.askAboutRepo"
-          />
-        </div>
-      </TransitionGroup>
+        <TransitionGroup name="fade-up">
+          <div
+            v-for="(repo, index) in result.items"
+            :key="repo.id"
+            :style="{ '--i': index }"
+            class="flex"
+          >
+            <RepoCard
+              class="h-full flex-1"
+              :repo="repo"
+              @ask="ai.askAboutRepo"
+            />
+          </div>
+        </TransitionGroup>
+      </UPageGrid>
 
       <!-- 数据来源说明：榜单口径必须交代清楚，否则容易被误读成"涨粉最快榜" -->
       <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-dimmed">
