@@ -190,7 +190,6 @@ const filtersOpen = ref(false)
           筛选
         </UButton>
       </div>
-    </section>
 
     <!--
       每日推荐区块：放在榜单之上。
