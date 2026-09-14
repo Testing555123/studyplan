@@ -1,4 +1,4 @@
-import { MAX_PAGE_SIZE, type PostListResponse } from '@studyplan/shared'
+import { MAX_PAGE_SIZE, type ApiSuccessBody, type PostListResponse } from '@studyplan/shared'
 
 /**
  * 动态 sitemap.xml。
@@ -40,7 +40,18 @@ export default defineEventHandler(async (event) => {
   const paths: string[] = ['/', '/trending', '/roadmap']
 
   try {
-    const result = await $fetch<PostListResponse>('/posts', {
+    /**
+     * ⚠️ 必须用 `ApiSuccessBody<T>` 而不是裸的 `PostListResponse`。
+     *
+     * 后端有一个全局 TransformInterceptor，会把**所有**成功响应
+     * 包成 `{ statusCode, data, requestId, timestamp }`。
+     * 直接按 `PostListResponse` 去读 `result.items` 会得到 `undefined`，
+     * 然后 `for...of` 抛 TypeError 掉进下面的 catch ——
+     * 表现是"sitemap 永远是 200，但只有静态路由"，不报错、不告警，
+     * 非常安静。这个坑正是靠线上验证才暴露出来的：
+     * 本地因为数据库连不上，一直在走降级路径，把它完全掩盖了。
+     */
+    const result = await $fetch<ApiSuccessBody<PostListResponse>>('/posts', {
       baseURL: String(config.apiBaseInternal),
       // 用共享包里的上限，而不是自己猜一个数字 ——
       // 后端调小上限时这里会跟着变，不会悄悄开始 400
@@ -48,12 +59,19 @@ export default defineEventHandler(async (event) => {
       timeout: 5000,
     })
 
-    for (const post of result.items) {
+    for (const post of result.data?.items ?? []) {
       paths.push(`/posts/${post.id}`)
     }
-  } catch {
-    // 降级：只保留静态路由。这里刻意留空 + 注释，ESLint 的 no-empty
-    // 规则会忽略含注释的块，而吞掉错误正是本分支的全部职责。
+  } catch (error) {
+    /**
+     * 降级：只保留静态路由，状态码仍是 200。
+     *
+     * ⚠️ 但**必须记一条 warn**，不能静默。
+     * 静默的后果这次已经付过学费了：sitemap 长期只输出静态路由、
+     * 不报错、不告警，直到有人真的去看内容才发现。
+     * 降级本身是对的，"降级时不留痕迹"是错的。
+     */
+    console.warn('[sitemap] 拉取帖子失败，已降级为只输出静态路由：', error)
   }
 
   setHeader(event, 'content-type', 'application/xml; charset=utf-8')

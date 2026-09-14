@@ -439,7 +439,28 @@ pnpm --filter @studyplan/web e2e
 #            —— 这一行出现，"6.6 秒到底花在哪"就不再是猜测
 ```
 
-### 10.6 如果验收不达标
+### 10.6 部署后验收：结果与发现的缺陷（2026-09-15）
+
+提交 `c9cf05f` 推送到 main、Vercel 构建完成后（约 3 分钟）立即做了线上验收：
+
+| 检查项 | 线上结果 |
+| --- | --- |
+| `/robots.txt` | **200** |
+| `/sitemap.xml` | **200**，`content-type: application/xml`，`<loc>` 为 `https://studyplan-teal.vercel.app/...` |
+| `NUXT_PUBLIC_SITE_URL` 注入 | **生效** —— 证明 `Dockerfile.vercel` 的 `ARG/ENV` 注入链路是通的 |
+
+**发现一个缺陷**（已修复）：
+
+- **现象**：sitemap 只有 3 条静态路由，一条帖子 URL 都没有，而 `/api/posts` 明明返回 `total: 2`。
+- **根因**：后端 `TransformInterceptor` 会把所有成功响应包成 `{ statusCode, data, requestId, timestamp }`，而 sitemap 路由按裸的 `PostListResponse` 去读 `result.items` —— 拿到 `undefined`，`for...of` 抛 TypeError 掉进降级分支，于是产出**永远只有静态路由**。
+- **为什么本地没发现**：本地数据库连不上（§10.4），一直在走降级路径，把它完全掩盖了。这正是「降级路径不能静默」最有力的论据。
+- **修复**：改用共享契约类型 `ApiSuccessBody<PostListResponse>` 并读取 `.data`；同时把降级时的静默改为 `console.warn`。
+- **补上的防线**：新增 E2E 用例「sitemap 收录的帖子数与接口返回的 total 一致」。原先那条 `test.skip(!matched, '没有帖子可验证')` 的善意跳过，恰好放过了这个 bug —— **能跳过的关键断言，等于没有断言。**
+
+> ⚠️ 本轮修复**尚未推送**。本地无法重建验证：`pnpm --filter @studyplan/web build` 被环境的批量删除保护拦下
+> （清理 `.output` 时 622 个文件超过 500 阈值）。Vercel 侧没有此限制，推送后即可验证。
+
+### 10.7 如果验收不达标
 
 - **慢请求占比仍 >10%** → 瓶颈是平台层的容器回收频率，应用代码已无杠杆。解法见 §9.8：迁到亚洲常驻进程（Atlas 本就在 asia，跨区连接被掐断这个主因会直接消失）。
 - **sitemap 返回 500** → 说明降级路径没生效，优先查 `apiBaseInternal` 是否被环境变量覆盖成了外部地址。

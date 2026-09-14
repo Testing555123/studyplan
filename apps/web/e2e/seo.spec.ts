@@ -71,6 +71,38 @@ test.describe('SEO 基础设施', () => {
     expect(body).toContain('<loc>http')
   })
 
+  /**
+   * 这一条是**专门为已经发生过的一次线上事故**写的。
+   *
+   * 事故经过：sitemap 内部拉取帖子时没有解包后端的统一响应壳
+   * （`{ statusCode, data, requestId, timestamp }`），
+   * 于是 `result.items` 是 undefined，`for...of` 抛错掉进降级分支 ——
+   * 结果 sitemap 一直是 200、格式合法、**但永远只有静态路由**。
+   * 不报错、不告警、页面照常打开，只有真的去看内容才发现。
+   *
+   * 而当时的用例里有 `test.skip(!matched, '没有帖子可验证')` ——
+   * 那条"善意的跳过"正好把它放过去了。
+   * 教训：**能跳过的关键断言，等于没有断言。**
+   *
+   * 所以这里不写死数量，而是用接口返回的 total 做对照 ——
+   * 数据库有多少篇，sitemap 就必须收录多少条。
+   */
+  test('sitemap 收录的帖子数与接口返回的 total 一致', async ({ request }) => {
+    const api = await request.get('/api/posts?page=1&pageSize=100')
+    expect(api.status()).toBe(200)
+
+    const payload = (await api.json()) as { data?: { total?: number } }
+    const total = payload?.data?.total ?? 0
+
+    const sitemap = await (await request.get('/sitemap.xml')).text()
+    const postLocs = [...sitemap.matchAll(/\/posts\/([^<]+)<\/loc>/g)].map((m) => m[1])
+
+    expect(
+      postLocs.length,
+      `数据库有 ${total} 篇帖子，sitemap 必须收录同样多条`,
+    ).toBe(total)
+  })
+
   test('帖子详情页：canonical 指向自身，og:title 是帖子标题而非站点默认值', async ({ request, page }) => {
     /**
      * 从 sitemap 里现拿一个真实帖子 URL，而不是写死 id：
