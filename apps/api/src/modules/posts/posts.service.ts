@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { Model, isValidObjectId } from 'mongoose'
 import type { Post as PostContract, PostListResponse } from '@studyplan/shared'
 import type { AuthenticatedUser } from '../../common/types/authenticated-user'
+import { withTiming } from '../../common/utils/with-timing'
 import { AiService } from '../ai/ai.service'
 import { Post } from './schemas/post.schema'
 import { PostLean, toPostContract } from './posts.mapper'
@@ -74,16 +75,29 @@ export class PostsService {
     // 一般原则：**能用推断就别写注解；只有当推断不出来时才手写。**
     const filter = tag ? { tags: tag } : {}
 
-    const [docs, total] = await Promise.all([
-      this.postModel
-        .find(filter)
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .lean()
-        .exec(),
-      this.postModel.countDocuments(filter).exec(),
-    ])
+    /**
+     * 用 withTiming 包住取数。
+     *
+     * 为什么只包这一处？因为这里就是实测热点：线上序列量测显示
+     * `/api/posts` 约一半的请求要等 6 秒以上（见
+     * deploy/vercel-verification.md 第九节）。分段计时把"总耗时 6 秒"
+     * 变成"db 段 6 秒"，归因从猜测变成阅读。
+     *
+     * 在没有计时上下文的环境（比如单测）里它会直接透传，
+     * 不改变任何行为 —— 这正是这个工具的失败模式设计。
+     */
+    const [docs, total] = await withTiming('posts.findAll.db', () =>
+      Promise.all([
+        this.postModel
+          .find(filter)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .lean()
+          .exec(),
+        this.postModel.countDocuments(filter).exec(),
+      ]),
+    )
 
     return {
       // lean() 的静态类型是 Mongoose 的 FlattenMaps 包装，

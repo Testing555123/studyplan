@@ -233,3 +233,214 @@ curl https://你的域名/api/ai/status
 | 控制台报错 | 仅 2 条非阻断资源错误（匿名访问的 `401` 鉴权探测 + 1 个 `404` 静态资源），**无 JS 异常**，与 AI 流程无关 |
 
 **结论**：线上 AI 学习助手已真正可用——接口自检全绿、抽屉正常、额度正确扣减、提问有 Markdown 回答、且**问本站代码类问题时 `sources` 非空**，证明代码索引随镜像进入运行层并能被检索。根因（平台缺 `NVNIM_API_KEY`）已通过"配 Key + Redeploy"彻底解决。
+
+---
+
+## 九、性能基线与验收标准（2026-09-15）
+
+> 起因：用户反馈"部署到 Vercel 之后，各种点击响应都很慢"。
+> 本节记录**实测方法、基线数字、根因判定、已做改动、以及被否决的改动**。
+> 所有数字都用 `pnpm bench:vercel`（即 `scripts/bench-vercel.mjs`，零依赖）复现。
+
+### 9.1 网络环境已变更（旧结论作废）
+
+§三 记录的"`*.vercel.app` DNS 被污染、必须走代理"**在当前网络下不成立**：
+
+```
+dns=0.010s  tcp=0.020s  tls=0.049s      X-Vercel-Id: hkg1::iad1::...
+```
+
+边缘在 **hkg1（香港）**，容器在 **iad1（美东）**。旧的"DNS 污染/路径阻断"结论仅对当时那台机器有效。
+
+### 9.2 基线数字（改动前）
+
+**冷启动**（久置后首个请求）：
+
+| 请求 | DNS | TCP | TLS | TTFB | 总计 |
+| --- | --- | --- | --- | --- | --- |
+| `/api/health` | 0.113 | 0.124 | 0.259 | **6.609s** | 6.610s |
+| `/`（紧随） | 0.010 | 0.020 | 0.049 | 1.895s | 2.093s |
+| `/api/posts?page=1` | 0.009 | 0.017 | 0.046 | 1.003s | 1.003s |
+
+**闲置梯度**（验证回收阈值）：`WARM1 0.754s → WARM2 0.282s → 闲置60s 0.525s → 闲置120s 0.313s`
+→ **闲置 2 分钟不会触发回收**，"隔 2 分钟就慢"的体感不成立，真实阈值更长。
+
+**序列模式（关键）**——连续打同一路径 8 次，慢请求占比：
+
+| 路径 | 逐次 TTFB（秒） | 慢请求(>3s) |
+| --- | --- | --- |
+| `/api/health` | 0.31 0.26 0.24 0.23 0.24 0.23 0.24 0.26 | **0/8** |
+| `/` | 1.12 0.60 1.22 0.53 **3.75** 0.52 **3.48** 0.44 | 2/8 |
+| `/api/posts` | **6.53** 0.72 **6.96** 0.49 **6.97** 0.46 **6.79** 0.52 | **4/8** |
+
+**注意**：`posts` 的**中位数**是 3.6s，而真实体感是"一半的点击在等 6.6 秒"。这正是 §9.5 里脚本必须提供序列模式的原因——**中位数会把冷启动藏起来**。
+
+### 9.3 根因判定
+
+**主因：Mongoose 连接池里存在"驱动以为活着、实际已被掐断"的连接，取到它的那次请求要等重连，实测约 6.6 秒。**
+
+判定依据是这一组对照：
+
+| 端点 | 是否经过连接池 | 连续 20 次结果 |
+| --- | --- | --- |
+| `/api/health`（`ping`） | **否**（走驱动 SDAM 心跳连接） | 20/20 全部 0.25~0.30s |
+| `/api/posts`、`/api/posts/:id`、`/api/ai/status`、SSR `/` | **是** | 出现 3.5~7.0s 尖峰 |
+
+补充证据：
+
+- 数据库里只有 **2 条帖子**，单条 `findById` 同样交替 0.56s / 6.74s → 排除索引、扫描、数据量。
+- `/api/ai/status` 也会尖峰 → 排除"只有列表查询慢"。
+- `health` 响应头是 `no-cache, no-store, must-revalidate` 且 `X-Vercel-Cache: MISS` → 排除边缘缓存造成的假快。
+- `6.6s ≈ retryDelay(原 3000) × 2` —— 与重连等待高度吻合。
+
+**次因：真实冷启动约 6.6 秒**（久置后首个请求，影响所有端点，包含 `health`）。
+
+### 9.4 已排除（不要再往这些方向查）
+
+1. 静态资源：`/_nuxt/**` 已带 `public, max-age=31536000, immutable`，边缘 `X-Vercel-Cache: HIT`，552KB 只要 0.025s。
+2. 实例轮询 / OOM 重启：`health` 20/20 全快，`posts` 却 50% 慢，两者在同一容器里，无法用"打到了坏实例"解释。
+3. 数据库索引与数据量：见 §9.3。
+4. Token 预刷新 / 401 重试队列：`useApi.ts` 请求发出前的 `await` 数为 **0**。
+5. Service Worker、前端节流定时器：均未注册；仅有的轮询在加载后立刻跑完，与"闲置几分钟"无关。
+
+### 9.5 本次改动
+
+| 文件 | 改动 | 预期收益 |
+| --- | --- | --- |
+| `apps/api/src/app.module.ts` | `minPoolSize: 1`、`maxIdleTimeMS: 45_000`、`waitQueueTimeoutMS: 5000`；`serverSelectionTimeoutMS` 8000→3000；`retryDelay` 3000→500、`retryAttempts` 5→4 | **直击主因**：主动回收将被掐断的连接，并把重连等待从 6 秒级降到毫秒级 |
+| `docker/vercel/entrypoint.mjs` | 子进程就绪后主动预热 `/api/health` 与 `/`（内部回环） | 缩短真实冷启动后首个请求的额外开销 |
+| `apps/web/nuxt.config.ts` | Google Fonts 阻塞 stylesheet 改为 `media="print"` + `onload` 异步 | 移除首屏唯一一条第三方阻塞外链 |
+| `apps/web/app/middleware/auth.ts` | `restore()` 一次会话只执行一次（缓存 Promise，已登录则跳过） | 消除每次进入受保护页面前的一次 `/auth/refresh` 往返 |
+| `apps/web/app/stores/post.ts` | 发表/删除评论改乐观更新（占位 id 前缀 `pending:`，失败回滚） | 把"点了没反应"变成"立刻有反馈" |
+| `scripts/bench-vercel.mjs` | 新增零依赖量测脚本（`--series` / `--cold` / `--headers`） | 让后续每次改动都有可对比的数字 |
+
+### 9.6 评估后**放弃**的改动（理由留档，避免重犯）
+
+1. **给 `/_nuxt/**` 加 `routeRules` 长缓存** —— 实测 Nitro 已注入 `immutable` 且边缘已 HIT。盲目加配置只会引入不一致。
+2. **AI 代码索引改懒加载** —— 索引仅 101 条，读盘解析只有几毫秒；而 `code-index.service.ts:119-134` 已论证"启动即加载"是为了可观测性（索引缺失时静默降级成"资料中没有提到"）。为几毫秒放弃该性质不划算。
+3. **点赞链路 3 次往返降到 2 次**（去掉 `ensurePostExists`，改由 `incrementLikeCount` 返回 `null` 判定）—— **已实现后回退**。原因：`likes.service.spec.ts:79-84` 断言"帖子不存在时抛 404，**且不写任何数据**"。新写法先写后回滚，若进程在两者之间崩溃会留下孤儿记录。为跨区省 200ms 破坏这条安全属性不值得。
+
+### 9.7 验收步骤（需重新部署后执行）
+
+改动只在本机完成，**未经线上验证**（本机无 Vercel CLI、无 `.vercel` 目录，无法自动部署）。请按下列顺序验收：
+
+```powershell
+# 1) 部署：推送到 main（Vercel 已接 GitHub）或在面板 Redeploy
+
+# 2) 冷启动
+pnpm bench:vercel --cold --idle=300
+
+# 3) 稳态与（最关键的）慢请求占比
+pnpm bench:vercel --series=10
+
+# 4) 静态资源缓存头
+pnpm bench:vercel --headers
+```
+
+**验收标准**：
+
+- [ ] `--series=10` 中 `/api/posts` 的慢请求(>3s) 占比从 **50% 降到 <10%**
+- [ ] `/api/health` 中位数保持 ≤ 0.35s
+- [ ] `/_nuxt/**` 仍是 `immutable` 且 `X-Vercel-Cache: HIT`
+- [ ] 首页首屏不再被 `fonts.googleapis.com` 阻塞（Network 面板中该请求不再阻塞渲染）
+- [ ] 发/删评论点击后**立即**出现变化（乐观更新生效）
+- [ ] `pnpm --filter @studyplan/api test` 除 `daily-digest.service.spec.ts` 那条**日期硬编码**用例外全绿
+
+### 9.8 遗留建议
+
+若上一步验收后慢请求占比仍高，说明瓶颈是**平台层的容器回收频率**，那就不再是应用代码能解决的：
+
+1. **Hobby 无法保活** —— 官方限制 cron 每天只能跑一次，"定时 ping"这条路是死的（已核实）。
+2. **真正的解法是把应用放到亚洲常驻进程上**（§六 已建议的 Dokploy 方案）。注意数据库 Atlas 集群本就在 **asia**，应用若也放到亚洲（香港/新加坡/日本），本次发现的**跨区连接被掐断**这个主因会直接消失，同时冷启动也不复存在。
+3. 在此之前，§9.5 的连接参数改动是成本最低、收益最确定的一步。
+
+---
+
+## 十、作品集化改造：SEO 基础 + CI + 自建可观测性（2026-09-15）
+
+> 背景：对标 roadmap.sh 的差距分析之后，明确本项目定位为**作品集**（给雇主看「能从零做到上线」）。
+> 由此确定优先级不是加功能，而是补齐「雇主一眼就能看出缺失」的四件事。
+> 四项决策（均已确认）：SEO 只做最小可用档、CI 含 Docker 构建但不含 E2E、可观测性自建不接第三方、部署由用户执行。
+
+### 10.1 先修掉的两个既存失败（不修它们 CI 就是红的）
+
+| 问题 | 修法 | 为什么不那样修 |
+| --- | --- | --- |
+| `app/app.vue:51` TS2322（`groups.value[0]` 为 `\| undefined`） | 把初始导航分组抽成具名常量 `NAV_GROUP`，初始与重建两处共用 | 用 `!` 非空断言只是掩盖类型问题，初始分组真变空数组时运行时照样炸 |
+| `daily-digest.service.spec.ts` 硬编码 `'2026-09-14'` | 新增 `todayKeyIn(zone)`，与既有 `currentHourIn()` 同一套思路，动态算出"今天" | 写死一个新日期只是把失败推迟到明天 —— 这正是本项目踩过的"没改代码测试却挂了" |
+
+修后：后端 **128/128 通过**（原 127 通过 1 失败）；前端 typecheck **0 error**（原 1 error）。
+
+### 10.2 本轮新增
+
+| 文件 | 作用 |
+| --- | --- |
+| `apps/web/public/robots.txt` | 放行公开页、拦 `/api` 与 `/docs`、声明 sitemap（绝对 URL，规范要求） |
+| `apps/web/public/og-cover.png` | 全站静态封面 1200x630（标准 OG 比例）。**刻意不做每篇动态生成** —— 容器内渲染中文要数 MB 字体，拖慢构建与冷启动 |
+| `apps/web/server/routes/sitemap.xml.ts` | 动态 sitemap：3 个静态路由 + 帖子列表。取数走 `apiBaseInternal` 回环（不绕公网）、`pageSize` 用共享包的 `MAX_PAGE_SIZE`（后端调上限这里跟着变）、失败降级为只输出静态路由**且仍返回 200**（500 的 sitemap 会让搜索引擎降低抓取频率）、`Cache-Control: max-age=3600`。**不装 `@nuxtjs/sitemap`**：3+1 类 URL 自己写 30 行就够，少一个依赖少一层维护 |
+| `apps/web/nuxt.config.ts` | `runtimeConfig.public.siteUrl`（默认 `http://localhost:3001`，Dockerfile 注入）+ 站点级 `og:site_name` / `og:type` / `twitter:card` |
+| `apps/web/app/app.vue` | 站点级 canonical + 默认 OG。**canonical 用 `useRequestURL()`**（`useRoute()` 在服务端拿不到 origin），但**域名必须用 `siteUrl`** —— 容器内是明文 HTTP，从请求推协议会得到 `http://...`，权重会分给不存在的地址 |
+| `apps/web/app/pages/posts/[id].vue` | 页面级 `useSeoMeta` 覆盖：title/description 取帖子标题与 AI 摘要。用 **getter** 而非现值（SSR 取数完成前 `post` 是 null，写死现值会把 null 烤进 HTML） |
+| `Dockerfile.vercel` | `ARG/ENV NUXT_PUBLIC_SITE_URL`，沿用 `NUXT_PUBLIC_API_BASE` 的既有写法 |
+| `apps/api/src/common/utils/with-timing.ts` | `AsyncLocalStorage` 分段计时。**失败模式是"直接透传"**：任何情况下都不改变业务行为 |
+| `apps/api/src/common/middleware/timing.middleware.ts` | 唯一职责：为整条链路开启计时上下文 |
+| `apps/api/src/common/interceptors/slow-request.interceptor.ts` | 总耗时 + 分级告警（>1s WARN / >3s ERROR）+ 分段输出。**只输出耗时数字，严禁打印请求体/响应体/Cookie/token** |
+| `apps/api/src/main.ts` | 注册 TimingMiddleware；SlowRequestInterceptor 按 `RequestId → Slow → Transform` 顺序（前：要读 requestId；后：要覆盖完整业务耗时） |
+| `apps/api/src/modules/posts/posts.service.ts` | `findAll` 的取数用 `withTiming('posts.findAll.db', …)` 包住 —— 这里就是实测热点 |
+| `.github/workflows/ci.yml` | job `quality`（install → build:shared → lint → typecheck → api test）+ job `docker`（构建 `Dockerfile.vercel`，不推送、**零 secret**）。**刻意不在 CI 跑 E2E**：要真实 MongoDB，慢且脆，偶发失败会让人养成"红了就重跑"的习惯 |
+| `apps/web/e2e/seo.spec.ts` | 4 条 SEO 断言：canonical 绝对 URL 且指向自身、OG 齐全、robots.txt 声明 sitemap、sitemap 200 且 `<loc>` 为绝对地址、详情页 og:title 被页面覆盖而非落到站点默认值 |
+
+### 10.3 本地验证结果（2026-09-15 实测）
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm run lint` | **0 error**，5 warning（全部为既存：v-html×2、未用变量×2、any×1，均在未改动或仅追加的文件里） |
+| `pnpm run typecheck` | **shared / api / web 三包全部 Done，exit=0** |
+| `pnpm --filter @studyplan/api test` | **10 suites / 128 tests 全部通过** |
+| `pnpm --filter @studyplan/web build` | **exit=0**；产物含 `.output/server/chunks/routes/sitemap.xml.mjs` —— 证明新增服务端路由已注册，且 `@studyplan/shared` 在 Nitro 服务端上下文可正常导入（若导入失败，构建会直接报错） |
+| 实跑构建产物（`node .output/server/index.mjs`） | `/robots.txt` → **200**；`/sitemap.xml` → **200** 且 `content-type: application/xml`，输出 3 条绝对 URL，**降级路径生效**（后端完全不可用时仍返回 200 而非 500）；对照 `/__definitely_missing__.txt` → **404**，证明该 200 来自真实注册的路由而非兜底 |
+
+### 10.4 ⚠️ 尚未验证的项（不要默认它们是好的）
+
+1. **E2E 未执行** —— `seo.spec.ts` 已写好、lint 通过，但没有真正跑过，原因是**本地环境连不上数据库**：
+   ```
+   MongoServerError: bad auth : authentication failed (code 8000, AtlasError)
+   ```
+   本地 `apps/api/.env` 里的 `MONGODB_URI` 凭据已被服务端拒绝。**这是既存的环境问题，与本次改动无关** —— 认证失败发生在 SCRAM 握手阶段，连接池与超时参数不可能导致它。它也与 §七 挂账的「轮换 `genshin1210_db_user` 密码」事项吻合。
+   连带影响：没有数据库时任何 SSR 渲染（连 404 页）都返回 500，因此本地连"只跑 SEO 断言"也做不到。
+   **修法**：更新 `apps/api/.env` 的 `MONGODB_URI`（用 Atlas 控制台当前的凭据），或直接按 §10.5 在**部署后**跑 —— 后者更省事，也是本项目此前验证 E2E 的既有做法。
+2. **Docker 构建未在本机执行** —— 本机未验证 `docker build -f Dockerfile.vercel .` 能过；这一步由 CI 的 `docker` job 首次验证。如果它红了，最可能的原因是构建期新增了依赖或 ARG 未传。
+3. **以下全部依赖部署**，本机无法验证：sitemap/canonical/OG 的线上表现、慢请求日志的实际输出、§9.5 延迟修复的效果。
+
+### 10.5 必须由用户执行的线上验收（按顺序）
+
+```powershell
+# ① 部署：推送 main（Vercel 已接 GitHub），或在面板 Redeploy
+
+# ② 延迟验收（上一轮遗留，判定线最重要）
+pnpm bench:vercel --series=10
+#    判定线：/api/posts 慢请求(>3s) 占比 <10%（改动前 50%）
+#            /api/health 中位数 ≤ 0.35s
+
+# ③ SEO 验收
+curl -s -o NUL -w "sitemap %{http_code} %{content_type}`n" https://studyplan-teal.vercel.app/sitemap.xml
+curl -s -o NUL -w "robots %{http_code}`n" https://studyplan-teal.vercel.app/robots.txt
+curl -s https://studyplan-teal.vercel.app/ | Select-String -Pattern 'rel="canonical"|og:image'
+#    判定线：sitemap 200 且 content-type 含 xml；首页源码含绝对地址 canonical 与 og:image
+
+# ④ E2E（SEO 断言 + 既有 6 条）
+$env:E2E_BASE_URL = 'https://studyplan-teal.vercel.app'
+pnpm --filter @studyplan/web e2e
+#    判定线：10 条用例（6 既有 + 4 新增）全部通过
+
+# ⑤ 慢请求日志
+#    Vercel 面板 → 该次部署 → Runtime Logs，筛 "SlowRequest"
+#    判定线：能看到形如 "GET /api/posts?... 200 1234ms segments=[posts.findAll.db:1100ms]" 的行
+#            —— 这一行出现，"6.6 秒到底花在哪"就不再是猜测
+```
+
+### 10.6 如果验收不达标
+
+- **慢请求占比仍 >10%** → 瓶颈是平台层的容器回收频率，应用代码已无杠杆。解法见 §9.8：迁到亚洲常驻进程（Atlas 本就在 asia，跨区连接被掐断这个主因会直接消失）。
+- **sitemap 返回 500** → 说明降级路径没生效，优先查 `apiBaseInternal` 是否被环境变量覆盖成了外部地址。
+- **canonical 是 `http://`** → 说明 `NUXT_PUBLIC_SITE_URL` 没进构建，检查 Dockerfile 的 ARG/ENV 是否被改动。

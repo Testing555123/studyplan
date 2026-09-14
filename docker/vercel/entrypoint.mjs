@@ -428,12 +428,69 @@ server.listen(PORT, '0.0.0.0', () => {
     )
 })
 
+/* ---------------------------------------------------------------
+ * 3.5) 预热：把"第一个访客才会付的代价"提前付掉
+ * ------------------------------------------------------------- */
+
+/**
+ * 向内部子进程发一次真实请求，触发那些**只在首次调用时才发生**的开销：
+ *   · NestJS：首个请求的依赖装配与路由匹配（JIT  warmed up）
+ *   · Nuxt：SSR 首次渲染要现编译/加载页面模块，冷渲染明显慢于后续
+ *   · 两者：把跨区数据库连接真正建立起来，而不是等第一个用户查询
+ *
+ * 为什么值得做？
+ *   平台是缩容到零的模型，实例被回收后**总有一个"第一个请求"**。
+ *   不预热，这个请求就要同时付"进程刚起来"+"模块还没热"+"连接还没建"三笔；
+ *   预热之后，它至少只付第一笔。实测这条链路上的尖峰在 5~7 秒，
+ *   削掉其中任何一段都是实打实的体感改善。
+ *
+ * ⚠️ 为什么用内部回环而不是对外域名：
+ *   预热**不该**绕公网走一圈（那要付 DNS + TLS + 跨境 RTT），
+ *   直接打 127.0.0.1 的上游端口，代价只有一个本机回环。
+ *
+ * ⚠️ 为什么失败只记日志、不影响服务：
+ *   预热是**优化**，不是前置条件。它失败说明"第一次会慢一点"，
+ *   而不是"服务不可用" —— 把优化写成依赖项，是把自己送到故障里。
+ */
+async function prewarm() {
+  const targets = [
+    { name: 'api', port: API_PORT, path: '/api/health' },
+    // 首页 SSR 会连带把 SSR 取数链路（前端 → 后端回环）一起热起来
+    { name: 'web', port: WEB_PORT, path: '/' },
+  ]
+
+  for (const target of targets) {
+    const started = Date.now()
+    try {
+      await new Promise((resolve, reject) => {
+        const request = http.get(
+          { host: '127.0.0.1', port: target.port, path: target.path, timeout: 20_000 },
+          (response) => {
+            // 必须消费掉响应体，否则连接不会归还，预热反而拖住进程
+            response.resume()
+            response.on('end', resolve)
+          },
+        )
+        request.on('error', reject)
+        request.on('timeout', () => request.destroy(new Error('预热请求超时')))
+      })
+      console.log(`[entrypoint] 预热 ${target.name} ${target.path} 完成（${Date.now() - started}ms）`)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      console.error(`[entrypoint] ⚠️ 预热 ${target.name} 失败（不影响服务）：${reason}`)
+    }
+  }
+}
+
 // 监听已经生效，这里只是"事后探测"并给出可诊断的提示，不阻塞对外服务
 void (async () => {
   const [apiReady, webReady] = await Promise.all([waitForPort(API_PORT), waitForPort(WEB_PORT)])
   if (!apiReady) console.error(`[entrypoint] ⚠️ 后端 ${API_PORT} 始终未就绪，/api 请求会得到 502`)
   if (!webReady) console.error(`[entrypoint] ⚠️ 前端 ${WEB_PORT} 始终未就绪，页面请求会得到 502`)
-  if (apiReady && webReady) console.log('[entrypoint] 两个子进程均已就绪')
+  if (apiReady && webReady) {
+    console.log('[entrypoint] 两个子进程均已就绪')
+    await prewarm()
+  }
 })()
 
 /* ---------------------------------------------------------------

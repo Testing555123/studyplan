@@ -1,0 +1,101 @@
+# CI
+# ═══════════════════════════════════════════════════════════
+#
+# ── 这条流水线守什么 ──
+#
+#   job `quality` —— 守"代码能不能合进去"：
+#     lint（风格与低级错误）→ typecheck（类型契约没被破坏）
+#     → api test（业务行为没被改坏）。三者按此顺序，便宜的先跑，
+#     贵的失败发生在便宜的都过了之后，省时间也省心智。
+#
+#   job `docker` —— 守"部署产物能不能构建"：
+#     线上跑的是容器镜像，代码全绿但镜像构建失败 = 部署失败。
+#     这一步只有真的跑过一次 build 才知道。
+#
+# ── 刻意不做的两件事 ──
+#
+#   1. 不在 CI 里跑 E2E：它需要真实 MongoDB + 两个服务都起来，
+#      慢且脆，偶发失败会让人养成"红了就重跑"的习惯 ——
+#      那等于没有 CI。E2E 留给本地与上线后手动验证
+#      （`pnpm --filter @studyplan/web e2e`，见 apps/web/playwright.config.ts）。
+#
+#   2. 不接任何 secret：这个 job 只验证"能不能构建"，
+#      不做部署、不碰数据库。凭据一旦进 CI 就有了第二条泄露路径，
+#      而这里没有任何一步需要它们。
+#
+# ── 版本从哪来 ──
+#   pnpm 版本读自根 package.json 的 `packageManager` 字段
+#   （pnpm/action-setup 的默认行为），不在两处重复声明 ——
+#   两处各写一份，迟早会改漏一处然后互相打架。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同一个分支/PR 的新提交会取消还在跑的旧检查：
+# 旧结果的结论已经没人看了，让它跑完只是浪费额度
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint · typecheck · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ⚠️ pnpm 必须先于 setup-node 安装：
+      #    setup-node 的 `cache: pnpm` 需要找到 pnpm 才能算出缓存键
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # --frozen-lockfile：锁文件与 package.json 不一致时直接失败。
+      #   本地可以"装了再说"，CI 里那种不一致就是要拦下的错误
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # workspace 里的包互相引用的是 dist 产物，必须先构建 shared
+      # （与根 package.json 的 `dev` / `build` 脚本同一顺序）
+      - name: 构建共享包
+        run: pnpm run build:shared
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      # 只跑后端单测：前端没有单测，前端的行为由本地 E2E 守
+      - name: 后端测试
+        run: pnpm --filter @studyplan/api test
+
+  docker:
+    name: 镜像构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: 构建 Dockerfile.vercel
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.vercel
+          # 只验证能构建，不推送 —— 推送需要凭据，而本 job 一条都不该有
+          push: false
+          build-args: |
+            NUXT_PUBLIC_API_BASE=/api
+            NUXT_PUBLIC_SITE_URL=https://studyplan-teal.vercel.app
+          # GitHub Actions 缓存：镜像里的依赖层（pnpm install）变化很慢，
+          # 不缓存的话每次都要 3 分钟起，缓存命中后通常几十秒
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

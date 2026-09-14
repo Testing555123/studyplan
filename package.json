@@ -16,6 +16,7 @@
     "build": "pnpm run build:shared && pnpm -r build",
     "typecheck": "pnpm run build:shared && pnpm -r typecheck",
     "test": "pnpm -r test",
+    "bench:vercel": "node scripts/bench-vercel.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

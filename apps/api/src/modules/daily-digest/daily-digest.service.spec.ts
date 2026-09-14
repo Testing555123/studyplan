@@ -44,6 +44,35 @@ function currentHourIn(zone: string): number {
 }
 
 /**
+ * 在指定时区里算出"今天"的日期键（`YYYY-MM-DD`）。
+ *
+ * 与上面 `currentHourIn` 同源同理：被测代码用 `Intl` 按 Asia/Shanghai
+ * 算今天，而"今天"取决于**跑测试的日子**。写死一个日期字面量，
+ * 就会得到"当天全绿、第二天全红"的假失败 —— 本项目就踩过一次，
+ * 表面现象是"我没改代码，测试却突然挂了"，非常消耗信任。
+ *
+ * ⚠️ 这段逻辑**故意**与 `DailyDigestService.todayKey` 保持一致
+ *    （en-US + year:numeric + month/day:2-digit）。
+ *    两者若漂移，相关用例会给出**假绿**，所以改动任一处时都要同时看另一处。
+ */
+function todayKeyIn(zone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: zone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+
+  const values: Record<string, string> = {}
+  for (const part of parts) values[part.type] = part.value
+
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+/** 撤回相关用例里"今天"的值 —— 装置固定按 Asia/Shanghai 取日期 */
+const TODAY = todayKeyIn('Asia/Shanghai')
+
+/**
  * 挑一个"当前小时不是 23 点"的时区。
  *
  * 需要这个是为了能安全地取 `hour + 1` 当"还没到发布时间"。
@@ -583,7 +612,7 @@ describe('DailyDigestService', () => {
 
   describe('撤回', () => {
     const PUBLISHED_PICK = {
-      date: '2026-09-14',
+      date: TODAY,
       repoId: 42,
       fullName: 'acme/demo',
       htmlUrl: 'https://github.com/acme/demo',
@@ -603,7 +632,7 @@ describe('DailyDigestService', () => {
       const result = await service.runRevoke()
 
       expect(result.status).toBe('revoked')
-      expect(result.date).toBe('2026-09-14')
+      expect(result.date).toBe(TODAY)
       expect(result.removed).toEqual({ comments: 2, likes: 3 })
 
       // 最重要的一条：被撤的项目必须进排除表，否则明天它又会被选回来
@@ -616,7 +645,7 @@ describe('DailyDigestService', () => {
       expect(posts.remove).toHaveBeenCalledWith('post-1', expect.anything())
       expect(comments.deleteByPost).toHaveBeenCalledWith('post-1')
       expect(likes.deleteByPost).toHaveBeenCalledWith('post-1')
-      expect(model.deleteOne).toHaveBeenCalledWith({ date: '2026-09-14' })
+      expect(model.deleteOne).toHaveBeenCalledWith({ date: TODAY })
     })
 
     it('顺序：释放名额必须排在最后', async () => {

@@ -37,6 +37,36 @@ await useAsyncData(
 const post = computed(() => postStore.current)
 
 /**
+ * 页面级 SEO 覆盖。
+ *
+ * app.vue 里已经写了**站点默认值**，这里用同名 key 把它换成
+ * "这一篇"自己的信息 —— 社交平台分享出来的卡片，
+ * 标题与摘要直接决定有没有人点，默认值解决不了这件事。
+ *
+ * 三个细节：
+ *   1. 用**getter**而不是现值：`post` 在 SSR 取数完成前是 null，
+ *      写死现值会把 null 烤进 HTML；getter 让 unhead 在渲染时求值。
+ *   2. description 优先取 AI 摘要 —— 它本来就是"一句话说清这篇讲什么"，
+ *      比截断正文更接近描述该有的样子；没有摘要就回退到站点默认文案。
+ *   3. og:image 不在这里覆盖：每篇动态生成图需要容器内渲染中文
+ *      （数 MB 字体，拖慢构建与冷启动），所以统一用站点封面。
+ *      这是刻意取舍，不是遗漏 —— 等哪天要做，正确位置也是构建期脚本
+ *      而不是运行时。
+ */
+const siteOrigin = useRuntimeConfig().public.siteUrl.replace(/\/+$/, '')
+const FALLBACK_DESCRIPTION = '一个边做边学的全栈项目：分享你的学习笔记与技术心得。'
+
+useSeoMeta({
+  title: () => (post.value ? `${post.value.title} · studyplan` : 'studyplan · 学习社区'),
+  description: () => post.value?.summary || FALLBACK_DESCRIPTION,
+  ogTitle: () => post.value?.title ?? 'studyplan · 学习社区',
+  ogDescription: () => post.value?.summary || FALLBACK_DESCRIPTION,
+  ogUrl: () => `${siteOrigin}/posts/${postId.value}`,
+  ogImage: `${siteOrigin}/og-cover.png`,
+  twitterImage: `${siteOrigin}/og-cover.png`,
+})
+
+/**
  * 这里用 v-html 之所以安全，是因为 useMarkdown() 里的 markdown-it 把 `html` 设成了 false，
  * 正文中的原生 HTML 标签都会被转义成文本再输出。一旦把 html 改成 true，这一行立刻变成 XSS 入口。
  */

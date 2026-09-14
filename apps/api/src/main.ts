@@ -6,7 +6,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { AppModule } from './app.module'
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter'
 import { HttpLoggerMiddleware } from './common/middleware/http-logger.middleware'
+import { TimingMiddleware } from './common/middleware/timing.middleware'
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor'
+import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor'
 import { TransformInterceptor } from './common/interceptors/transform.interceptor'
 
 /**
@@ -49,6 +51,18 @@ async function bootstrap(): Promise<void> {
   const httpLogger = new HttpLoggerMiddleware()
   app.use((req: Request, res: Response, next: NextFunction) => httpLogger.use(req, res, next))
 
+  /**
+   * 0.6) 计时上下文中间件。
+   *
+   * 自己不记任何东西，只为整条链路开启 AsyncLocalStorage 上下文，
+   * 让 Service 深处的 `withTiming()` 与慢请求拦截器读到同一份数据。
+   * 为什么必须放在中间件层而不能放进拦截器，见 TimingMiddleware 的注释。
+   *
+   * 同样必须包一层箭头函数 —— 与上面 httpLogger 完全相同的原因（丢 this）。
+   */
+  const timing = new TimingMiddleware()
+  app.use((req: Request, res: Response, next: NextFunction) => timing.use(req, res, next))
+
   // 1) 统一路由前缀：所有接口都变成 /api/xxx
   app.setGlobalPrefix('api')
 
@@ -90,7 +104,17 @@ async function bootstrap(): Promise<void> {
    * 从而让"响应里的 ID"与"日志里的 ID"是同一个值。
    * 反过来的话，响应体里的 requestId 永远为空，追踪链就断了。
    */
-  app.useGlobalInterceptors(new RequestIdInterceptor(), new TransformInterceptor())
+  app.useGlobalInterceptors(
+    new RequestIdInterceptor(),
+    /**
+     * SlowRequestInterceptor 排在 RequestId 之后、Transform 之前：
+     *   · 在前：要读前者生成的 requestId，放在前面就读不到，追踪链断掉；
+     *   · 在后：它的 tap 回调要在响应收尾时执行，
+     *     放到最后则拿不到完整业务耗时。
+     */
+    new SlowRequestInterceptor(),
+    new TransformInterceptor(),
+  )
 
   // 5) Swagger 接口文档。
   //    它的价值不只是"给前端看" —— 它还是一个**可交互的调试台**：

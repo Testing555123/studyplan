@@ -11,6 +11,15 @@ import {
 import { ApiRequestError } from '~/composables/useApi'
 
 /**
+ * 乐观插入的"占位评论"所用的 id 前缀。
+ *
+ * 用前缀而不是随便一个字符串，是为了让"这条还没落库"这件事
+ * **可以被代码判断**：`removeComment` 靠它避免拿假 id 去调删除接口，
+ * 列表组件也可以靠它给占位项加一个"发送中"的样式。
+ */
+const PENDING_PREFIX = 'pending:'
+
+/**
  * 帖子数据仓库。
  *
  * 阶段 2 时这里读的是 mock 数据；阶段 4 已经把数据源换成了真实接口。
@@ -29,6 +38,16 @@ export const usePostStore = defineStore('post', () => {
    * 在这里创建一次，后面的函数通过闭包共享它。
    */
   const api = useApi()
+
+  /**
+   * 登录态。这里只用它做一件事：**乐观插入评论时补齐 author**。
+   *
+   * 评论契约里 `author` 是必填的，而服务端返回真实对象之前，
+   * 我们手上唯一能填的就是"当前登录用户"。拿不到（未登录 / 恢复未完成）
+   * 就退化为"等服务端返回再插入"，不做乐观更新 ——
+   * 宁可慢一点，也不要造一条作者是空的评论。
+   */
+  const auth = useAuth()
 
   // ---------- 列表状态 ----------
   const items = ref<Post[]>([])
@@ -214,7 +233,24 @@ export const usePostStore = defineStore('post', () => {
     }
   }
 
-  /** 发表评论 */
+  /**
+   * 发表评论（**乐观更新**）。
+   *
+   * ── 为什么原先的写法让人觉得卡 ──
+   * 原逻辑是"等服务端返回 → 才把评论显示出来"。而本项目线上实测
+   * 单个请求可能要等 5~7 秒（见 deploy/vercel-verification.md 的性能基线），
+   * 于是用户点完"发表"之后，界面**好几秒毫无反应** ——
+   * 看起来就像按钮坏了。
+   *
+   * ── 乐观更新的代价与对策 ──
+   * 代价是"先显示的是假数据"，所以必须处理两件事：
+   *   1. 成功 → 用服务端返回的**真实对象**替换占位对象
+   *      （真实 id 与 createdAt 才不会出现"刷新后 id 变了"）；
+   *   2. 失败 → 把占位对象撤掉，并把错误抛给调用方去提示。
+   *
+   * 占位对象用 `pending:` 前缀的 id，于是"还没落库的评论"在列表里
+   * 一眼可辨 —— 删除操作据此拒绝，否则会拿一个假 id 去调删除接口。
+   */
   async function addComment(postId: string, content: string): Promise<void> {
     const trimmed = content.trim()
     if (!trimmed) return
@@ -222,13 +258,35 @@ export const usePostStore = defineStore('post', () => {
     commentSubmitting.value = true
     commentError.value = null
 
+    const me = auth.user.value
+    const pendingId = `${PENDING_PREFIX}${Date.now()}`
+    const inserted = Boolean(me)
+
+    if (me) {
+      comments.value = [
+        ...comments.value,
+        {
+          id: pendingId,
+          postId,
+          content: trimmed,
+          author: { id: me.id, username: me.username },
+          createdAt: new Date().toISOString(),
+        },
+      ]
+    }
+
     try {
       const created = await api.post<Comment>(`/posts/${postId}/comments`, { content: trimmed })
-      // 用服务端返回的对象追加，而不是本地造一个 ——
-      // 这样 id、createdAt 都是真实的，避免"刷新后 id 变了"这类怪事
-      comments.value = [...comments.value, created]
+
+      comments.value = inserted
+        ? comments.value.map((comment) => (comment.id === pendingId ? created : comment))
+        : [...comments.value, created]
+
       if (current.value) current.value.commentCount += 1
     } catch (caught) {
+      if (inserted) {
+        comments.value = comments.value.filter((comment) => comment.id !== pendingId)
+      }
       commentError.value =
         caught instanceof ApiRequestError ? caught.message : '发表失败，请稍后重试'
       throw caught
@@ -237,13 +295,34 @@ export const usePostStore = defineStore('post', () => {
     }
   }
 
-  /** 删除自己的评论 */
+  /**
+   * 删除自己的评论（**乐观更新**）。
+   *
+   * 先本地移除再发请求，失败则整体还原 —— 删除是"减法"，
+   * 还原只需要把快照放回去，不存在"造一个假对象"的问题，
+   * 所以这里的回滚比发表评论那边更彻底、也更安全。
+   */
   async function removeComment(commentId: string): Promise<void> {
-    await api.remove(`/comments/${commentId}`)
+    // 还没落库的占位评论：本地直接去掉即可，没有后端记录可删
+    if (commentId.startsWith(PENDING_PREFIX)) {
+      comments.value = comments.value.filter((comment) => comment.id !== commentId)
+      return
+    }
+
+    const snapshot = comments.value
+    const removed = snapshot.find((comment) => comment.id === commentId)
 
     comments.value = comments.value.filter((comment) => comment.id !== commentId)
     if (current.value) {
       current.value.commentCount = Math.max(0, current.value.commentCount - 1)
+    }
+
+    try {
+      await api.remove(`/comments/${commentId}`)
+    } catch (caught) {
+      comments.value = snapshot
+      if (current.value && removed) current.value.commentCount += 1
+      throw caught
     }
   }
 

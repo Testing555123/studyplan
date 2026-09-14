@@ -63,6 +63,13 @@ COPY . .
 ARG NUXT_PUBLIC_API_BASE=/api
 ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 
+# 站点对外绝对地址（canonical / og:url / sitemap 的 <loc> 都要求绝对 URL）。
+# ⚠️ 为什么必须注入而不是在代码里从请求推导：
+#    容器内是明文 HTTP，TLS 由平台边缘终止 —— 从请求推出来的是
+#    `http://...`，对搜索引擎来说那是另一个地址，权重会分给空处。
+ARG NUXT_PUBLIC_SITE_URL=https://studyplan-teal.vercel.app
+ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
+
 # 电子书挂在主站子路径下，产物里的资源引用必须带上前缀，否则浏览器会去
 # 请求 /assets/* 而落到 Nuxt 上 → 全部 404。
 # ⚠️ VitePress 的 base 必须**同时以 `/` 开头和结尾**（`/ebook/`）。

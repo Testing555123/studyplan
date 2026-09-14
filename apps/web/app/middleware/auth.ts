@@ -25,15 +25,37 @@
  *   > 前端的权限控制永远是体验优化，不是安全措施。
  *   > 这一条会贯穿你整个职业生涯。
  */
+/**
+ * 一次会话只恢复一次登录态。
+ *
+ * ── 为什么需要它 ──
+ * 这个中间件会在**每次**进入受保护页面时执行。原先每次都 `await auth.restore()`，
+ * 而 `restore()` 要发一次 `/auth/refresh`（还要带 Cookie、查库、重签 token）。
+ * 于是用户每点一次"写文章 → 返回 → 再进"，都要先干等一个网络往返，
+ * 才看到页面 —— 表现为"点了没反应一下才跳转"，而其实什么都没坏。
+ *
+ * ── 为什么缓存的是 Promise 而不是布尔值 ──
+ * 用 `let done = false` 会有竞态：第一次 restore 还在飞，
+ * 第二次导航进来发现 `done === false`，于是又发一次，甚至可能在
+ * 第一次返回之前就判成"未登录"而误跳登录页。
+ * 缓存 Promise 之后，并发的导航会**等同一个结果**，既不会重复请求，
+ * 也不会读到半截状态。
+ */
+let restorePromise: Promise<unknown> | null = null
+
 export default defineNuxtRouteMiddleware(async (to) => {
   // 服务端不判断，交给客户端
   if (import.meta.server) return
 
   const auth = useAuth()
 
-  // 可能是直接访问受保护页面（而不是从别的页面跳过来），
-  // 此时内存里还没有 Token，先用 Refresh Cookie 尝试恢复一次
-  await auth.restore()
+  // 已经登录（比如启动时的 auth-restore 插件已经恢复过了）就不必再问一次
+  if (!auth.isLoggedIn.value) {
+    // 可能是直接访问受保护页面（而不是从别的页面跳过来），
+    // 此时内存里还没有 Token，先用 Refresh Cookie 尝试恢复一次
+    restorePromise ??= auth.restore()
+    await restorePromise
+  }
 
   if (!auth.isLoggedIn.value) {
     /**

@@ -77,6 +77,24 @@ export default defineNuxtConfig({
        *   2. 不带域名 → 换域名不用重新构建（这正是构建期常量最容易踩的坑）。
        */
       apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3000/api',
+
+      /**
+       * 站点对外的绝对地址（**不带结尾斜杠**）。
+       *
+       * 为什么必须有它？canonical、og:url、sitemap 里的 `<loc>`、
+       * robots.txt 指向的 sitemap —— 这些都要求**绝对 URL**，
+       * 而服务端在 SSR 时只拿得到 `host`，拿不到"对外到底是不是 https"。
+       * （容器内是明文 HTTP，TLS 由平台边缘终止 ——
+       *   直接用请求里的协议拼出来的就是 `http://...`，那是错的。）
+       *
+       * ⚠️ 同样是构建期常量，由 `Dockerfile.vercel` 的 `ARG/ENV` 注入。
+       *    沿用 `apiBase` 的既有约定，而不是另起一套 `site` 配置 ——
+       *   「同一件事只有一种做法」比「用更时髦的写法」重要。
+       *
+       * 本地开发走默认值 `http://localhost:3001`，所以本地也能看到
+       * 完整可用的 canonical，而不是一行空字符串。
+       */
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3001',
     },
   },
 
@@ -123,15 +141,57 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: 'zh-CN' },
       title: 'studyplan · 学习社区',
+      /**
+       * 字体外链：**异步加载，不再阻塞首屏渲染**。
+       *
+       * ── 原来为什么慢 ──
+       * 一条普通的 `<link rel="stylesheet">` 是**阻塞渲染**的：
+       * 浏览器必须等它下载并解析完，才会画第一个像素。
+       * 而这个请求指向 `fonts.googleapis.com`，是**第三方域名** ——
+       * 要额外付一次 DNS + TCP + TLS，且完全不在我们的控制范围内。
+       * 用户看到的是"页面白屏一下才出现内容"，而根因在别人家的服务器上。
+       *
+       * ── media="print" 这个技巧 ──
+       * 把 media 声明成 print，浏览器就认为"这份样式当前用不上"，
+       * 于是**不阻塞渲染**地去下载它；下载完成后 `onload` 把它切回 all，
+       * 字体随即生效。代价是字体到位前会先显示系统字体（`display=swap`
+       * 本来也是这个行为），但**页面不再等它**。
+       *
+       * 为什么不干脆删掉外链？异步化已经把代价降到"不阻塞"，
+       * 保留它能维持既有的排版观感。若将来要彻底去掉第三方依赖，
+       * 正确做法是自托管字体文件（那时这里整段删掉）。
+       */
       link: [
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap' },
+        {
+          rel: 'stylesheet',
+          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap',
+          media: 'print',
+          onload: "this.media='all'",
+        },
       ],
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: '一个边做边学的全栈项目：分享你的学习笔记与技术心得。' },
+        /**
+         * 站点级社交分享 meta。
+         *
+         * 为什么放在这里而不是 app.vue？
+         *   这两个值**不依赖运行时信息**（不随页面、不随域名变化），
+         *   属于"站点是什么"而不是"这一页是什么" —— 放在配置里，
+         *   任何页面都天然继承，不需要每个页面都记得写一遍。
+         *
+         *   而会随页面变化的（og:title / og:description / canonical）
+         *   放在 app.vue 与详情页里做**覆盖**，见那两处的注释。
+         *
+         * twitter:card 用 summary_large_image：我们有一张 1200x630 的封面，
+         * 大图卡片的点击率明显高于小图摘要，既然图已经付了成本就用足。
+         */
+        { property: 'og:site_name', content: 'studyplan' },
+        { property: 'og:type', content: 'website' },
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
     },
   },
