@@ -1,4 +1,4 @@
-import type { TrendingRange } from '../types/github'
+import type { TrendingRange } from '../types/github.js'
 
 /**
  * 五个时间档的定义。

@@ -40,23 +40,22 @@
    ------------------------------------------------------------------ */
 @theme static {
   /*
-   * 主色：柔和靛蓝（Tailwind indigo 标准色阶）。
+   * 主色：科技青蓝（Tailwind cyan 标准色阶），对齐 v0 原型（primary #06b6d4）。
    *
-   * 这是本次重设计的"单一克制强调色"：低饱和、安静，长时间阅读不刺眼，
-   * 与暖灰中性背景（neutral: stone）形成冷暖对比，层次清楚又不喧宾夺主。
-   * 它同时是全站按钮 / 链接 / 选中态的来源——改这一处，全站强调色一起变。
+   * 这是全站按钮 / 链接 / 选中态的来源——改这一处，全站强调色一起变。
+   * AI 相关元素走独立的 ai 紫罗兰色板（见下），与主色形成冷暖对比。
    */
-  --color-brand-50: #eef2ff;
-  --color-brand-100: #e0e7ff;
-  --color-brand-200: #c7d2fe;
-  --color-brand-300: #a5b4fc;
-  --color-brand-400: #818cf8;
-  --color-brand-500: #6366f1;
-  --color-brand-600: #4f46e5;
-  --color-brand-700: #4338ca;
-  --color-brand-800: #3730a3;
-  --color-brand-900: #312e81;
-  --color-brand-950: #1e1b4b;
+  --color-brand-50: #ecfeff;
+  --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
+  --color-brand-400: #22d3ee;
+  --color-brand-500: #06b6d4;
+  --color-brand-600: #0891b2;
+  --color-brand-700: #0e7490;
+  --color-brand-800: #155e75;
+  --color-brand-900: #164e63;
+  --color-brand-950: #083344;
 
   /*
    * 语义色：AI 相关内容用柔和紫罗兰，和主色形成冷暖对比。

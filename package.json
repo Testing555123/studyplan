@@ -9,10 +9,11 @@
   },
   "scripts": {
     "dev": "pnpm run build:shared && pnpm -r --parallel dev",
-    "dev:web": "pnpm --filter @studyplan/web dev",
-    "dev:api": "pnpm --filter @studyplan/api dev",
+    "dev:web": "pnpm run build:shared && pnpm --filter @studyplan/web dev",
+    "dev:api": "pnpm run build:shared && pnpm --filter @studyplan/api dev",
     "dev:docs": "pnpm --filter @studyplan/docs dev",
     "build:shared": "pnpm --filter @studyplan/shared build",
+    "prepare": "pnpm run build:shared",
     "build": "pnpm run build:shared && pnpm -r build",
     "typecheck": "pnpm run build:shared && pnpm -r typecheck",
     "test": "pnpm -r test",

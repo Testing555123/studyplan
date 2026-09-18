@@ -29,6 +29,14 @@ export default defineAppConfig({
        * 都带上一点暖调，更接近"护眼舒适"的暖灰中性，也和 indigo 主色更搭。
        */
       neutral: 'stone',
+
+      /**
+       * AI 强调色 → `ai` 色板（紫罗兰 #8b5cf6，对应 v0 的 accent）。
+       *
+       * 注册后组件上就能用 `color="ai"`（如电子书按钮、AI 摘要图标），
+       * 与青蓝主色形成冷暖对比。色值同样只定义在 main.css 的 `--color-ai-*`。
+       */
+      ai: 'ai',
     },
   },
 })

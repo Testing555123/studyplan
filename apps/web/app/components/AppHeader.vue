@@ -1,16 +1,11 @@
 <script setup lang="ts">
 /**
- * 全局吸顶导航栏。外壳用 `UHeader`（自带居中容器、明暗适配与移动端菜单），
- * 导航项用 `UNavigationMenu`，右侧操作区用 `UButton` / `UDropdownMenu`。
+ * 全局吸顶导航栏，仿 v0 原型：
+ * 左侧是侧栏折叠按钮（桌面）/ 菜单按钮（移动端抽屉），右侧是搜索、明暗切换、写文章、登录。
+ * 主导航已迁到 AppSidebar，故顶栏不再重复 UNavigationMenu，避免两套导航冗余。
  *
- * 圆角、边框、hover、焦点环这些每个交互元素都要有的东西，全由组件库提供，
- * 不再维护 `.glass-bar` / `.nav-link` 那套自定义 CSS，也不用为每个颜色写 `dark:` 变体。
- *
- * 保留的 Tailwind 都是布局类（`fixed` / `z-50` / `h-16`、内部的 `flex` / `gap-*`）：
- * Nuxt UI 不提供布局原子类，这部分按约定照常写。
- *
- * 图标：`lucide-vue-next` 的图标是普通 Vue 组件，不在 Nuxt 自动导入范围内，必须逐个 import；
- * 漏掉 import 不会报错，只是静默渲染不出图标。导航项的 `i-lucide-*` 由 @nuxt/icon 解析，不用 import。
+ * 外壳用 UHeader（自带居中容器、明暗适配）；保留的 Tailwind 都是布局类
+ * （fixed/sticky、flex、gap），交互元素全部走 Nuxt UI 组件与语义色。
  */
 import { Sparkles } from 'lucide-vue-next'
 
@@ -19,19 +14,20 @@ const auth = useAuth()
 /** 全局命令面板开关：与 app.vue 共享同一份 useState */
 const commandOpen = useState<boolean>('command-palette-open', () => false)
 
-/** 主导航项。新增的「热门项目」指向 /trending，「学习路线」为时间线视图 */
-const navItems = computed(() => [
-  { label: '帖子流', to: '/', icon: 'i-lucide-flame' },
-  { label: '热门项目', to: '/trending', icon: 'i-lucide-trending-up' },
-  { label: '学习路线', to: '/roadmap', icon: 'i-lucide-route' },
-])
+const props = withDefaults(defineProps<{ sidebarOpen?: boolean }>(), { sidebarOpen: true })
+const emit = defineEmits<{
+  toggleSidebar: []
+  toggleMobileNav: []
+}>()
 
-/**
- * 用户下拉菜单。
- *
- * 用 `onSelect` 而不是 `@click`：这是 Nuxt UI 菜单项的标准回调名，
- * 同时兼容键盘操作（上下键 + 回车）与鼠标点击。
- */
+const sidebarOpenIcon = computed(() =>
+  props.sidebarOpen ? 'i-lucide-panel-left-close' : 'i-lucide-panel-left',
+)
+
+function avatarInitial(name: string): string {
+  return name ? name.slice(0, 2).toUpperCase() : '?'
+}
+
 const userMenuItems = computed(() => [
   {
     label: auth.user.value?.username ?? '',
@@ -51,7 +47,6 @@ const userMenuItems = computed(() => [
 
 async function handleLogout(): Promise<void> {
   await auth.logout()
-  // 登出后回到首页：留在需要登录的页面上会显得很怪
   await navigateTo('/')
 }
 </script>
@@ -59,27 +54,40 @@ async function handleLogout(): Promise<void> {
 <template>
   <UHeader
     :toggle="false"
-    class="fixed inset-x-0 top-0 z-50 h-16 border-b border-default bg-default/75 backdrop-blur-xl"
+    class="sticky top-0 z-50 h-16 border-b border-default bg-default/75 backdrop-blur-xl"
   >
-    <!-- 品牌区 -->
+    <!-- 左侧：侧栏控制 -->
     <template #left>
-      <NuxtLink to="/" class="group flex items-center gap-2.5">
-        <span
-          class="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white shadow-sm transition-transform duration-300 group-hover:scale-105"
-        >
-          <Sparkles :size="18" />
-        </span>
-        <span class="flex flex-col leading-none">
-          <span class="text-subtitle font-semibold tracking-tight text-highlighted">
-            studyplan
+      <div class="flex items-center gap-1">
+        <!-- 桌面：折叠 / 展开侧栏 -->
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          :icon="sidebarOpenIcon"
+          class="hidden sm:inline-flex"
+          :aria-label="sidebarOpen ? '隐藏侧栏' : '显示侧栏'"
+          @click="emit('toggleSidebar')"
+        />
+        <!-- 移动端：打开抽屉 -->
+        <UButton
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-menu"
+          class="sm:hidden"
+          aria-label="打开导航"
+          @click="emit('toggleMobileNav')"
+        />
+        <!-- 移动端品牌（侧栏隐藏时显示） -->
+        <NuxtLink to="/" class="group flex items-center gap-2.5 sm:hidden">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white shadow-sm">
+            <Sparkles :size="18" />
           </span>
-          <span class="mt-0.5 text-eyebrow text-muted">学习 · 技术分享</span>
-        </span>
-      </NuxtLink>
+          <span class="text-subtitle font-semibold text-highlighted">studyplan</span>
+        </NuxtLink>
+      </div>
     </template>
-
-    <!-- 主导航：移动端隐藏（与既有行为一致，导航项很少，不需要汉堡菜单） -->
-    <UNavigationMenu :items="navItems" class="hidden md:flex" />
 
     <!-- 操作区 -->
     <template #right>

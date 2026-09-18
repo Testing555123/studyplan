@@ -1,4 +1,4 @@
-import { isPostTag, MAX_TAGS_PER_POST, type PostTag } from './tags'
+import { isPostTag, MAX_TAGS_PER_POST, type PostTag } from './tags.js'
 
 /**
  * GitHub 仓库 → 本站标签的映射表。

@@ -1,75 +1,124 @@
 <script setup lang="ts">
 /**
- * 学习路线页：用 UTimeline 把帖子按时间串成一条成长轨迹。
+ * 学习路线页（对应 v0 的 RoadmapPage）。
  *
- * 数据直接复用 postStore（列表接口已经按时间返回），进入时若本地还没有
- * 帖子就拉一页；后端没起来则落到空态。每条以「第一个标签」决定图标，
- * 契合「studyplan」把零散阅读沉淀成路线的主题。
+ * 结构：页头 + ProgressHeader（统计 + 进度条）+ 各阶段 StageSection。
+ * 当前路线为静态占位数据（结构对齐 v0 的 roadmapStages）；
+ * 真实路线可后续接后端配置或 @studyplan/shared 类型。
  */
-const postStore = usePostStore()
-
-/** 进入即拉取帖子（本地无数据时才拉，避免重复覆盖） */
-onMounted(() => {
-  if (postStore.items.length === 0) void postStore.fetchList(true)
+useSeoMeta({
+  title: '全栈学习路线 · StudyPlan',
+  description: '从 Web 基础、前端与后端，到全栈项目交付的完整学习流程。',
 })
 
-const dateFmt = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
-
-/** 标签 → lucide 图标：取第一个标签决定色块图标，命中不了就用通用文档图标 */
-function tagIcon(tags: string[]): string {
-  const map: Record<string, string> = {
-    JavaScript: 'i-lucide-file-code-2',
-    TypeScript: 'i-lucide-file-code-2',
-    Vue: 'i-lucide-boxes',
-    React: 'i-lucide-atom',
-    'Node.js': 'i-lucide-server',
-    Python: 'i-lucide-code',
-    CSS: 'i-lucide-palette',
-    Rust: 'i-lucide-cog',
-    Go: 'i-lucide-bolt',
-  }
-  return (tags[0] && map[tags[0]]) || 'i-lucide-file-text'
+interface Course {
+  name: string
+  credits: number
+  status: 'completed' | 'in-progress' | 'planned'
+}
+interface Semester {
+  name: string
+  courses: Course[]
+}
+interface Stage {
+  id: string
+  title: string
+  description: string
+  semesters: Semester[]
 }
 
-/** 按创建时间倒序，转成时间线条目；用 any[] 兼容 TimelineItem 的宽松结构 */
-const items = computed<any[]>(() =>
-  [...postStore.items]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .map((post) => ({
-      date: dateFmt.format(new Date(post.createdAt)),
-      title: post.title,
-      description: post.summary || post.content.slice(0, 80),
-      icon: tagIcon(post.tags),
-    })),
-)
+const stages: Stage[] = [
+  {
+    id: 'foundation',
+    title: 'Web 基础与工具链',
+    description: '掌握浏览器基础、编程思维与日常开发工具',
+    semesters: [
+      {
+        name: '阶段 1 · Web 入门',
+        courses: [
+          { name: 'HTML / CSS 页面结构', credits: 4, status: 'completed' },
+          { name: 'JavaScript 核心语法', credits: 5, status: 'completed' },
+          { name: 'Git、命令行与调试', credits: 3, status: 'completed' },
+        ],
+      },
+      {
+        name: '阶段 2 · 类型化基础',
+        courses: [
+          { name: 'TypeScript 类型系统', credits: 4, status: 'completed' },
+          { name: '数据结构与算法基础', credits: 3, status: 'completed' },
+          { name: 'HTTP、浏览器与网络基础', credits: 3, status: 'completed' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'specialization',
+    title: '前端应用开发',
+    description: '从组件化界面到可维护、可访问的现代前端应用',
+    semesters: [
+      {
+        name: '阶段 3 · React 工程',
+        courses: [
+          { name: 'React 与组件设计', credits: 4, status: 'completed' },
+          { name: '状态管理与数据请求', credits: 4, status: 'in-progress' },
+          { name: 'Tailwind CSS 与设计系统', credits: 3, status: 'in-progress' },
+        ],
+      },
+      {
+        name: '阶段 4 · 全栈前端',
+        courses: [
+          { name: 'Next.js App Router', credits: 4, status: 'in-progress' },
+          { name: '表单、测试与可访问性', credits: 3, status: 'in-progress' },
+          { name: '性能优化与工程化', credits: 3, status: 'planned' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'integration',
+    title: '后端与全栈交付',
+    description: '构建真实服务，连接数据、鉴权与部署，完成可上线项目',
+    semesters: [
+      {
+        name: '阶段 5 · 服务与数据',
+        courses: [
+          { name: 'Node.js API 与鉴权', credits: 4, status: 'planned' },
+          { name: 'SQL、数据库建模与 ORM', credits: 4, status: 'planned' },
+          { name: '缓存、队列与错误处理', credits: 3, status: 'planned' },
+        ],
+      },
+      {
+        name: '阶段 6 · 项目上线',
+        courses: [
+          { name: '全栈项目架构与协作', credits: 4, status: 'planned' },
+          { name: 'CI/CD、云部署与监控', credits: 3, status: 'planned' },
+          { name: '作品集项目复盘', credits: 5, status: 'planned' },
+        ],
+      },
+    ],
+  },
+]
 </script>
 
 <template>
-  <UContainer class="py-8 sm:py-12">
-    <UPageHeader
-      headline="学习足迹"
-      title="学习路线"
-      description="按时间串起你读过、写过的每一篇，看见自己的成长轨迹。"
-    />
+  <UContainer class="space-y-8 py-6 md:py-8">
+    <div>
+      <p class="text-sm font-medium text-primary">学习流程</p>
+      <h1 class="mt-1 text-2xl font-bold text-highlighted">全栈学习路线</h1>
+      <p class="mt-1 max-w-2xl text-sm leading-6 text-muted">
+        从 Web 基础与工程工具开始，逐步掌握前端应用、后端服务、数据与部署，最终完成可上线的全栈项目。
+      </p>
+    </div>
 
-    <section class="mt-8">
-      <!-- 首屏骨架 -->
-      <UCard v-if="postStore.loading && postStore.items.length === 0">
-        <div class="flex flex-col gap-4">
-          <USkeleton v-for="n in 4" :key="n" class="h-16 w-full" />
-        </div>
-      </UCard>
+    <RoadmapProgressHeader :stages="stages" />
 
-      <!-- 空态：后端未起或无帖子 -->
-      <UEmpty
-        v-else-if="postStore.items.length === 0"
-        icon="i-lucide-route"
-        title="还没有学习足迹"
-        description="去帖子流读点或写一篇，这里就会串成一条时间线。"
+    <div class="space-y-10">
+      <RoadmapStageSection
+        v-for="(stage, index) in stages"
+        :key="stage.id"
+        :stage="stage"
+        :index="index"
       />
-
-      <!-- 时间线：最新在上 -->
-      <UTimeline v-else :items="items" size="lg" />
-    </section>
+    </div>
   </UContainer>
 </template>

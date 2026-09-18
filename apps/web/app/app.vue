@@ -2,12 +2,11 @@
 /**
  * 应用根组件，作为所有页面的最外层容器。
  *
- * 三件事：把页面切成「页头 / 内容 / 页脚」三段，用 flex 让内容区撑满剩余高度
- * （页脚因此永远贴在底部，短页面也不会悬空）；用 <UApp> 包裹 Nuxt UI 的浮层上下文；
- * <NuxtPage> 则是文件路由出口，app/pages 下的每个文件都会渲染到这里。
+ * 布局：左侧可折叠 AppSidebar + 右侧「顶栏 / 内容 / 页脚」三段式。
+ * 用 <UApp> 包裹 Nuxt UI 的浮层上下文；<NuxtPage> 是文件路由出口。
  *
- * main 上的 pt-16 不能省：页头是 fixed 定位、不占文档流，不预留 4rem 上边距，
- * 首屏内容会被页头盖住。
+ * 桌面端侧栏宽度在 w-64 / w-20 间过渡（由 sidebarOpen 控制）；
+ * 移动端侧栏收起为抽屉（mobileNavOpen）。
  *
  * 全局命令面板（⌘K 唤起）挂在这里：它是全站级能力，任何页面都能唤起。
  * 开关状态用 useState 共享，页头的搜索按钮也能打开同一个面板。
@@ -20,23 +19,11 @@ const api = useApi()
 /* ────────────────────────────────────────────────────────────────
  * 站点级 SEO 兜底。
  *
- * ── 为什么放在 app.vue ──
  * 这里写的是**默认值**：任何页面如果自己没有声明 SEO 信息，
- * 就会落到这一层。而详情页会用同名 key 覆盖（unhead 里
- * 后注册的赢），于是「站点默认 / 页面覆盖」的分工天然成立，
- * 不需要每个页面都记得写一遍 canonical。
+ * 就会落到这一层。而详情页会用同名 key 覆盖（unhead 里后注册的赢）。
  *
- * ── 为什么 canonical 必须用 useRequestURL() ──
- * `useRoute()` 在服务端拿不到 origin（它只有路径），
- * 而 canonical 恰恰要求绝对 URL。`useRequestURL()` 是 Nuxt 专门
- * 为这件事准备的：SSR 与客户端都能拿到 host 与 path。
- *
- * ── 为什么域名用 siteUrl 而不是 requestUrl.origin ──
- * 容器内是明文 HTTP，TLS 由平台边缘终止 —— 用请求里的协议
- * 拼出来的是 `http://...`，对搜索引擎来说那是另一个 URL，
- * 会把权重分给一个不存在的地址。所以**对外地址必须显式声明**
- * （`runtimeConfig.public.siteUrl`，由 Dockerfile 注入），
- * requestUrl 只贡献路径部分。
+ * canonical 用 useRequestURL() 拿 host + path，再拼上显式声明的
+ * siteUrl（容器内是明文 HTTP，用请求协议拼出来的是错的地址）。
  * ──────────────────────────────────────────────────────────────── */
 const siteOrigin = useRuntimeConfig().public.siteUrl.replace(/\/+$/, '')
 const requestUrl = useRequestURL()
@@ -54,6 +41,10 @@ useSeoMeta({
   twitterImage: `${siteOrigin}/og-cover.png`,
 })
 
+/** 侧栏折叠态（桌面）与移动抽屉开关 */
+const sidebarOpen = useState<boolean>('sidebar-open', () => true)
+const mobileNavOpen = ref(false)
+
 /** 命令面板开关：useState 保证 SSR 安全且跨组件共享 */
 const commandOpen = useState<boolean>('command-palette-open', () => false)
 
@@ -65,23 +56,15 @@ defineShortcuts({
 const selected = ref<CommandPaletteItem | null>(null)
 
 /**
- * 静态导航分组。
- *
- * 为什么抽成具名常量，而不是在下面写 `groups.value[0]`？
- *   因为数组下标访问在 TS 里的类型是 `CommandPaletteGroup | undefined`
- *   —— 编译器无法证明下标 0 一定存在，于是预拉取后重建分组时
- *   会报 TS2322（本项目开着严格索引检查）。
- *
- *   用 `groups.value[0]!` 强行断言当然能让报错消失，但那只是**掩盖**：
- *   真有一天初始分组被改成空数组，运行时照样炸。
- *   抽成常量之后，"导航分组"有且只有一个定义，
- *   初始状态和重建后的状态引用的是同一个对象，类型天然收窄。
+ * 静态导航分组（命令面板）。
+ * 抽成具名常量，初始状态与重建后的状态引用同一对象，类型天然收窄，
+ * 避免严格索引检查下的 TS2322，也避免空数组时运行时炸。
  */
 const NAV_GROUP: CommandPaletteGroup = {
   id: 'actions',
   label: '快捷导航',
   items: [
-    { label: '帖子流', icon: 'i-lucide-home', to: '/' },
+    { label: '首页', icon: 'i-lucide-home', to: '/' },
     { label: 'GitHub 热门项目', icon: 'i-lucide-trending-up', to: '/trending' },
     { label: '写文章', icon: 'i-lucide-pen-line', to: '/posts/new' },
   ],
@@ -125,22 +108,47 @@ onMounted(async () => {
 
 <template>
   <UApp>
-    <!--
-      `bg-default` 是 Nuxt UI 的语义背景色：亮色下是浅灰白，暗色下自动切深色，
-      不用再写两套类名，全站口径统一。
+    <div class="flex min-h-screen bg-default">
+      <!-- 桌面侧栏：宽度随折叠态在 w-64 / w-20 间过渡 -->
+      <aside
+        class="hidden shrink-0 overflow-hidden border-r border-default transition-[width] duration-200 sm:flex sm:flex-col"
+        :class="sidebarOpen ? 'w-64' : 'w-20'"
+      >
+        <AppSidebar :open="sidebarOpen" />
+      </aside>
 
-      AI 助手挂在这里而不是某个页面里：它是全站级能力，任何页面都能唤起。
-    -->
-    <div class="flex min-h-screen flex-col bg-default">
-      <AppHeader />
+      <!-- 移动端抽屉 -->
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition-opacity duration-200 ease-out"
+          enter-from-class="opacity-0"
+          leave-active-class="transition-opacity duration-150 ease-in"
+          leave-to-class="opacity-0"
+        >
+          <div v-if="mobileNavOpen" class="fixed inset-0 z-50 sm:hidden">
+            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="mobileNavOpen = false" />
+            <aside class="absolute inset-y-0 left-0 w-64 border-r border-default bg-default shadow-xl">
+              <AppSidebar :open="true" closable @close="mobileNavOpen = false" />
+            </aside>
+          </div>
+        </Transition>
+      </Teleport>
 
-      <main class="flex-1 pt-16">
-        <NuxtPage />
-      </main>
+      <div class="flex min-w-0 flex-1 flex-col">
+        <AppHeader
+          :sidebar-open="sidebarOpen"
+          @toggle-sidebar="sidebarOpen = !sidebarOpen"
+          @toggle-mobile-nav="mobileNavOpen = true"
+        />
 
-      <AppFooter />
+        <main class="flex-1">
+          <NuxtPage />
+        </main>
 
-      <AiAssistant />
+        <AppFooter />
+
+        <AiAssistant />
+      </div>
     </div>
 
     <!-- 全局命令面板：⌘K 或页头搜索按钮唤起，搜索项目 / 文章 / 快捷跳转 -->

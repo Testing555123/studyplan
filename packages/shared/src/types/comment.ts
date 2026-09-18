@@ -1,4 +1,4 @@
-import type { PostAuthor } from './post'
+import type { PostAuthor } from './post.js'
 
 /**
  * 评论契约。
