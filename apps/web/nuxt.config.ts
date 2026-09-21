@@ -20,7 +20,22 @@ export default defineNuxtConfig({
   // 模块是 Nuxt 的扩展机制：
   //   @nuxt/ui   —— 组件库 + Tailwind CSS 4（自动注入样式与组件）
   //   @pinia/nuxt —— 状态管理
-  modules: ['@nuxt/ui', '@pinia/nuxt'],
+  /**
+   * 模块列表。
+   *
+   * motion-v/nuxt 是本次引入的唯一动效库：它注册 <Motion> 组件，
+   * 并自动导入 useScroll / useTransform / useMotionValue / useInView /
+   * useReducedMotion 等组合式函数。
+   *
+   * 为什么选它而不是 @vueuse/motion：后者在 dependencies 里锁了
+   * @nuxt/kit@^3.13（Nuxt 3 时代），在 Nuxt 4.5 下会被 pnpm 装成两份 kit，
+   * Nuxt 模块 API 有不对齐的风险；motion-v 只把 vue 与 @vueuse/core 列为 peer，
+   * 与当前版本组合没有冲突。
+   *
+   * ⚠️ 只用它做「必须连续计算」的动效（滚动视差、指针跟随倾斜）。
+   *    装饰性的渐变、光晕、玻璃质感一律用 CSS —— 那样即使 JS 失效，视觉依然成立。
+   */
+  modules: ['@nuxt/ui', '@pinia/nuxt', 'motion-v/nuxt'],
 
   // 全局样式入口
   css: ['~/assets/css/main.css'],

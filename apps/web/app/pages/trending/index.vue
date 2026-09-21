@@ -129,36 +129,43 @@ const filtersOpen = ref(false)
 </script>
 
 <template>
-  <UContainer>
-    <!-- 页头：用 UPageHeader 统一页头节奏（eyebrow / 主标题 / 描述 / 右侧操作），替代手搓 section -->
-    <UPageHeader
-      headline="GitHub 热门"
-      title="GitHub 热门项目"
-    >
-      <template #description>
-        按创建时间筛选，取 star 最高的项目 · 共
-        <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>
-        个
-      </template>
-      <template #links>
-        <!-- 数据新鲜度：过期缓存会变成琥珀色，如实告知 -->
-        <UBadge
-          v-if="result"
-          :color="result.stale ? 'warning' : 'neutral'"
-          variant="subtle"
-          size="md"
-          :icon="result.stale ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle-2'"
-        >
-          {{ freshnessText }}
-        </UBadge>
-      </template>
-    </UPageHeader>
+  <!--
+    光晕层与首页同源，只是用 soft 变体（单团、低透明度、视差减半）。
+    这一页一屏二十几张卡片，背景若和首页一样强，眼睛会被背景牵走。
+  -->
+  <div class="relative isolate">
+    <AuroraBackground variant="soft" />
 
-    <!-- 桌面端筛选：时间档 + 语言 -->
-      <div class="mt-7 hidden items-start gap-6 sm:flex">
+    <UContainer class="relative">
+      <!-- 页头：用 UPageHeader 统一页头节奏（eyebrow / 主标题 / 描述 / 右侧操作），替代手搓 section -->
+      <UPageHeader headline="GitHub 热门" title="GitHub 热门项目">
+        <template #description>
+          按创建时间筛选，取 star 最高的项目 · 共
+          <span class="font-medium text-toned tabular-nums">{{ result?.total ?? 0 }}</span>
+          个
+        </template>
+        <template #links>
+          <!-- 数据新鲜度：过期缓存会变成琥珀色，如实告知 -->
+          <UBadge
+            v-if="result"
+            :color="result.stale ? 'warning' : 'neutral'"
+            variant="subtle"
+            size="md"
+            :icon="result.stale ? 'i-lucide-alert-triangle' : 'i-lucide-check-circle-2'"
+          >
+            {{ freshnessText }}
+          </UBadge>
+        </template>
+      </UPageHeader>
+
+      <!-- 桌面端筛选：时间档 + 语言 -->
+      <!-- 筛选区玻璃化：与背景分层，又不抢卡片本身的视觉重量 -->
+      <div class="glass-panel mt-7 hidden items-start gap-6 rounded-xl p-4 sm:flex">
         <div>
           <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">时间范围</p>
-          <div class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            class="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             <UButton
               v-for="item in TRENDING_RANGES"
               :key="item.value"
@@ -191,135 +198,143 @@ const filtersOpen = ref(false)
         </UButton>
       </div>
 
-    <!--
+      <!--
       每日推荐区块：放在榜单之上。
       它同时承担两件事 —— 展示今天推了哪个项目，以及**说明为什么没有**。
       后者更重要：这个装置很可能"什么都没做却不报错"。
     -->
-    <DailyDigestBanner />
+      <DailyDigestBanner />
 
-    <!-- 出错 -->
-    <section v-if="error" class="pb-10">
-      <UAlert
-        color="error"
-        variant="soft"
-        icon="i-lucide-alert-circle"
-        title="榜单加载失败"
-        :description="(error as Error).message"
-      />
-      <UButton
-        class="mt-3"
-        size="sm"
-        color="error"
-        variant="outline"
-        icon="i-lucide-refresh-cw"
-        @click="refresh()"
-      >
-        重试
-      </UButton>
-    </section>
-
-    <!-- 加载骨架：形状与卡片一致，避免内容出现时跳动 -->
-    <section v-else-if="pending && !result">
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <UCard v-for="index in 6" :key="`skeleton-${index}`">
-          <USkeleton class="h-5 w-1/3" />
-          <USkeleton class="mt-3 h-4 w-2/3" />
-          <USkeleton class="mt-2 h-3 w-full" />
-          <USkeleton class="mt-2 h-3 w-4/5" />
-          <div class="mt-4 flex gap-3">
-            <USkeleton class="h-4 w-16" />
-            <USkeleton class="h-4 w-12" />
-          </div>
-        </UCard>
-      </div>
-    </section>
-
-    <!-- 空结果 -->
-    <UEmpty
-      v-else-if="result && result.items.length === 0"
-      icon="i-lucide-search-x"
-      title="这个条件下没有找到项目"
-      description="换个时间范围或语言试试 —— 时间越短、语言越小众，结果通常越少"
-    />
-
-    <!-- 项目网格：用 UPageGrid 统一响应式列数与间距，错落淡入（stagger + fade-up）沿用既有动画 -->
-    <section v-else-if="result">
-      <UPageGrid
-        :ui="{ base: 'relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' }"
-        class="stagger"
-      >
-        <TransitionGroup name="fade-up">
-          <div
-            v-for="(repo, index) in result.items"
-            :key="repo.id"
-            :style="{ '--i': index }"
-            class="flex"
-          >
-            <RepoCard
-              class="h-full flex-1"
-              :repo="repo"
-              @ask="ai.askAboutRepo"
-            />
-          </div>
-        </TransitionGroup>
-      </UPageGrid>
-
-      <!-- 数据来源说明：榜单口径必须交代清楚，否则容易被误读成"涨粉最快榜" -->
-      <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-dimmed">
-        数据来源：GitHub Search API · 统计口径为该时间区间内<b>新建</b>项目中 star 最高者
-        <ULink
-          to="https://docs.github.com/en/rest/search/search"
-          target="_blank"
-          class="inline-flex items-center gap-1 text-primary hover:underline"
+      <!-- 出错 -->
+      <section v-if="error" class="pb-10">
+        <UAlert
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-circle"
+          title="榜单加载失败"
+          :description="(error as Error).message"
+        />
+        <UButton
+          class="mt-3"
+          size="sm"
+          color="error"
+          variant="outline"
+          icon="i-lucide-refresh-cw"
+          @click="refresh()"
         >
-          接口文档
-          <ExternalLink :size="11" />
-        </ULink>
-      </p>
-    </section>
+          重试
+        </UButton>
+      </section>
 
-    <!-- 移动端筛选抽屉 -->
-    <USlideover
-      v-if="filtersOpen"
-      :open="true"
-      side="left"
-      :ui="{ content: 'w-full sm:max-w-sm' }"
-      @update:open="(value: boolean) => { if (!value) filtersOpen = false }"
-    >
-      <template #header>
-        <p class="text-body-sm font-semibold text-highlighted">筛选</p>
-      </template>
+      <!-- 加载骨架：形状与卡片一致，避免内容出现时跳动 -->
+      <section v-else-if="pending && !result">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <UCard v-for="index in 6" :key="`skeleton-${index}`">
+            <USkeleton class="h-5 w-1/3" />
+            <USkeleton class="mt-3 h-4 w-2/3" />
+            <USkeleton class="mt-2 h-3 w-full" />
+            <USkeleton class="mt-2 h-3 w-4/5" />
+            <div class="mt-4 flex gap-3">
+              <USkeleton class="h-4 w-16" />
+              <USkeleton class="h-4 w-12" />
+            </div>
+          </UCard>
+        </div>
+      </section>
 
-      <template #body>
-        <div class="space-y-6">
-          <div>
-            <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">时间范围</p>
-            <div class="flex flex-wrap gap-2">
-              <UButton
-                v-for="item in TRENDING_RANGES"
-                :key="item.value"
-                size="xs"
-                :variant="range === item.value ? 'solid' : 'outline'"
-                :color="range === item.value ? 'primary' : 'neutral'"
-                class="rounded-full"
-                @click="range = item.value"
-              >
-                {{ item.label }}
-              </UButton>
+      <!-- 空结果 -->
+      <UEmpty
+        v-else-if="result && result.items.length === 0"
+        icon="i-lucide-search-x"
+        title="这个条件下没有找到项目"
+        description="换个时间范围或语言试试 —— 时间越短、语言越小众，结果通常越少"
+      />
+
+      <!-- 项目网格：用 UPageGrid 统一响应式列数与间距，错落淡入（stagger + fade-up）沿用既有动画 -->
+      <section v-else-if="result">
+        <UPageGrid :ui="{ base: 'relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' }">
+          <!--
+          错落序号与倾斜幅度交给 AppTiltCard：
+            · max 从首页的 4° 降到 2° —— 卡片密集时大幅倾斜会让整屏都在晃；
+            · 原有的 .stagger 与手写 --i 已移除，否则会和外壳自带的
+              transition-delay 叠成双倍延迟，表现为"卡片等很久才出来"。
+          TransitionGroup 保留：切筛选条件导致列表项增删时，它仍负责进出场过渡。
+        -->
+          <TransitionGroup name="fade-up">
+            <AppTiltCard
+              v-for="(repo, index) in result.items"
+              :key="repo.id"
+              :index="index"
+              :max="2"
+              class="flex"
+            >
+              <RepoCard class="h-full flex-1" :repo="repo" @ask="ai.askAboutRepo" />
+            </AppTiltCard>
+          </TransitionGroup>
+        </UPageGrid>
+
+        <!-- 数据来源说明：榜单口径必须交代清楚，否则容易被误读成"涨粉最快榜" -->
+        <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-dimmed">
+          数据来源：GitHub Search API · 统计口径为该时间区间内<b>新建</b>项目中 star 最高者
+          <ULink
+            to="https://docs.github.com/en/rest/search/search"
+            target="_blank"
+            class="inline-flex items-center gap-1 text-primary hover:underline"
+          >
+            接口文档
+            <ExternalLink :size="11" />
+          </ULink>
+        </p>
+      </section>
+
+      <!-- 移动端筛选抽屉 -->
+      <USlideover
+        v-if="filtersOpen"
+        :open="true"
+        side="left"
+        :ui="{ content: 'w-full sm:max-w-sm' }"
+        @update:open="
+          (value: boolean) => {
+            if (!value) filtersOpen = false
+          }
+        "
+      >
+        <template #header>
+          <p class="text-body-sm font-semibold text-highlighted">筛选</p>
+        </template>
+
+        <template #body>
+          <div class="space-y-6">
+            <div>
+              <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">
+                时间范围
+              </p>
+              <div class="flex flex-wrap gap-2">
+                <UButton
+                  v-for="item in TRENDING_RANGES"
+                  :key="item.value"
+                  size="xs"
+                  :variant="range === item.value ? 'solid' : 'outline'"
+                  :color="range === item.value ? 'primary' : 'neutral'"
+                  class="rounded-full"
+                  @click="range = item.value"
+                >
+                  {{ item.label }}
+                </UButton>
+              </div>
+            </div>
+
+            <div v-if="result && result.languages.length > 0">
+              <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">语言</p>
+              <TagFilter v-model="languageModel" :tags="result.languages" />
             </div>
           </div>
+        </template>
 
-          <div v-if="result && result.languages.length > 0">
-            <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">语言</p>
-            <TagFilter v-model="languageModel" :tags="result.languages" />
-          </div>
-        </div>
-      </template>
-
-      <template #footer>
-        <UButton block color="primary" @click="filtersOpen = false">完成</UButton>
-      </template>
-    </USlideover>
-  </UContainer>
+        <template #footer>
+          <UButton block color="primary" @click="filtersOpen = false">完成</UButton>
+        </template>
+      </USlideover>
+    </UContainer>
+  </div>
 </template>

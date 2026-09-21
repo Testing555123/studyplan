@@ -2,6 +2,17 @@
 /**
  * 个人资料卡 + README 盒（对应 v0 的 ProfileHero）。
  * 当前用静态占位资料；wire 阶段接入真实用户/项目信息。
+ *
+ * ── 这一版的视觉改动 ──
+ *
+ *   1. 外卡换成玻璃质感（.glass-card）：半透明底 + 背景模糊 + 顶部高光。
+ *      它下面就是光晕层，玻璃的意义在于**让背景的光透上来**，
+ *      如果这里用不透明底色，光晕就只出现在卡片四周，中间是一块死板的色块。
+ *   2. 头像外圈加一圈 brand→ai 的渐变光环，缓慢呼吸。
+ *   3. 三组内容（头像 / 文字 / README）以 90ms 间隔依次上浮淡入。
+ *
+ * 入场用的是 CSS 动画而不是"初始隐藏 + JS 点亮"：
+ * 首屏元素本来就该立刻可见，动画只是让它出现得更柔和。
  */
 const profile = {
   name: '李东东',
@@ -23,19 +34,26 @@ function initials(name: string): string {
 </script>
 
 <template>
-  <div class="rounded-2xl border border-default bg-default p-6 shadow-sm md:p-8">
+  <div class="glass-card relative rounded-2xl p-6 md:p-8">
     <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
-      <UAvatar
-        :src="profile.avatar || undefined"
-        :alt="profile.name"
-        class="h-20 w-20 shrink-0 ring-2 ring-primary/15 sm:h-24 sm:w-24"
-      >
-        <template #fallback>
-          <span class="text-xl font-semibold">{{ initials(profile.name) }}</span>
-        </template>
-      </UAvatar>
+      <!-- 头像 + 呼吸光环 -->
+      <div class="relative shrink-0 animate-fade-up">
+        <span
+          class="ring-breathe absolute -inset-2 rounded-full bg-gradient-to-br from-brand-400 to-ai-500 blur-md"
+          aria-hidden="true"
+        />
+        <UAvatar
+          :src="profile.avatar || undefined"
+          :alt="profile.name"
+          class="relative h-20 w-20 shrink-0 ring-2 ring-primary/15 sm:h-24 sm:w-24"
+        >
+          <template #fallback>
+            <span class="text-xl font-semibold">{{ initials(profile.name) }}</span>
+          </template>
+        </UAvatar>
+      </div>
 
-      <div class="flex-1 space-y-3">
+      <div class="flex-1 animate-fade-up space-y-3" style="animation-delay: 90ms">
         <div class="flex flex-wrap items-center gap-2">
           <h1 class="text-xl font-bold text-highlighted md:text-2xl">{{ profile.name }}</h1>
           <span class="text-sm text-muted">{{ profile.handle }}</span>
@@ -58,7 +76,11 @@ function initials(name: string): string {
       </div>
     </div>
 
-    <div class="mt-6 rounded-xl border border-default bg-muted/50 p-4 md:p-5">
+    <!-- README 盒：内嵌一层磨砂，与外卡形成"玻璃里还有一层玻璃"的层次 -->
+    <div
+      class="mt-6 animate-fade-up rounded-xl border border-default bg-muted/40 p-4 backdrop-blur-sm md:p-5"
+      style="animation-delay: 180ms"
+    >
       <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
         <UIcon name="i-lucide-file-text" :size="14" />
         README.md

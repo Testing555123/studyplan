@@ -11,6 +11,12 @@ import { Sparkles } from 'lucide-vue-next'
 
 const auth = useAuth()
 
+/**
+ * 滚动后，页头底部渐显一条 brand→ai 的渐变分隔线（样式在 main.css）。
+ * 它只在"内容已经滑到页头下方"时出现，给滚动一个可见的反馈。
+ */
+const scrolled = useScrolled()
+
 /** 全局命令面板开关：与 app.vue 共享同一份 useState */
 const commandOpen = useState<boolean>('command-palette-open', () => false)
 
@@ -54,7 +60,8 @@ async function handleLogout(): Promise<void> {
 <template>
   <UHeader
     :toggle="false"
-    class="sticky top-0 z-50 h-16 border-b border-default bg-default/75 backdrop-blur-xl"
+    class="header-gradient-line sticky top-0 z-50 h-16 border-b border-default bg-default/75 backdrop-blur-xl"
+    :class="{ 'is-scrolled': scrolled }"
   >
     <!-- 左侧：侧栏控制 -->
     <template #left>

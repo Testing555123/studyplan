@@ -89,6 +89,21 @@
   --text-title: 1.0625rem;       /* 17px    卡片标题(大) */
   --text-heading: 1.375rem;      /* 22px    区块大标题 / 预览标题 */
   --text-display: 1.625rem;      /* 26px    文章页主标题 */
+
+  /*
+   * 缓动曲线令牌。
+   *
+   * 之前这条曲线散落在动效区的每个 keyframes / transition 里重复书写。
+   * 提到 @theme 之后，除了能写 `ease-out-expo` 工具类，
+   * 也可以在任何地方用 var(--ease-out-expo) 引用，改一处全站生效。
+   *
+   * 曲线本身取自既有的动效基线（cubic-bezier(.22,1,.36,1)）：
+   * 起步快、尾巴长，观感是"滑到位"而不是"走到位"。
+   */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* 装饰层光晕的模糊半径：集中一处，方便整体调"虚化程度" */
+  --blur-aurora: 56px;
 }
 
 /* ------------------------------------------------------------------
@@ -242,6 +257,11 @@
     animation: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
+  /* 头像光环的呼吸：周期长、幅度小，只在余光里被感知到 */
+  .ring-breathe {
+    animation: ring-breathe 5.5s ease-in-out infinite;
+  }
+
   /*
    * Vue <Transition name="fade-up"> 的进入/离开类（卡片淡入、列表错落浮现）。
    * 退出略快于进入；整体时长 150–300ms，缓动统一 cubic-bezier(0.22,1,0.36,1)。
@@ -266,5 +286,315 @@
    */
   .stagger > * {
     transition-delay: calc(var(--i, 0) * 45ms);
+  }
+}
+
+/* ------------------------------------------------------------------
+   装饰层：光晕 / 玻璃 / 渐变边框 / 进入视口 / 3D 倾斜
+   ------------------------------------------------------------------
+   这一块的共同前提是：**装饰不能成为内容的依赖**。
+   所有效果都满足两条：
+     1. JS 不执行时，内容照常可见（见 .reveal 的注释）；
+     2. 装饰元素一律 aria-hidden + pointer-events-none，不进 Tab 顺序。
+   ------------------------------------------------------------------ */
+
+/*
+ * 光晕漂移。
+ * 只改 transform（位移 + 缩放），不改位置/尺寸属性 ——
+ * transform 走 GPU 合成层，不会触发重排，长周期动画也能保持 60fps。
+ * 周期刻意拉到 20s 以上：观感是"呼吸"，不是"跳动"。
+ */
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, -4%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* 头像光环的呼吸：透明度与轻微缩放一起动，避免只有透明度变化显得"闪" */
+@keyframes ring-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.05);
+  }
+}
+
+/*
+ * 渐变流动。
+ * 用 background-position 而不是改颜色：颜色插值在部分浏览器里会掉帧，
+ * 而位移是纯合成操作。配合 background-size: 200% 形成无缝循环。
+ */
+@keyframes gradient-pan {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@layer components {
+  /*
+   * 光晕容器：铺满父级并裁掉溢出部分。
+   *
+   * 为什么必须 overflow-hidden：光晕是大尺寸模糊圆，不裁切会让页面出现
+   * 横向滚动条 —— 这类"多出一个滚动条"的 bug 在真机上才容易发现。
+   */
+  .aurora-root {
+    @apply pointer-events-none absolute inset-0 overflow-hidden;
+  }
+
+  /* 单个光晕团：形状与模糊在这里，颜色由组件用 CSS 变量注入 */
+  .aurora-blob {
+    @apply absolute rounded-full;
+    filter: blur(var(--blur-aurora));
+    will-change: transform;
+  }
+
+  /*
+   * 三档漂移速度。
+   *
+   * ⚠️ 它们必须挂在**内层**元素上：视差由外层（motion-v 写入 inline transform）
+   *    负责，漂移只能用 animation 改 transform —— 两者若在同一元素上会互相覆盖
+   *    （animation 的优先级高于 inline style，结果是视差失效）。
+   *
+   * 负的 delay 让三团一开始就处在各自周期的不同位置，避免整齐划一地一起动。
+   */
+  .drift-slow {
+    animation: aurora-drift 34s ease-in-out infinite;
+  }
+
+  .drift-mid {
+    animation: aurora-drift 26s ease-in-out infinite -7s;
+  }
+
+  .drift-fast {
+    animation: aurora-drift 20s ease-in-out infinite -13s;
+  }
+
+  /*
+   * 玻璃卡。
+   *
+   * 三层叠加才像"玻璃"：半透明底 + 背景模糊 + 一道顶部高光边。
+   * 少了高光边就只是一块半透明色块，缺少"有厚度"的错觉。
+   *
+   * ⚠️ backdrop-filter 是有成本的：每一帧都要重新采样背景。
+   *    所以只用在少数几处（资料卡），不用在滚动列表里的每张卡上。
+   */
+  .glass-card {
+    @apply border border-default bg-default/60 backdrop-blur-2xl;
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.14),
+      0 12px 40px -16px rgb(15 23 42 / 0.18);
+  }
+
+  /*
+   * 页头底部的渐变分隔线。
+   *
+   * 用伪元素而不是真加一个 <div>：页头是 UHeader 组件，插 DOM 会挤进它的
+   * 布局槽位里；伪元素完全不参与布局，也不影响它内部的 flex 结构。
+   *
+   * 默认透明、滚动后才淡入（.is-scrolled 由 useScrolled 控制）：
+   * 页面停在顶部时内容与页头是连在一起的，多一条线反而是噪音。
+   */
+  /*
+   * ⚠️ 这里的 position 只是兜底：页头本身带着 Tailwind 的 sticky（也是定位元素），
+   *    已经足够充当伪元素的包含块。之所以仍写一行，是因为一旦将来页头不再吸顶，
+   *    漏掉它的表现是"渐变线飘到页面别处"，而不是报错 —— 属于难查的那类问题。
+   */
+  .header-gradient-line {
+    position: relative;
+  }
+
+  .header-gradient-line::after {
+    content: '';
+    @apply pointer-events-none absolute inset-x-0 -bottom-px h-px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-brand-400),
+      var(--color-ai-500),
+      transparent
+    );
+    opacity: 0;
+    transition: opacity 0.4s var(--ease-out-expo);
+  }
+
+  .header-gradient-line.is-scrolled::after {
+    opacity: 1;
+  }
+
+  /*
+   * 轻量玻璃：给筛选条这类"辅助控件区"用。
+   *
+   * 与 .glass-card 的区别是刻意做减法 —— 模糊半径更小（md 而非 2xl）、
+   * 没有外阴影、透明度略高。控件区需要的是"和背景分层"，不是"抢视线"；
+   * 而且它常常横向很长，大面积 backdrop-filter 的代价会成倍放大。
+   */
+  .glass-panel {
+    @apply border border-default bg-default/60 backdrop-blur-md;
+  }
+
+  /*
+   * 渐变流动边框：外层给 1px 渐变底，内层用不透明背景盖住中间，
+   * 只露出边缘那一圈 —— 比 mask / conic-gradient 兼容性更好。
+   */
+  .gradient-frame {
+    @apply rounded-2xl p-[1.5px];
+    background-image: linear-gradient(
+      120deg,
+      var(--color-brand-400),
+      var(--color-ai-500),
+      var(--color-brand-400)
+    );
+    background-size: 200% 100%;
+    animation: gradient-pan 9s linear infinite;
+  }
+}
+
+@layer utilities {
+  /*
+   * 进入视口浮现。
+   *
+   * ⚠️ 这里刻意**不提供"默认隐藏"的初始态**：
+   *    元素在没有 .reveal--pending 时是完全可见的（opacity 由浏览器默认为 1）。
+   *    隐藏只发生在客户端 JS 明确判断"该元素此刻在视口之外"之后。
+   *
+   *    这样做的原因：SSR 输出里没有任何隐藏样式，所以即使 JS 加载失败、
+   *    水合出错、或者用户禁用了 JS，内容依然完整可见。
+   *    反过来说，如果初始态写成 opacity:0 再靠 JS 点亮，一旦 JS 出问题，
+   *    整页就是一片空白 —— 那正是本仓库踩过的"页面能渲染但内容是死的"的翻版。
+   *
+   * 状态由 useReveal 给出：pending（在视口外，先藏起来）→ in（进入视口，浮现）。
+   */
+  .reveal {
+    transition:
+      opacity 0.55s var(--ease-out-expo),
+      transform 0.55s var(--ease-out-expo);
+  }
+
+  .reveal--pending {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  .reveal--in {
+    opacity: 1;
+    transform: none;
+    /* 同一批元素按 --i 错落，步进与既有 .stagger 一致（45ms） */
+    transition-delay: calc(var(--i, 0) * 45ms);
+  }
+
+  /*
+   * 3D 倾斜。
+   * 旋转量由 JS 写进 CSS 变量，这里只负责把变量变成 transform。
+   * 好处：JS 只做一次赋值，插值交给 CSS transition，省掉自己写 rAF 循环。
+   */
+  /*
+   * ⚠️ 这里刻意**没有**写 will-change。
+   *
+   * will-change: transform 会让浏览器提前把元素提升为独立的合成层。
+   * 首页只有四张卡，常驻四个层毫无压力；但榜单页一屏二十几张卡片，
+   * 每张都常驻一个层，滚动时的显存与合成开销会明显上升 ——
+   * 而其中绝大多数卡片从头到尾都不会被指针碰到。
+   *
+   * 所以把提示挪到 .tilt--tracking：只有指针真的悬停上去的那一两张
+   * 才临时提升，离开后类被移除，浏览器随即回收。
+   */
+  .tilt {
+    transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transition: transform 0.35s var(--ease-out-expo);
+  }
+
+  /*
+   * 指针进入时：去掉过渡让卡片紧跟指针，同时临时开启合成层提示。
+   * 离开时两类一起消失 —— 过渡回来所以回弹柔和，合成层也随之回收。
+   */
+  .tilt--tracking {
+    transition: none;
+    will-change: transform;
+  }
+
+  /*
+   * 跟随指针的高光。
+   * 用伪元素而不是给内容加背景，这样高永远在卡片最上层但又不影响文本选择。
+   */
+  .tilt-spot {
+    @apply pointer-events-none absolute inset-0 rounded-[inherit];
+    background: radial-gradient(
+      340px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      rgb(255 255 255 / 0.12),
+      transparent 62%
+    );
+    opacity: 0;
+    transition: opacity 0.3s var(--ease-out-expo);
+  }
+
+  .tilt-spot--on {
+    opacity: 1;
+  }
+}
+
+/*
+ * 装饰层的降级。
+ *
+ * 基础层那条 prefers-reduced-motion 已经把动画时长压到 0.01ms，
+ * 但有两件事它覆盖不到，必须在这里补：
+ *   1. .reveal--pending 的 opacity:0 —— 那是"状态"不是"过渡"，
+ *      压时长救不了它，不补的话用户会看到一片空白；
+ *   2. 装饰层本身：晕动症用户对大面积缓慢移动最敏感，直接弱化到静态。
+ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal--pending {
+    opacity: 1;
+    transform: none;
+  }
+
+  .aurora-blob {
+    animation: none !important;
+  }
+
+  .gradient-frame {
+    animation: none !important;
+  }
+
+  .tilt {
+    transform: none !important;
+  }
+
+  /*
+   * 入场动画的延迟也要归零。
+   * 时长被压到 0.01ms 之后，如果 delay 还在，元素会先按 fill-mode: both
+   * 保持"看不见"的初始态等上几百毫秒再出现 —— 对减少动效的用户来说，
+   * 这比动画本身更难受。
+   */
+  .animate-fade-up,
+  .animate-pop,
+  .ring-breathe {
+    animation-delay: 0s !important;
+  }
+}
+
+/*
+ * 触屏不做倾斜。
+ * 触屏没有"悬停"概念，指针位置只在按下瞬间存在，倾斜会变成一次突兀的跳动。
+ */
+@media (hover: none) {
+  .tilt {
+    transform: none;
+  }
+
+  .tilt-spot {
+    display: none;
   }
 }

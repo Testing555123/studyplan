@@ -59,154 +59,174 @@ onMounted(() => {
 </script>
 
 <template>
-  <UContainer>
-    <!-- 面包屑：可点路径导航，替代裸返回链接 -->
-    <UBreadcrumb :items="breadcrumbItems" class="pt-10" />
+  <!-- 与列表页同源的弱光晕：从列表点进详情时，视觉不该断一层 -->
+  <div class="relative isolate">
+    <AuroraBackground variant="soft" />
 
-    <USeparator class="my-6" />
+    <UContainer class="relative">
+      <!-- 面包屑：可点路径导航，替代裸返回链接 -->
+      <UBreadcrumb :items="breadcrumbItems" class="pt-10" />
 
-    <!-- 加载骨架 -->
-    <UCard v-if="pending && !repo" :ui="{ body: 'p-6' }">
-      <USkeleton class="h-7 w-1/2" />
-      <USkeleton class="mt-4 h-4 w-3/4" />
-      <USkeleton class="mt-2 h-4 w-2/3" />
-      <div class="mt-6 flex gap-4">
-        <USkeleton class="h-4 w-20" />
-        <USkeleton class="h-4 w-16" />
-      </div>
-    </UCard>
+      <USeparator class="my-6" />
 
-    <!-- 取不到：可能是仓库不存在、被删除，或已转成私有 -->
-    <section v-else-if="error" class="pb-10">
-      <UAlert
-        color="error"
-        variant="soft"
-        icon="i-lucide-alert-circle"
-        title="没能找到这个项目"
-        :description="(error as Error).message"
-      />
-      <UButton
-        class="mt-3"
-        size="sm"
-        color="error"
-        variant="outline"
-        icon="i-lucide-refresh-cw"
-        @click="refresh()"
-      >
-        重试
-      </UButton>
-    </section>
+      <!-- 加载骨架 -->
+      <UCard v-if="pending && !repo" :ui="{ body: 'p-6' }">
+        <USkeleton class="h-7 w-1/2" />
+        <USkeleton class="mt-4 h-4 w-3/4" />
+        <USkeleton class="mt-2 h-4 w-2/3" />
+        <div class="mt-6 flex gap-4">
+          <USkeleton class="h-4 w-20" />
+          <USkeleton class="h-4 w-16" />
+        </div>
+      </UCard>
 
-    <UCard v-else-if="repo" :ui="{ body: 'p-6 sm:p-8' }">
-      <!-- 拥有者 -->
-      <div class="flex items-center gap-2">
-        <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
-        <span class="text-body-sm text-muted">{{ repo.ownerLogin }}</span>
-      </div>
-
-      <!-- 项目名 + 外链 -->
-      <div class="mt-2 flex flex-wrap items-center gap-2">
-        <h1 class="text-display font-semibold tracking-tight text-highlighted">
-          {{ repo.name }}
-        </h1>
-        <ULink
-          :to="repo.htmlUrl"
-          target="_blank"
-          rel="noopener"
-          class="inline-flex items-center gap-1 text-body-sm text-primary hover:underline"
+      <!-- 取不到：可能是仓库不存在、被删除，或已转成私有 -->
+      <section v-else-if="error" class="pb-10">
+        <UAlert
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-circle"
+          title="没能找到这个项目"
+          :description="(error as Error).message"
+        />
+        <UButton
+          class="mt-3"
+          size="sm"
+          color="error"
+          variant="outline"
+          icon="i-lucide-refresh-cw"
+          @click="refresh()"
         >
-          在 GitHub 打开
-          <ExternalLink :size="12" />
-        </ULink>
-      </div>
-
-      <!-- 数据新鲜度：与列表页一致，过期就如实说明 -->
-      <UBadge
-        v-if="detail?.stale"
-        class="mt-3"
-        color="warning"
-        variant="subtle"
-        size="sm"
-        icon="i-lucide-alert-triangle"
-      >
-        数据可能不是最新
-      </UBadge>
+          重试
+        </UButton>
+      </section>
 
       <!--
+      详情卡同样套外壳，但两处刻意调轻：
+        · :reveal="false" —— 它就在首屏，本来就该立刻可见，入场动画只会让首屏慢一拍；
+        · :max="1.5"      —— 这是阅读型页面，倾斜只是"有质感"，不该有存在感。
+    -->
+      <AppTiltCard v-else-if="repo" :max="1.5" :reveal="false">
+        <!--
+        详情页只有这一张卡，所以这里可以用**真正的**毛玻璃（半透明 + 背景模糊）——
+        与首页资料卡同一档质感，而列表页因为卡片数量多，只做了半透明没做模糊。
+      -->
+      <UCard
+        class="rounded-2xl"
+        :ui="{ root: 'bg-default/70 backdrop-blur-md', body: 'p-6 sm:p-8' }"
+      >
+          <!-- 拥有者 -->
+          <div class="flex items-center gap-2">
+            <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
+            <span class="text-body-sm text-muted">{{ repo.ownerLogin }}</span>
+          </div>
+
+          <!-- 项目名 + 外链 -->
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <h1 class="text-display font-semibold tracking-tight text-highlighted">
+              {{ repo.name }}
+            </h1>
+            <ULink
+              :to="repo.htmlUrl"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-1 text-body-sm text-primary hover:underline"
+            >
+              在 GitHub 打开
+              <ExternalLink :size="12" />
+            </ULink>
+          </div>
+
+          <!-- 数据新鲜度：与列表页一致，过期就如实说明 -->
+          <UBadge
+            v-if="detail?.stale"
+            class="mt-3"
+            color="warning"
+            variant="subtle"
+            size="sm"
+            icon="i-lucide-alert-triangle"
+          >
+            数据可能不是最新
+          </UBadge>
+
+          <!--
         简介：优先显示 AI 润色版。
         官方原文折叠在下方 —— 润色版是模型的演绎，原文才是作者自己写的事实，
         留一处可对照的入口，比"看起来干净但无从核对"要可靠。
       -->
-      <p v-if="displayIntro" class="mt-4 text-body leading-7 text-toned">
-        {{ displayIntro }}
-      </p>
-      <p v-else class="mt-4 text-body leading-7 italic text-muted">
-        这个项目还没有填写简介
-      </p>
+          <p v-if="displayIntro" class="mt-4 text-body leading-7 text-toned">
+            {{ displayIntro }}
+          </p>
+          <p v-else class="mt-4 text-body leading-7 italic text-muted">这个项目还没有填写简介</p>
 
-      <UAccordion
-        v-if="repo.description"
-        class="mt-2"
-        :items="[{ label: '查看 GitHub 原简介', content: repo.description }]"
-      />
+          <UAccordion
+            v-if="repo.description"
+            class="mt-2"
+            :items="[{ label: '查看 GitHub 原简介', content: repo.description }]"
+          />
 
-      <!-- 话题标签：详情页展示全部，不像卡片那样只取 3 个 -->
-      <div v-if="repo.topics.length > 0" class="mt-5 flex flex-wrap gap-1.5">
-        <UBadge
-          v-for="topic in repo.topics"
-          :key="topic"
-          variant="soft"
-          color="neutral"
-          size="xs"
-        >
-          {{ topic }}
-        </UBadge>
-      </div>
+          <!-- 话题标签：详情页展示全部，不像卡片那样只取 3 个 -->
+          <div v-if="repo.topics.length > 0" class="mt-5 flex flex-wrap gap-1.5">
+            <UBadge
+              v-for="topic in repo.topics"
+              :key="topic"
+              variant="soft"
+              color="neutral"
+              size="xs"
+            >
+              {{ topic }}
+            </UBadge>
+          </div>
 
-      <!-- 元信息 -->
-      <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-body-sm text-muted">
-        <span class="inline-flex items-center gap-1.5">
-          <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: dotColor }" />
-          <span>{{ repo.language ?? '未标注语言' }}</span>
-        </span>
+          <!-- 元信息 -->
+          <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-body-sm text-muted">
+            <span class="inline-flex items-center gap-1.5">
+              <span
+                class="h-2.5 w-2.5 shrink-0 rounded-full"
+                :style="{ backgroundColor: dotColor }"
+              />
+              <span>{{ repo.language ?? '未标注语言' }}</span>
+            </span>
 
-        <span class="inline-flex items-center gap-1 tabular-nums">
-          <Star :size="14" />
-          {{ repo.stargazersCount.toLocaleString() }}
-        </span>
+            <span class="inline-flex items-center gap-1 tabular-nums">
+              <Star :size="14" />
+              {{ repo.stargazersCount.toLocaleString() }}
+            </span>
 
-        <span class="inline-flex items-center gap-1 tabular-nums">
-          <GitFork :size="14" />
-          {{ repo.forksCount.toLocaleString() }}
-        </span>
+            <span class="inline-flex items-center gap-1 tabular-nums">
+              <GitFork :size="14" />
+              {{ repo.forksCount.toLocaleString() }}
+            </span>
 
-        <span>未关闭 issue {{ repo.openIssuesCount.toLocaleString() }}</span>
-        <span class="text-dimmed">创建于 {{ formatRelativeTime(repo.createdAt) }}</span>
-        <span class="text-dimmed">最近推送 {{ formatRelativeTime(repo.pushedAt) }}</span>
-      </div>
+            <span>未关闭 issue {{ repo.openIssuesCount.toLocaleString() }}</span>
+            <span class="text-dimmed">创建于 {{ formatRelativeTime(repo.createdAt) }}</span>
+            <span class="text-dimmed">最近推送 {{ formatRelativeTime(repo.pushedAt) }}</span>
+          </div>
 
-      <div class="mt-6 flex flex-wrap items-center gap-3">
-        <UButton
-          size="sm"
-          variant="soft"
-          color="primary"
-          icon="i-lucide-sparkles"
-          @click="ai.askAboutRepo(repo)"
-        >
-          问 AI
-        </UButton>
+          <div class="mt-6 flex flex-wrap items-center gap-3">
+            <UButton
+              size="sm"
+              variant="soft"
+              color="primary"
+              icon="i-lucide-sparkles"
+              @click="ai.askAboutRepo(repo)"
+            >
+              问 AI
+            </UButton>
 
-        <ULink
-          v-if="repo.homepage"
-          :to="repo.homepage"
-          target="_blank"
-          rel="noopener"
-          class="inline-flex items-center gap-1 text-body-sm text-primary hover:underline"
-        >
-          项目官网
-          <ExternalLink :size="12" />
-        </ULink>
-      </div>
-    </UCard>
-  </UContainer>
+            <ULink
+              v-if="repo.homepage"
+              :to="repo.homepage"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-1 text-body-sm text-primary hover:underline"
+            >
+              项目官网
+              <ExternalLink :size="12" />
+            </ULink>
+          </div>
+        </UCard>
+      </AppTiltCard>
+    </UContainer>
+  </div>
 </template>

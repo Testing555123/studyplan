@@ -57,9 +57,21 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     去掉 `h-full` 即可：网格项本来就是 `align-items: stretch`，
     同一行里的卡片照样等高，但内容多的那张会把行高撑开而不是溢出。
   -->
+  <!--
+    半透明底（root: 'bg-default/80'），与首页卡片同一套视觉语言 —— 让背景光晕透上来。
+    UCard 的 ui.root 会与主题里的 root 类做去重合并（tailwind-variants 内置 twMerge），
+    所以只写要改的那一项即可，不必把圆角、边框、分隔线全部重抄一遍。
+
+    ⚠️ 但**刻意不加 backdrop-blur**：这一页一屏二十几张卡，每张都做背景模糊的话，
+       滚动时每帧都要重新采样背景，代价成倍放大。
+       半透明而不模糊的观感已经足够"透气"，成本却接近于零。
+
+    ⚠️ 注释只能写在标签外。Vue 模板的属性表达式不支持块注释，
+       写进去会得到 "Error parsing JavaScript expression: Unterminated comment"。
+  -->
   <UCard
     class="group relative flex flex-col transition-all duration-300 hover:border-primary hover:shadow-sm"
-    :ui="{ body: 'flex-1 p-5', footer: 'pt-0 pb-4 px-5' }"
+    :ui="{ root: 'bg-default/80', body: 'flex-1 p-5', footer: 'pt-0 pb-4 px-5' }"
   >
     <!-- 拥有者 -->
     <div class="flex items-center gap-2">
