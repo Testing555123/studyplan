@@ -98,7 +98,7 @@ async function handleLogout(): Promise<void> {
 
     <!-- 操作区 -->
     <template #right>
-      <UTooltip text="搜索（⌘K）">
+      <UTooltip>
         <UButton
           color="neutral"
           variant="ghost"
@@ -106,6 +106,10 @@ async function handleLogout(): Promise<void> {
           label="搜索"
           @click="commandOpen = true"
         />
+        <template #content>
+          <span>搜索</span>
+          <UKbd>⌘K</UKbd>
+        </template>
       </UTooltip>
 
       <UTooltip text="切换明暗主题">

@@ -31,10 +31,9 @@
         </p>
         <UButton
           to="/ebook/"
-          color="ai"
           variant="solid"
           icon="i-lucide-arrow-right"
-          class="w-fit transition duration-200 hover:scale-[1.03] hover:shadow-lg hover:shadow-ai-500/25 active:scale-[0.97]"
+          class="w-fit bg-ai-500 text-white transition duration-200 hover:scale-[1.03] hover:bg-ai-600 hover:shadow-lg hover:shadow-ai-500/25 active:scale-[0.97]"
         >
           阅读配套电子书
         </UButton>

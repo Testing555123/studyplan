@@ -202,8 +202,8 @@ function onDeleteComment(commentId: string): void {
       </div>
     </div>
 
-    <!-- 正文 -->
-    <article v-else class="pt-6 pb-4">
+    <!-- 正文：整体包进卡片外壳，圆角 2xl / 半透明底 / 轻阴影，与首页卡片语言统一 -->
+    <article v-else class="card-surface md:p-8">
       <header>
         <h1
           class="text-display leading-tight font-semibold tracking-tight text-highlighted"

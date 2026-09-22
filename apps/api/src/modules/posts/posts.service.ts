@@ -60,10 +60,13 @@ export class PostsService {
    *     但那属于这个项目规模之外的问题。）
    */
   async findAll(query: QueryPostsDto): Promise<PostListResponse> {
-    const { page, pageSize, tag } = query
+    const { page, pageSize, tag, tags } = query
 
-    // 数组字段用标量去匹配，语义是"数组里包含这个值"，
-    // 这正是我们要的"筛选带该标签的帖子"。
+    // 筛选条件的三种形态，按优先级：多标签 > 单标签 > 全部。
+    //   - `tags`（数组）：走 `$in`，命中任意一个所选标签即可（OR 语义）；
+    //   - `tag`（标量）：数组字段用标量去匹配，语义是"数组里包含这个值"，
+    //     这正是单标签筛选要的"带该标签的帖子"。
+    //   - 都不传：不过滤。
     //
     // 这里**故意不显式标注筛选条件的类型**。
     // 原因是一个真实的踩坑：Mongoose 8 里那个 `FilterQuery<T>` 类型，
@@ -73,7 +76,11 @@ export class PostsService {
     // 而 `find()` 的入参类型本来就能从调用处自动推断，
     // 显式标注在最简单的情况下只会引入一个必须随库版本变动的名字。
     // 一般原则：**能用推断就别写注解；只有当推断不出来时才手写。**
-    const filter = tag ? { tags: tag } : {}
+    const filter = tags?.length
+      ? { tags: { $in: tags } }
+      : tag
+        ? { tags: tag }
+        : {}
 
     /**
      * 用 withTiming 包住取数。

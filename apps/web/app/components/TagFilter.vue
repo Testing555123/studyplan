@@ -1,78 +1,91 @@
 <script setup lang="ts">
 /**
- * 横向筛选条，用 `defineModel` 做双向绑定：
- *   父组件写 `<TagFilter v-model="activeTag" :tags="tags" />`，
- *   子组件直接读写 `model.value`，免去手写 props + emit 的样板。
+ * 标签筛选条，基于 USelectMenu（可搜索）。
  *
- * `tags` 由 props 传入，而不是在组件内读 store：
+ * 用 `defineModel` 做双向绑定：父组件写 `<TagFilter v-model="..." :tags="可选标签" />`，
+ * 子组件直接读写 `model.value`，免去手写 props + emit 的样板。
+ *
+ * 双向兼容两种用法：
+ *   · 单选（`multiple` 缺省 false）：模型为 `string | null`，null = 全部。
+ *     趋势页的语言筛选就是这种，显示文本与值一致，正合适。
+ *   · 多选（`multiple` 传 true）：模型为 `string[]`，空数组 = 全部。
+ *     文章列表的多标签筛选是这种。
+ *
+ * `tags`（可选标签）由 props 传入，而不是在组件内读 store：
  *   筛选条只关心「有哪些选项」，不关心数据从哪来。
  *
- * 胶囊用 `UButton`（size="xs" + variant 切换选中态），
- * 圆角、边框、hover、焦点环都交给组件库，不必再维护 `.tag-pill-*` 这类自定义类。
+ * 选中态、键盘可达、搜索框、清除按钮、下拉面板全部交给 USelectMenu，
+ * 不必再维护胶囊按钮组与「选中项滚进可视区」这类逻辑。
  *
- * `nullable` 控制是否显示「全部」：语言筛选可不选，时间档则必须选一档，
- * 所以做成开关而不是写死，默认 true 以兼容已有用法。
- */
-/**
- * 用 `withDefaults` 给 `nullable` 设默认值，避免模板里到处判空。
- * 默认 true（显示「全部」），因为现存的标签筛选都依赖它；
- * 升级组件时老页面无需改动，向后兼容优先。
+ * 触发器外层由页面用 `.card-surface` 包住（posts/index 已包），
+ * 这里只产出组件本身，保持筛选条在两类页面里同位置同语义。
+ *
+ * ⚠️ USelectMenu 的 `multiple` 是编译期决定 v-model 类型的开关：
+ *   传给它一个动态布尔（如 `:multiple="props.multiple"`）会让 vue-tsc 无法收窄模型类型。
+ *   所以这里用 `v-if / v-else` 拆成两个字面量分支，各自的 v-model 类型与 `multiple` 字面量严格对应。
  */
 const props = withDefaults(
   defineProps<{
+    /** 可选标签（白名单） */
     tags: string[]
-    /** 是否显示「全部」选项。时间档传 false（必选其一） */
-    nullable?: boolean
+    /** 是否多选；缺省为单选，保持老调用方契约不变 */
+    multiple?: boolean
+    /** 未选时的占位文案 */
+    placeholder?: string
   }>(),
-  { nullable: true },
+  { multiple: false, placeholder: '按标签筛选' },
 )
 
-/** null 代表"全部" */
-const model = defineModel<string | null>({ required: true })
+/** 选中的标签；单选时为 `string | null`（null = 全部），多选时为 `string[]`（空 = 全部） */
+const model = defineModel<string[] | string | null>({ required: true })
 
-const showAll = computed(() => props.nullable !== false)
+/** 多选分支的数组视图 */
+const multiValue = computed<string[]>({
+  get: () => (props.multiple && Array.isArray(model.value) ? model.value : []),
+  set: (value) => {
+    model.value = value
+  },
+})
 
-/**
- * 移动端横向滚动时，被选中的项要自动滚进可视区，
- * 否则用户点了第 8 个标签，界面看起来毫无反应（其实只是滚出屏幕了）。
- */
-const scroller = ref<HTMLElement | null>(null)
-
-watch(model, async () => {
-  await nextTick()
-  const active = scroller.value?.querySelector<HTMLElement>('[data-active="true"]')
-  active?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+/** 单选分支的单值视图；空串统一映射回 null（= 全部） */
+const singleValue = computed<string>({
+  get: () => (typeof model.value === 'string' ? model.value : ''),
+  set: (value) => {
+    model.value = value || null
+  },
 })
 </script>
 
 <template>
-  <div
-    ref="scroller"
-    class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+  <USelectMenu
+    v-if="props.multiple"
+    v-model="multiValue"
+    :items="props.tags"
+    multiple
+    :placeholder="props.placeholder"
+    :search-input="{ placeholder: '搜索标签…' }"
+    selected-icon="i-lucide-check"
+    clear
+    size="sm"
+    class="w-full sm:w-72"
   >
-    <UButton
-      v-if="showAll"
-      size="xs"
-      :variant="model === null ? 'solid' : 'outline'"
-      :color="model === null ? 'primary' : 'neutral'"
-      class="shrink-0 rounded-full"
-      :data-active="model === null"
-      @click="model = null"
-    >
-      全部
-    </UButton>
+    <template #leading>
+      <UIcon name="i-lucide-tag" />
+    </template>
+  </USelectMenu>
 
-    <UButton
-      v-for="tag in tags"
-      :key="tag"
-      size="xs"
-      :variant="model === tag ? 'solid' : 'outline'"
-      :color="model === tag ? 'primary' : 'neutral'"
-      class="shrink-0 rounded-full"
-      :data-active="model === tag"
-      @click="model = model === tag ? null : tag"
-    >
-      {{ tag }}
-    </UButton>
-  </div>
+  <USelectMenu
+    v-else
+    v-model="singleValue"
+    :items="props.tags"
+    :placeholder="props.placeholder"
+    :search-input="{ placeholder: '搜索标签…' }"
+    clear
+    size="sm"
+    class="w-full sm:w-72"
+  >
+    <template #leading>
+      <UIcon name="i-lucide-tag" />
+    </template>
+  </USelectMenu>
 </template>

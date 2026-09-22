@@ -446,6 +446,27 @@
   }
 
   /*
+   * 通用卡片外壳：与首页 SectionCard 的内壳像素级一致（圆角 2xl / 默认边框 /
+   * 半透明底 / 轻阴影 / hover 加深阴影），只去掉 SectionCard 上的 group-hover
+   * 动效（目标页没有 group 祖先），改用 hover:shadow-md。
+   *
+   * 用途：把首页的卡片式设计语言推进到路线、帖子流、详情、写文章等页面，
+   * 让全站卡片外观统一，但保持克制 —— 不叠加 AuroraBackground 光晕、不叠加
+   * AppTiltCard 倾斜浮现。改动只动外观，集中在这里一处，后续微调只改这一处。
+   */
+  .card-surface {
+    @apply rounded-2xl border border-default bg-default/70 p-5 shadow-sm transition-shadow duration-300 hover:shadow-md md:p-6;
+  }
+
+  /*
+   * 嵌套小卡：用于阶段内学期卡、进度统计卡这类内层容器。
+   * 比 .card-surface 更收敛（圆角 xl / 内边距更小 / 不抢视线），保留层级又不喧宾夺主。
+   */
+  .card-surface-sm {
+    @apply rounded-xl border border-default bg-default/70 p-4 shadow-sm transition-shadow duration-300 hover:shadow-md md:p-5;
+  }
+
+  /*
    * 渐变流动边框：外层给 1px 渐变底，内层用不透明背景盖住中间，
    * 只露出边缘那一圈 —— 比 mask / conic-gradient 兼容性更好。
    */

@@ -21,10 +21,23 @@ const router = useRouter()
  * 它会让这次数据获取发生在**服务端渲染阶段**，
  * 于是浏览器拿到的 HTML 里已经有帖子内容了，而不是先看到骨架再闪一下。
  */
+/**
+ * 从地址栏解析出标签集合。
+ * 兼容两种历史写法：`?tags=Vue&tags=React`（多标签）与 `?tags=Vue,React`（逗号串），
+ * 以及更早的单标签 `?tag=Vue`，保证老分享链接依然生效。
+ */
+function tagsFromQuery(): string[] {
+  const raw = route.query.tags ?? route.query.tag
+  if (Array.isArray(raw)) return raw.filter((t): t is string => typeof t === 'string')
+  if (typeof raw === 'string') return raw ? raw.split(',').map((t) => t.trim()).filter(Boolean) : []
+  return []
+}
+
 await useAsyncData('post-list-initial', async () => {
-  const fromUrl = typeof route.query.tag === 'string' ? route.query.tag : null
-  if (fromUrl !== postStore.activeTag) {
-    await postStore.selectTag(fromUrl)
+  const fromUrl = tagsFromQuery()
+  const current = postStore.selectedTags
+  if (fromUrl.join(',') !== current.join(',')) {
+    await postStore.setTags(fromUrl)
   } else {
     await postStore.fetchList(true)
   }
@@ -32,11 +45,11 @@ await useAsyncData('post-list-initial', async () => {
 })
 
 /** 标签筛选：同时更新 store 与地址栏 */
-const tagModel = computed<string | null>({
-  get: () => postStore.activeTag,
-  set: (tag) => {
-    void postStore.selectTag(tag)
-    void router.replace({ query: tag ? { tag } : {} })
+const tagModel = computed<string[]>({
+  get: () => postStore.selectedTags,
+  set: (tags) => {
+    void postStore.setTags(tags)
+    void router.replace({ query: tags.length ? { tags } : {} })
   },
 })
 
@@ -62,10 +75,10 @@ const page = computed<number>({
 
 /** 浏览器前进 / 后退时，地址栏变了要跟着重新筛选 */
 watch(
-  () => route.query.tag,
-  (value) => {
-    const next = typeof value === 'string' ? value : null
-    if (next !== postStore.activeTag) void postStore.selectTag(next)
+  () => route.query,
+  () => {
+    const next = tagsFromQuery()
+    if (next.join(',') !== postStore.selectedTags.join(',')) void postStore.setTags(next)
   },
 )
 
@@ -113,9 +126,9 @@ onMounted(async () => {
       </template>
     </UPageHeader>
 
-    <!-- 标签筛选条 -->
-    <div class="mt-7">
-      <TagFilter v-model="tagModel" :tags="postStore.availableTags" />
+    <!-- 标签筛选条：包进卡片外壳，与趋势页筛选条同位置同语义 -->
+    <div class="card-surface mt-7">
+      <TagFilter v-model="tagModel" :tags="postStore.availableTags" multiple />
     </div>
 
     <!-- 出错 -->
@@ -158,9 +171,9 @@ onMounted(async () => {
       <UEmpty
         v-else-if="postStore.items.length === 0"
         icon="i-lucide-file-text"
-        :title="postStore.activeTag ? `「${postStore.activeTag}」标签下还没有文章` : '还没有任何文章'"
+        :title="postStore.selectedTags.length ? `「${postStore.selectedTags.join('、')}」标签下还没有文章` : '还没有任何文章'"
         :description="
-          postStore.activeTag ? '换个标签看看，或者写下第一篇' : '来写下第一篇学习笔记吧'
+          postStore.selectedTags.length ? '换个标签组合看看，或者写下第一篇' : '来写下第一篇学习笔记吧'
         "
       >
         <template #actions>

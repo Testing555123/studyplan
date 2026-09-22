@@ -20,24 +20,22 @@ defineProps<{
 </script>
 
 <template>
-  <section>
-    <div class="mb-4 flex items-center gap-3">
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
-        {{ index + 1 }}
-      </div>
-      <div>
-        <h2 class="text-lg font-semibold text-highlighted">
-          {{ index + 1 }}. {{ stage.title }}
-        </h2>
-        <p class="text-sm text-muted">{{ stage.description }}</p>
-      </div>
+  <!--
+    外层卡片由 roadmap.vue 的时间线节点包 .card-surface 提供，
+    这里只渲染阶段内容（标题 + 描述 + 学期 .card-surface-sm 网格），
+    保持与全站卡片语言同源、且不与时间线序号徽标重复编号。
+  -->
+  <div>
+    <div class="mb-4">
+      <h2 class="text-lg font-semibold text-highlighted">{{ stage.title }}</h2>
+      <p class="text-sm text-muted">{{ stage.description }}</p>
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <div
         v-for="semester in stage.semesters"
         :key="semester.name"
-        class="rounded-xl border border-default bg-default p-4 shadow-sm transition-colors duration-200 hover:bg-muted/60 md:p-5"
+        class="card-surface-sm"
       >
         <h3 class="mb-3 text-sm font-semibold text-highlighted">{{ semester.name }}</h3>
         <ul class="space-y-2.5">
@@ -52,5 +50,5 @@ defineProps<{
         </ul>
       </div>
     </div>
-  </section>
+  </div>
 </template>

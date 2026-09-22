@@ -98,11 +98,19 @@ const stages: Stage[] = [
     ],
   },
 ]
+
+/** 时间线节点：序号徽标用主色底，slot 供节点卡片与序号内容插槽定位 */
+const timelineItems = computed(() =>
+  stages.map((stage, i) => ({
+    slot: `stage-${i}`,
+    avatar: { class: 'bg-primary/10' },
+  })),
+)
 </script>
 
 <template>
-  <UContainer class="space-y-8 py-6 md:py-8">
-    <div>
+  <UContainer class="space-y-6 py-6 md:py-8">
+    <div class="card-surface">
       <p class="text-sm font-medium text-primary">学习流程</p>
       <h1 class="mt-1 text-2xl font-bold text-highlighted">全栈学习路线</h1>
       <p class="mt-1 max-w-2xl text-sm leading-6 text-muted">
@@ -112,13 +120,24 @@ const stages: Stage[] = [
 
     <RoadmapProgressHeader :stages="stages" />
 
-    <div class="space-y-10">
-      <RoadmapStageSection
-        v-for="(stage, index) in stages"
+    <!-- 阶段用 UTimeline 竖向串联：节点序号徽标用主色，内容卡片落 .card-surface 保持卡片语言一致 -->
+    <UTimeline :items="timelineItems" class="mt-2">
+      <template
+        v-for="(stage, i) in stages"
         :key="stage.id"
-        :stage="stage"
-        :index="index"
-      />
-    </div>
+        #[`stage-${i}-indicator`]
+      >
+        <span class="text-sm font-semibold text-primary">{{ i + 1 }}</span>
+      </template>
+      <template
+        v-for="(stage, i) in stages"
+        :key="stage.id"
+        #[`stage-${i}-wrapper`]
+      >
+        <div class="card-surface p-6">
+          <RoadmapStageSection :stage="stage" :index="i" />
+        </div>
+      </template>
+    </UTimeline>
   </UContainer>
 </template>

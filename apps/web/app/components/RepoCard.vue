@@ -73,11 +73,33 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     class="group relative flex flex-col transition-all duration-300 hover:border-primary hover:shadow-sm"
     :ui="{ root: 'bg-default/80', body: 'flex-1 p-5', footer: 'pt-0 pb-4 px-5' }"
   >
-    <!-- 拥有者 -->
-    <div class="flex items-center gap-2">
-      <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
-      <span class="truncate text-caption text-muted">{{ repo.ownerLogin }}</span>
-    </div>
+    <!-- 拥有者：hover / 点击弹出浮层，内用 .card-surface-sm 子卡，风格与主卡同源 -->
+    <UPopover>
+      <div
+        class="relative z-10 flex cursor-pointer items-center gap-2 rounded-full transition-opacity hover:opacity-80"
+      >
+        <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
+        <span class="truncate text-caption text-muted">{{ repo.ownerLogin }}</span>
+      </div>
+
+      <template #content>
+        <div class="card-surface-sm flex items-center gap-3 p-3">
+          <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="sm" loading="lazy" />
+          <div class="min-w-0">
+            <p class="truncate text-body-sm font-semibold text-highlighted">{{ repo.ownerLogin }}</p>
+            <ULink
+              :to="`https://github.com/${repo.ownerLogin}`"
+              target="_blank"
+              rel="noopener"
+              class="text-caption text-primary transition-colors hover:underline"
+              @click.stop
+            >
+              在 GitHub 查看主页
+            </ULink>
+          </div>
+        </div>
+      </template>
+    </UPopover>
 
     <!--
       项目名：点进去看**站内详情**。

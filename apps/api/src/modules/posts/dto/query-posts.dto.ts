@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { Type } from 'class-transformer'
-import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator'
-import { MAX_PAGE_SIZE, POST_PAGE_SIZE, POST_TAGS } from '@studyplan/shared'
+import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, Max, Min } from 'class-validator'
+import { MAX_PAGE_SIZE, MAX_TAGS_PER_POST, POST_PAGE_SIZE, POST_TAGS } from '@studyplan/shared'
 
 /**
  * 帖子列表的查询参数。
@@ -49,4 +49,27 @@ export class QueryPostsDto {
   @IsOptional()
   @IsIn(POST_TAGS as readonly string[], { message: 'tag 不在白名单内' })
   tag?: string
+
+  /**
+   * 多标签筛选（与 `tag` 二选一，优先于 `tag`）。
+   *
+   * 走 MongoDB 的 `$in`：返回"命中任意一个所选标签"的帖子（OR 语义），
+   * 契合发现类筛选"给我看 Vue 或 React 相关"的直觉，
+   * 而不是 AND 那种"同时带两个标签"极易返回空结果的条件。
+   *
+   * 数组来自前端以重复 query 参数形式发送（`?tags=Vue&tags=React`），
+   * 必须由 `@Type(() => String)` 把它从字符串原样收进数组，
+   * 否则 class-validator 的 `IsArray` 在校验前就拿不到数组，直接判不合法。
+   */
+  @ApiPropertyOptional({
+    description: '多标签筛选（命中任意一个）；与 tag 二选一，优先于 tag',
+    type: [String],
+    maxItems: MAX_TAGS_PER_POST,
+  })
+  @IsOptional()
+  @IsArray({ message: 'tags 必须是数组' })
+  @ArrayMaxSize(MAX_TAGS_PER_POST, { message: `最多选择 ${MAX_TAGS_PER_POST} 个标签` })
+  @Type(() => String)
+  @IsIn(POST_TAGS as readonly string[], { each: true, message: '存在不在白名单里的标签' })
+  tags?: string[]
 }

@@ -39,12 +39,12 @@ const stats = computed(() => [
 </script>
 
 <template>
-  <div class="rounded-2xl border border-default bg-default p-6 shadow-sm md:p-8">
+  <div class="card-surface">
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <div
         v-for="stat in stats"
         :key="stat.label"
-        class="flex items-center gap-3 rounded-xl border border-default p-4"
+        class="card-surface-sm flex items-center gap-3"
       >
         <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" :class="stat.iconClass">
           <UIcon :name="stat.icon" :size="20" />

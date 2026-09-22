@@ -54,8 +54,8 @@ export const usePostStore = defineStore('post', () => {
   const total = ref(0)
   const page = ref(1)
   const pageSize = ref(POST_PAGE_SIZE)
-  /** 当前选中的标签；null 表示"全部" */
-  const activeTag = ref<string | null>(null)
+  /** 当前选中的标签集合；空数组表示"全部" */
+  const selectedTags = ref<string[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -103,14 +103,14 @@ export const usePostStore = defineStore('post', () => {
     }
 
     try {
-      // 只在有标签时才带上 tag 参数。
+      // 只在有标签时才带上 tags 参数（多标签，逗号无关，后端走 $in）。
       // 后端开了 forbidNonWhitelisted，多余或无效的查询参数会直接 400，
       // 所以这里不做"传 undefined 让它自己忽略"的赌注。
-      const query: { page: number; pageSize: number; tag?: string } = {
+      const query: { page: number; pageSize: number; tags?: string[] } = {
         page: page.value,
         pageSize: pageSize.value,
       }
-      if (activeTag.value) query.tag = activeTag.value
+      if (selectedTags.value.length) query.tags = selectedTags.value
 
       const result = await api.get<PostListResponse>('/posts', query)
 
@@ -151,11 +151,11 @@ export const usePostStore = defineStore('post', () => {
     loading.value = true
     error.value = null
     try {
-      const query: { page: number; pageSize: number; tag?: string } = {
+      const query: { page: number; pageSize: number; tags?: string[] } = {
         page: page.value,
         pageSize: pageSize.value,
       }
-      if (activeTag.value) query.tag = activeTag.value
+      if (selectedTags.value.length) query.tags = selectedTags.value
       const result = await api.get<PostListResponse>('/posts', query)
       items.value = result.items
       total.value = result.total
@@ -170,10 +170,17 @@ export const usePostStore = defineStore('post', () => {
     }
   }
 
-  /** 切换标签筛选 */
-  async function selectTag(tag: string | null): Promise<void> {
-    if (activeTag.value === tag) return
-    activeTag.value = tag
+  /** 把筛选标签规整成「去重 + 去空 + 排序」的规范形态，便于比较与发送 */
+  function normalizeTags(tags: string[]): string[] {
+    return [...new Set(tags)].filter(Boolean).sort()
+  }
+
+  /** 切换标签筛选（多选） */
+  async function setTags(tags: string[]): Promise<void> {
+    const next = normalizeTags(tags)
+    const current = normalizeTags(selectedTags.value)
+    if (next.join(',') === current.join(',')) return
+    selectedTags.value = next
     await fetchList(true)
   }
 
@@ -404,7 +411,7 @@ export const usePostStore = defineStore('post', () => {
     total,
     page,
     pageSize,
-    activeTag,
+    selectedTags,
     loading,
     error,
     hasMore,
@@ -412,7 +419,7 @@ export const usePostStore = defineStore('post', () => {
     fetchList,
     loadMore,
     goToPage,
-    selectTag,
+    setTags,
     // 详情
     current,
     comments,

@@ -76,4 +76,6 @@ export interface PostQuery {
   pageSize?: number
   /** 传入某个标签时只返回带该标签的帖子 */
   tag?: string
+  /** 多标签筛选（命中任意一个）；与 tag 二选一，优先于 tag */
+  tags?: string[]
 }
