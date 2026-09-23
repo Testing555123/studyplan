@@ -11,8 +11,6 @@
  * `popping` 在点击后只保持 500ms，用来触发一次 CSS 缩放动画；
  * 动画结束就移除 class，这样连点时能再次触发（否则第二次点击没有反馈）。
  */
-import { Heart } from 'lucide-vue-next'
-
 const props = withDefaults(
   defineProps<{
     liked: boolean
@@ -51,8 +49,6 @@ function onClick(): void {
 }
 
 onBeforeUnmount(() => clearTimeout(timer))
-
-const iconSize = computed(() => (props.size === 'sm' ? 14 : 17))
 </script>
 
 <template>
@@ -63,16 +59,24 @@ const iconSize = computed(() => (props.size === 'sm' ? 14 : 17))
     :variant="liked ? 'soft' : 'outline'"
     :color="liked ? 'error' : 'neutral'"
     size="sm"
-    class="rounded-full"
+    class="rounded-pill"
     :disabled="pending"
     :aria-pressed="liked"
     @click="onClick"
   >
     <template #leading>
-      <Heart
-        :size="iconSize"
-        :fill="liked ? 'currentColor' : 'none'"
-        :class="popping ? 'animate-pop' : ''"
+      <!--
+        改用 UIcon：全站图标统一走 Iconify（`i-lucide-*`），不再单独 import 组件。
+        「已赞」的实心效果用 `fill-current` 达成 —— lucide 是描边图标，
+        靠 SVG 的 fill 填实，与原先给 <Heart> 传 fill="currentColor" 视觉一致。
+      -->
+      <UIcon
+        name="i-lucide-heart"
+        :class="[
+          popping ? 'animate-pop' : '',
+          liked ? 'fill-current' : '',
+          size === 'sm' ? 'size-[14px]' : 'size-[17px]',
+        ]"
       />
     </template>
     <span class="tabular-nums">{{ count }}</span>

@@ -70,6 +70,12 @@ ENV NUXT_PUBLIC_API_BASE=$NUXT_PUBLIC_API_BASE
 ARG NUXT_PUBLIC_SITE_URL=https://studyplan-teal.vercel.app
 ENV NUXT_PUBLIC_SITE_URL=$NUXT_PUBLIC_SITE_URL
 
+# 前端里「电子书」链接的地址。生产环境挂在同域的 /ebook（由入口脚本提供静态产物），
+# 所以这里覆盖掉前端的本地默认值 http://localhost:3002。
+# ⚠️ 不加这一行，线上按钮/页脚会指向 localhost:3002 —— 用户点了必然打不开。
+ARG NUXT_PUBLIC_DOCS_URL=/ebook/
+ENV NUXT_PUBLIC_DOCS_URL=$NUXT_PUBLIC_DOCS_URL
+
 # 电子书挂在主站子路径下，产物里的资源引用必须带上前缀，否则浏览器会去
 # 请求 /assets/* 而落到 Nuxt 上 → 全部 404。
 # ⚠️ VitePress 的 base 必须**同时以 `/` 开头和结尾**（`/ebook/`）。

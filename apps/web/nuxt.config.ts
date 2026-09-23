@@ -1,4 +1,11 @@
 // Nuxt 4 的配置文件。它决定"框架如何组装这个应用"。
+import { readFileSync } from 'node:fs'
+
+// 读取同目录 package.json，仅取 version 字段（用于构建期版本号）。
+// 用 fs 读取而非 `import pkg from './package.json'`，是因为 Nuxt 配置是 ESM，
+// JSON import 断言在不同 Node/Bundler 版本兼容性参差，fs 读取最稳。
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
+
 export default defineNuxtConfig({
   // 声明本项目特性兼容到哪个日期，框架据此决定新特性是否默认开启
   compatibilityDate: '2026-09-01',
@@ -23,19 +30,12 @@ export default defineNuxtConfig({
   /**
    * 模块列表。
    *
-   * motion-v/nuxt 是本次引入的唯一动效库：它注册 <Motion> 组件，
-   * 并自动导入 useScroll / useTransform / useMotionValue / useInView /
-   * useReducedMotion 等组合式函数。
-   *
-   * 为什么选它而不是 @vueuse/motion：后者在 dependencies 里锁了
-   * @nuxt/kit@^3.13（Nuxt 3 时代），在 Nuxt 4.5 下会被 pnpm 装成两份 kit，
-   * Nuxt 模块 API 有不对齐的风险；motion-v 只把 vue 与 @vueuse/core 列为 peer，
-   * 与当前版本组合没有冲突。
-   *
-   * ⚠️ 只用它做「必须连续计算」的动效（滚动视差、指针跟随倾斜）。
-   *    装饰性的渐变、光晕、玻璃质感一律用 CSS —— 那样即使 JS 失效，视觉依然成立。
+   * 曾经这里还有 `motion-v/nuxt`（动效库），随光晕与 3D 倾斜一起移除 ——
+   * 那两个效果是全站唯一需要「连续计算」的地方，改版后所有动效都能用
+   * CSS transition / animation 表达，为一个已经没有消费者的库
+   * 继续承担依赖体积与模块启动成本并不划算。
    */
-  modules: ['@nuxt/ui', '@pinia/nuxt', 'motion-v/nuxt'],
+  modules: ['@nuxt/ui', '@pinia/nuxt'],
 
   // 全局样式入口
   css: ['~/assets/css/main.css'],
@@ -110,6 +110,36 @@ export default defineNuxtConfig({
        * 完整可用的 canonical，而不是一行空字符串。
        */
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3001',
+
+      /**
+       * 构建版本号（**浏览器侧使用**），形式为 `v0.1.0 · 2026-09-23 14:02 UTC`。
+       *
+       * ⚠️ 同样是**构建期常量**：值在 `nuxt build` 时由 package.json 的 version
+       *    拼接当前 UTC 时间戳算好，烘焙进客户端 bundle；改环境变量不会生效，
+       *    必须重新 build（与 apiBase / siteUrl 同口径）。
+       *
+       * 用途：开发/部署后能一眼判断「站点是否重建更新过」——每次 rebuild
+       *    时间戳都不同。容器时区固定 UTC，故显示也标注 UTC，避免歧义。
+       *
+       * 默认自动计算；CI 或特殊场景可用 `NUXT_PUBLIC_APP_VERSION` 覆盖整串。
+       */
+      appVersion:
+        process.env.NUXT_PUBLIC_APP_VERSION ||
+        `v${pkg.version} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`,
+
+      /**
+       * 电子书（VitePress）的地址。
+       *
+       * 为什么不能写死 `/ebook/`：那是**生产环境**才成立的路径——
+       * 由 `docker/vercel/entrypoint.mjs` 直接读盘返回静态产物，
+       * 而 Nuxt 里**根本没有 `/ebook` 这个页面**（pages 下没有对应文件）。
+       * 本地点它会走到 Nuxt 路由 → 404。
+       *
+       * 本地默认值 `http://localhost:3002` 是 `apps/docs` 的 VitePress
+       * dev / preview 端口（见 `apps/docs/package.json`），先跑
+       * `pnpm dev:docs` 才能打开。生产由 Dockerfile.vercel 注入 `/ebook/`。
+       */
+      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'http://localhost:3002',
     },
   },
 
@@ -185,6 +215,11 @@ export default defineNuxtConfig({
           media: 'print',
           onload: "this.media='all'",
         },
+        // 品牌图标：矢量 svg 覆盖现代浏览器，.ico 含 16–256px 多尺寸兜底旧浏览器，
+        // 180px png 供 iOS 主屏（apple-touch-icon 不接受 svg）
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/icon-180.png' },
       ],
       meta: [
         { charset: 'utf-8' },
@@ -207,6 +242,10 @@ export default defineNuxtConfig({
         { property: 'og:site_name', content: 'studyplan' },
         { property: 'og:type', content: 'website' },
         { name: 'twitter:card', content: 'summary_large_image' },
+        // 站点级 OG 图兜底：各页面（app.vue / 帖子详情）会用运行时绝对地址覆盖它，
+        // 这里保证没单独设置的页面（/roadmap、/trending…）也有图可分享
+        { property: 'og:image', content: `${process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/og-cover.jpg` },
+        { name: 'twitter:image', content: `${process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/og-cover.jpg` },
       ],
     },
   },

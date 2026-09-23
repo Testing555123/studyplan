@@ -34,12 +34,12 @@ function initials(name: string): string {
 </script>
 
 <template>
-  <div class="glass-card relative rounded-2xl p-6 md:p-8">
+  <div class="glass-card relative rounded-panel p-6 md:p-8">
     <div class="flex flex-col gap-6 sm:flex-row sm:items-start">
       <!-- 头像 + 呼吸光环 -->
       <div class="relative shrink-0 animate-fade-up">
         <span
-          class="ring-breathe absolute -inset-2 rounded-full bg-gradient-to-br from-brand-400 to-ai-500 blur-md"
+          class="ring-breathe absolute -inset-2 rounded-pill bg-gradient-to-br from-brand-400 to-ai-500 blur-md"
           aria-hidden="true"
         />
         <UAvatar
@@ -77,12 +77,18 @@ function initials(name: string): string {
     </div>
 
     <!-- README 盒：内嵌一层磨砂，与外卡形成"玻璃里还有一层玻璃"的层次 -->
-    <div
-      class="mt-6 animate-fade-up rounded-xl border border-default bg-muted/40 p-4 backdrop-blur-sm md:p-5"
+    <!--
+      README 盒改用 UCard：边框 / 底色 / 内距交给组件库的 variant 与 ui，
+      这里只保留两件组件不管的事 —— 磨砂背景与入场动画。
+    -->
+    <UCard
+      variant="soft"
+      class="mt-6 animate-fade-up backdrop-blur-sm"
+      :ui="{ body: 'p-4 md:p-5' }"
       style="animation-delay: 180ms"
     >
       <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
-        <UIcon name="i-lucide-file-text" :size="14" />
+        <UIcon name="i-lucide-file-text" class="size-[var(--icon-sm)]" />
         README.md
       </div>
       <div class="space-y-2">
@@ -90,6 +96,6 @@ function initials(name: string): string {
           {{ line }}
         </p>
       </div>
-    </div>
+    </UCard>
   </div>
 </template>

@@ -62,8 +62,8 @@ useSeoMeta({
   ogTitle: () => post.value?.title ?? 'studyplan · 学习社区',
   ogDescription: () => post.value?.summary || FALLBACK_DESCRIPTION,
   ogUrl: () => `${siteOrigin}/posts/${postId.value}`,
-  ogImage: `${siteOrigin}/og-cover.png`,
-  twitterImage: `${siteOrigin}/og-cover.png`,
+  ogImage: `${siteOrigin}/og-cover.jpg`,
+  twitterImage: `${siteOrigin}/og-cover.jpg`,
 })
 
 /**
@@ -194,7 +194,7 @@ function onDeleteComment(commentId: string): void {
     <div v-else-if="!post" class="mt-8 space-y-4">
       <USkeleton class="h-7 w-3/4" />
       <USkeleton class="h-3 w-40" />
-      <USkeleton class="h-24 rounded-2xl" />
+      <USkeleton class="h-24 rounded-panel" />
       <div class="space-y-2">
         <USkeleton class="h-3 w-full" />
         <USkeleton class="h-3 w-11/12" />
@@ -203,7 +203,7 @@ function onDeleteComment(commentId: string): void {
     </div>
 
     <!-- 正文：整体包进卡片外壳，圆角 2xl / 半透明底 / 轻阴影，与首页卡片语言统一 -->
-    <article v-else class="card-surface md:p-8">
+    <BentoCard v-else as="article" class="md:p-8">
       <header>
         <h1
           class="text-display leading-tight font-semibold tracking-tight text-highlighted"
@@ -214,7 +214,7 @@ function onDeleteComment(commentId: string): void {
         <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
           <div class="flex items-center gap-2.5">
             <span
-              class="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-body-sm font-semibold text-primary"
+              class="grid h-8 w-8 place-items-center rounded-pill bg-primary/10 text-body-sm font-semibold text-primary"
             >
               {{ avatarInitial(post.author.username) }}
             </span>
@@ -223,11 +223,11 @@ function onDeleteComment(commentId: string): void {
             </span>
           </div>
 
-          <span class="text-dimmed">·</span>
+          <span class="text-muted">·</span>
           <time class="text-meta text-muted" :datetime="post.createdAt">
             {{ formatDate(post.createdAt) }}
           </time>
-          <span class="text-dimmed">·</span>
+          <span class="text-muted">·</span>
           <span class="text-meta text-muted">约 {{ minutes }} 分钟读完</span>
         </div>
 
@@ -253,7 +253,7 @@ function onDeleteComment(commentId: string): void {
         variant="soft"
         icon="i-lucide-sparkles"
         title="AI 摘要"
-        :ui="{ icon: 'text-ai-500' }"
+        :ui="{ icon: 'text-ai-600' }"
       >
         <template #description>
           <p class="text-body leading-7">{{ post.summary }}</p>
@@ -283,7 +283,7 @@ function onDeleteComment(commentId: string): void {
         这里给出"正在来"的预期，而不是留一片空白让用户以为坏了。
       -->
       <p v-else-if="aiPending" class="mt-7 flex items-center gap-2 text-meta text-muted">
-        <UIcon name="i-lucide-sparkles" class="animate-pulse text-ai-500" />
+        <UIcon name="i-lucide-sparkles" class="animate-pulse text-ai-600" />
         AI 正在为这篇文章生成摘要与推荐标签，稍后刷新即可看到
       </p>
 
@@ -297,7 +297,7 @@ function onDeleteComment(commentId: string): void {
           :count="post.likeCount"
           @toggle="onToggleLike"
         />
-        <span class="text-meta text-dimmed">觉得有用就点个赞，作者会看到</span>
+        <span class="text-meta text-muted">觉得有用就点个赞，作者会看到</span>
       </div>
 
       <CommentList
@@ -310,6 +310,6 @@ function onDeleteComment(commentId: string): void {
         @submit="onSubmitComment"
         @delete="onDeleteComment"
       />
-    </article>
+    </BentoCard>
   </div>
 </template>

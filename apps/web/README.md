@@ -53,14 +53,17 @@ Nuxt 4 把源码收进 `app/`，剩下的目录各自有明确用途。
 **自动导入**是 Nuxt 最省事的机制：`components/`、`composables/`、`utils/` 里的东西
 不用写 `import` 就能直接用。
 
-但它有个必须记住的例外：**第三方库的组件不在自动导入范围内**。
-比如 `lucide-vue-next` 的图标，必须自己显式 import：
+图标不走「引入组件」这条路：全站统一用 Nuxt UI 的 `<UIcon>` 配 Iconify 图标集
+（`i-lucide-heart` 这种写法），由 `@iconify-json/lucide` 提供，
+**不需要**任何 import，也不会出现「忘了 import 就静默渲染不出来」的问题。
 
 ```vue
-<script setup lang="ts">
-import { Heart } from 'lucide-vue-next' // 漏掉这行不会报错，只会静默渲染不出来
-</script>
+<UIcon name="i-lucide-heart" class="size-4" />
 ```
+
+> 曾经这里用的是 `import { Heart } from 'lucide-vue-next'`，那也正是上面那段
+> 「必须显式 import」说法的来源。现已全数改为 UIcon，该依赖也已移除 ——
+> 两种写法并存会让图标尺寸与描边粗细不一致，统一一种更好维护。
 
 ---
 

@@ -30,7 +30,7 @@
  * 反过来，给 `trending.vue` 补一个 `<NuxtPage />` 是**错误**的修法：
  * 那会把详情页嵌套进列表页的界面里。
  */
-import { ExternalLink } from 'lucide-vue-next'
+
 import { DEFAULT_TRENDING_RANGE, TRENDING_RANGES, isTrendingRange } from '@studyplan/shared'
 import type { TrendingRange, TrendingResponse } from '@studyplan/shared'
 
@@ -130,12 +130,14 @@ const filtersOpen = ref(false)
 
 <template>
   <!--
-    光晕层与首页同源，只是用 soft 变体（单团、低透明度、视差减半）。
-    这一页一屏二十几张卡片，背景若和首页一样强，眼睛会被背景牵走。
+    此处原本有一层光晕（AuroraBackground variant="soft"），现已移除。
+
+    原因：装饰层做空间隔离 —— 光晕只属于"欢迎场景"（首页），
+    而本页一屏二十几张卡片，是高密度的内容场景。背景持续漂移会把注意力
+    从榜单内容上牵走，也让整站的"安静/有氛围"失去区分度。
+    移除后这一页可以更专注地承载信息，与首页拉开节奏差。
   -->
   <div class="relative isolate">
-    <AuroraBackground variant="soft" />
-
     <UContainer class="relative">
       <!-- 页头：用 UPageHeader 统一页头节奏（eyebrow / 主标题 / 描述 / 右侧操作），替代手搓 section -->
       <UPageHeader headline="GitHub 热门" title="GitHub 热门项目">
@@ -160,7 +162,12 @@ const filtersOpen = ref(false)
 
       <!-- 桌面端筛选：时间档 + 语言 -->
       <!-- 筛选区玻璃化：与背景分层，又不抢卡片本身的视觉重量 -->
-      <div class="glass-panel mt-7 hidden items-start gap-6 rounded-xl p-4 sm:flex">
+      <!--
+        p-5（20px）而非 p-4：与下方 BentoCard 的内距同值，
+        让「时间范围」标签和卡片内容落在同一条左边界上。
+        mb-4（16px）与 BentoGrid 的 gap-4 同值，统一区块之间的呼吸。
+      -->
+      <div class="glass-panel mt-7 mb-4 hidden items-start gap-6 rounded-card p-5 sm:flex">
         <div>
           <p class="mb-2 text-eyebrow font-medium uppercase tracking-wider text-muted">时间范围</p>
           <div
@@ -172,7 +179,7 @@ const filtersOpen = ref(false)
               size="xs"
               :variant="range === item.value ? 'solid' : 'outline'"
               :color="range === item.value ? 'primary' : 'neutral'"
-              class="shrink-0 rounded-full"
+              class="shrink-0 rounded-pill"
               @click="range = item.value"
             >
               {{ item.label }}
@@ -187,7 +194,8 @@ const filtersOpen = ref(false)
       </div>
 
       <!-- 移动端：筛选入口（滑出抽屉） -->
-      <div class="mt-7 sm:hidden">
+      <!-- mb-4：与桌面端筛选面板一致，让「报导卡不渲染时」下方仍有 16px 间距 -->
+      <div class="mt-7 mb-4 sm:hidden">
         <UButton
           color="neutral"
           variant="outline"
@@ -252,29 +260,29 @@ const filtersOpen = ref(false)
 
       <!-- 项目网格：用 UPageGrid 统一响应式列数与间距，错落淡入（stagger + fade-up）沿用既有动画 -->
       <section v-else-if="result">
-        <UPageGrid :ui="{ base: 'relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' }">
-          <!--
-          错落序号与倾斜幅度交给 AppTiltCard：
-            · max 从首页的 4° 降到 2° —— 卡片密集时大幅倾斜会让整屏都在晃；
-            · 原有的 .stagger 与手写 --i 已移除，否则会和外壳自带的
-              transition-delay 叠成双倍延迟，表现为"卡片等很久才出来"。
+        <!--
+          卡片外壳与尺寸差交给 BentoGrid / BentoCard：
+            · 榜单第一名做成 2×2 的「头条」，其余 2×1 —— 用尺寸建立主次，
+              而不是靠排行数字（数字在卡片里本来就有了）；
+            · 原先包裹卡片的 AppTiltCard（3D 倾斜）已移除，改由 BentoCard 的
+              hover 上浮统一表达"这张卡可以点"。
           TransitionGroup 保留：切筛选条件导致列表项增删时，它仍负责进出场过渡。
         -->
+        <BentoGrid>
           <TransitionGroup name="fade-up">
-            <AppTiltCard
+            <div
               v-for="(repo, index) in result.items"
               :key="repo.id"
-              :index="index"
-              :max="2"
+              :class="index === 0 ? 'md:col-span-2 md:row-span-2' : 'md:col-span-2'"
               class="flex"
             >
               <RepoCard class="h-full flex-1" :repo="repo" @ask="ai.askAboutRepo" />
-            </AppTiltCard>
+            </div>
           </TransitionGroup>
-        </UPageGrid>
+        </BentoGrid>
 
         <!-- 数据来源说明：榜单口径必须交代清楚，否则容易被误读成"涨粉最快榜" -->
-        <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-dimmed">
+        <p class="mt-8 flex items-center justify-center gap-1.5 text-caption text-muted">
           数据来源：GitHub Search API · 统计口径为该时间区间内<b>新建</b>项目中 star 最高者
           <ULink
             to="https://docs.github.com/en/rest/search/search"
@@ -282,7 +290,7 @@ const filtersOpen = ref(false)
             class="inline-flex items-center gap-1 text-primary hover:underline"
           >
             接口文档
-            <ExternalLink :size="11" />
+            <UIcon name="i-lucide-external-link" class="size-[var(--icon-xs)]" />
           </ULink>
         </p>
       </section>
@@ -316,7 +324,7 @@ const filtersOpen = ref(false)
                   size="xs"
                   :variant="range === item.value ? 'solid' : 'outline'"
                   :color="range === item.value ? 'primary' : 'neutral'"
-                  class="rounded-full"
+                  class="rounded-pill"
                   @click="range = item.value"
                 >
                   {{ item.label }}

@@ -10,7 +10,7 @@
  * 文字颜色用语义类（`text-highlighted` / `text-muted` / `text-toned`），不必再为每个颜色写 `dark:` 变体。
  * 间距、flex、网格这类布局类 Nuxt UI 不提供，照常保留。
  */
-import { ServerOff } from 'lucide-vue-next'
+
 
 const postStore = usePostStore()
 const route = useRoute()
@@ -116,8 +116,8 @@ onMounted(async () => {
           size="md"
         >
           <template #leading>
-            <ServerOff v-if="backendOnline === false" :size="13" />
-            <span v-else class="h-1.5 w-1.5 rounded-full bg-success" />
+            <UIcon v-if="backendOnline === false" name="i-lucide-server-off" class="size-[var(--icon-sm)]" />
+            <span v-else class="h-1.5 w-1.5 rounded-pill bg-success" />
           </template>
           <span v-if="backendOnline === null">检测后端…</span>
           <span v-else-if="backendOnline">后端已连接</span>
@@ -127,7 +127,12 @@ onMounted(async () => {
     </UPageHeader>
 
     <!-- 标签筛选条：包进卡片外壳，与趋势页筛选条同位置同语义 -->
-    <div class="card-surface mt-7">
+    <!--
+      md:p-5：`.card-surface` 本体是 p-5 md:p-6，≥768px 时内距会变 24px，
+      与下方文章卡（BentoCard p-5 = 20px）对不齐。这里定点覆盖回 20px。
+      （不改 main.css 的 .card-surface 本体 —— 路线图页也依赖它的 24px 节奏。）
+    -->
+    <div class="card-surface mt-7 md:p-5">
       <TagFilter v-model="tagModel" :tags="postStore.availableTags" multiple />
     </div>
 
@@ -155,45 +160,54 @@ onMounted(async () => {
     <!-- 帖子列表 -->
     <section v-else>
       <!-- 首屏加载骨架：形状要和真实卡片一致，否则内容出现时会"跳一下" -->
-      <template v-if="postStore.loading && postStore.items.length === 0">
-        <UCard v-for="index in 4" :key="`skeleton-${index}`">
+      <BentoGrid v-if="postStore.loading && postStore.items.length === 0">
+        <BentoCard v-for="index in 4" :key="`skeleton-${index}`" :col-span="2">
           <USkeleton class="h-4 w-2/3" />
           <USkeleton class="mt-3 h-3 w-full" />
           <USkeleton class="mt-2 h-3 w-4/5" />
           <div class="mt-4 flex gap-2">
-            <USkeleton class="h-5 w-16 rounded-full" />
-            <USkeleton class="h-5 w-20 rounded-full" />
+            <USkeleton class="h-5 w-16 rounded-pill" />
+            <USkeleton class="h-5 w-20 rounded-pill" />
           </div>
-        </UCard>
-      </template>
+        </BentoCard>
+      </BentoGrid>
 
-      <!-- 空结果：一定要给出"下一步做什么"，而不是一片空白 -->
-      <UEmpty
-        v-else-if="postStore.items.length === 0"
-        icon="i-lucide-file-text"
-        :title="postStore.selectedTags.length ? `「${postStore.selectedTags.join('、')}」标签下还没有文章` : '还没有任何文章'"
-        :description="
-          postStore.selectedTags.length ? '换个标签组合看看，或者写下第一篇' : '来写下第一篇学习笔记吧'
-        "
-      >
-        <template #actions>
-          <UButton to="/posts/new" icon="i-lucide-pen-line">去写文章</UButton>
-        </template>
-      </UEmpty>
-
-      <!-- 真实列表：错落淡入（stagger + fade-up），reduced-motion 下由全局媒体查询降级 -->
-      <TransitionGroup v-else name="fade-up" tag="div" class="stagger space-y-4">
-        <div
-          v-for="(post, index) in postStore.items"
-          :key="post.id"
-          :style="{ '--i': index }"
+      <!-- 空结果：外壳走 BentoCard，与列表卡片同源，而不是 UEmpty 自带的 ring/bg -->
+      <BentoCard v-else-if="postStore.items.length === 0" class="mt-4">
+        <UEmpty
+          :ui="{ root: 'ring-0 bg-transparent p-0 sm:p-0 lg:p-0' }"
+          icon="i-lucide-file-text"
+          :title="postStore.selectedTags.length ? `「${postStore.selectedTags.join('、')}」标签下还没有文章` : '还没有任何文章'"
+          :description="
+            postStore.selectedTags.length ? '换个标签组合看看，或者写下第一篇' : '来写下第一篇学习笔记吧'
+          "
         >
-          <PostCard
-            :post="post"
-            @toggle-like="onToggleLike"
-          />
-        </div>
-      </TransitionGroup>
+          <template #actions>
+            <UButton to="/posts/new" icon="i-lucide-pen-line">去写文章</UButton>
+          </template>
+        </UEmpty>
+      </BentoCard>
+
+      <!--
+        真实列表：第一篇做成 2×2 的「头条」，其余为 2×1。
+        全等宽的列表会让页面变成一堵没有重点的墙 —— Bento 的重点就是
+        用尺寸差建立主次，让读者一眼知道该从哪篇开始看。
+      -->
+      <BentoGrid v-else>
+        <TransitionGroup name="fade-up">
+          <div
+            v-for="(post, index) in postStore.items"
+            :key="post.id"
+            :class="index === 0 ? 'md:col-span-2 md:row-span-2' : 'md:col-span-2'"
+          >
+            <PostCard
+              class="h-full"
+              :post="post"
+              @toggle-like="onToggleLike"
+            />
+          </div>
+        </TransitionGroup>
+      </BentoGrid>
     </section>
 
     <!-- 分页：用 UPagination 替代"加载更多"，可直达任意页 -->

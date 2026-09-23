@@ -65,30 +65,94 @@
    * 且"靛蓝→紫"的渐变是当下 AI 类产品主流的视觉语言，AI 助手按钮用上很自然。
    * 这是"换主色必须连带检查语义色"的典型例子。
    */
+  /*
+   * 色阶必须凑满 11 档（Tailwind violet 标准色阶）。
+   *
+   * ⚠️ 这里曾经只有 6 档（50/100/400/500/600/700），是个真实的隐患：
+   *    app.config.ts 把 ai 注册成了 Nuxt UI 的颜色别名，而 Nuxt UI 会展开
+   *    11 个色阶逐个引用（--ui-color-ai-950: var(--color-ai-950, )）。
+   *    缺档时该变量取到空兜底值，表现为"某个组件在某种状态下突然没颜色"，
+   *    且不报任何错、极难定位 —— 与 brand 色阶踩过的坑完全同源（见文件顶部注释）。
+   *    补齐后两者对称，隐患消除。
+   */
   --color-ai-50: #f5f3ff;
   --color-ai-100: #ede9fe;
+  --color-ai-200: #ddd6fe;
+  --color-ai-300: #c4b5fd;
   --color-ai-400: #a78bfa;
   --color-ai-500: #8b5cf6;
   --color-ai-600: #7c3aed;
   --color-ai-700: #6d28d9;
+  --color-ai-800: #5b21b6;
+  --color-ai-900: #4c1d95;
+  --color-ai-950: #2e1065;
 
-  /* 圆角与阴影：大圆角 + 克制阴影，是这个界面的性格 */
-  --radius-card: 1rem;
-  --radius-pill: 9999px;
+  /* 圆角令牌统一定义在下方「圆角」一节（此处原先的 1rem / 9999px 已上移合并） */
 
   /*
-   * 语义字号：收敛散落的 text-[Npx] 任意值，统一成命名令牌。
-   * 全站字号只有这一处来源，明暗主题与后续调整都只改这里。
+   * 字阶：7 档，4px 对齐，无分数像素。全站字号只有这一处来源。
+   *
+   * ⚠️ 旧字阶是 11/12/12.5/13/13.5/15/17/22/26 —— 三个问题：
+   *   1. 前五档比值只有 1.04–1.11，肉眼分不出 12.5px 与 13px、13px 与 13.5px，
+   *      等于"有层级但看不出层级"；
+   *   2. 12.5px / 13.5px 是分数像素，1× DPI 下会触发亚像素取整，
+   *      不同浏览器与缩放层级渲染结果不一致；
+   *   3. 正文 13.5px 低于"行动端正文 ≥16px"的可读性底线，且没有行高配对。
+   *
+   * 新字阶保留语义名（text-body / text-caption… 比 text-base / text-sm 更能表达用途），
+   * 只把值对齐到 4px 网格，并逐档配上行高。这样全站 100 处调用点无需改名，
+   * 但读起来立刻变大变清楚。
+   *
+   * 同时提供 Tailwind 标准名（--text-xs…3xl）供新代码使用，两者值一致。
    */
-  --text-eyebrow: 0.6875rem;    /* 11px    页眉副标 / 极小字 */
-  --text-caption: 0.75rem;       /* 12px    头像字 / 小字 */
-  --text-meta: 0.78125rem;       /* 12.5px  元信息 / 时间 */
-  --text-body-sm: 0.8125rem;     /* 13px    次标题 / 用户名 */
-  --text-body: 0.84375rem;       /* 13.5px  正文 */
-  --text-subtitle: 0.9375rem;    /* 15px    卡片标题(小) */
-  --text-title: 1.0625rem;       /* 17px    卡片标题(大) */
-  --text-heading: 1.375rem;      /* 22px    区块大标题 / 预览标题 */
-  --text-display: 1.625rem;      /* 26px    文章页主标题 */
+  --text-eyebrow: 0.75rem;   /* 12px  页眉副标 / 极小字（原 11px） */
+  --text-caption: 0.75rem;   /* 12px  头像字 / 小字 */
+  --text-meta: 0.875rem;     /* 14px  元信息 / 时间（原 12.5px） */
+  --text-body-sm: 0.875rem;  /* 14px  次标题 / 用户名（原 13px） */
+  --text-body: 1rem;         /* 16px  正文（原 13.5px —— 对齐行动端 16px 底线） */
+  --text-subtitle: 1.125rem; /* 18px  卡片标题(小)（原 15px） */
+  --text-title: 1.25rem;     /* 20px  卡片标题(大)（原 17px） */
+  --text-heading: 1.5rem;    /* 24px  区块大标题 / 预览标题（原 22px） */
+  --text-display: 1.875rem;   /* 30px  文章页主标题（原 26px） */
+
+  /* 行高配对：正文 24/16 = 1.5，落在"正文 1.5–1.75"的推荐区间内 */
+  --text-eyebrow--line-height: 1rem;
+  --text-caption--line-height: 1rem;
+  --text-meta--line-height: 1.25rem;
+  --text-body-sm--line-height: 1.25rem;
+  --text-body--line-height: 1.5rem;
+  --text-subtitle--line-height: 1.75rem;
+  --text-title--line-height: 1.75rem;
+  --text-heading--line-height: 2rem;
+  --text-display--line-height: 2.375rem;
+
+  /* Tailwind 标准名（值与上面一致，供新代码使用） */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 2.375rem;
+
+  /*
+   * 字距。此前 tracking-[0.18em] 只在侧栏硬编码过一次，
+   * 提到令牌后任何"小字 + 大字距"的标签写法都有统一来源。
+   */
+  --tracking-tight: -0.011em;
+  --tracking-eyebrow: 0.18em;
+
+  /* 字体族：此前写在 @layer base 的 html 上，font-sans 工具类并不指向 Inter */
+  --font-sans: 'Inter', 'Noto Sans SC', 'PingFang SC', system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
   /*
    * 缓动曲线令牌。
@@ -102,30 +166,326 @@
    */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* 装饰层光晕的模糊半径：集中一处，方便整体调"虚化程度" */
-  --blur-aurora: 56px;
+  /* ============================================================
+     圆角
+     ------------------------------------------------------------
+     ⚠️ 重要：Nuxt UI 的圆角是**派生值**，不是固定值：
+         --radius-xs:  calc(var(--ui-radius) * 0.5)
+         --radius-sm:  var(--ui-radius)
+         --radius-md:  calc(var(--ui-radius) * 1.5)
+         --radius-lg:  calc(var(--ui-radius) * 2)
+         --radius-xl:  calc(var(--ui-radius) * 3)
+         --radius-2xl: calc(var(--ui-radius) * 4)
+       默认 --ui-radius: 0.25rem，于是 md=6px / lg=8px / xl=12px / 2xl=16px。
+       组件主题里 rounded-md 用了 59 处、rounded-lg 26 处、rounded-sm 18 处。
+
+       所以**不能直接把 --ui-radius 改成 0.75rem** —— 那会让
+       rounded-xl 变成 36px、rounded-2xl 变成 48px，自订卡片全部变形。
+
+       正确做法是保持 --ui-radius 不变，直接覆写派生档位本身：
+         · md / lg 提到 12px —— 按钮、输入框等控件与卡片圆角一致
+         · xl / 2xl 维持 12px / 16px —— 自订卡片与面板视觉零变化
+         · xs / sm 小幅上调，保持 xs < sm < md 的顺序
+     ============================================================ */
+  --radius-xs: 0.25rem;   /* 4px  （原 2px） */
+  --radius-sm: 0.5rem;    /* 8px  （原 4px） */
+  --radius-md: 0.75rem;   /* 12px （原 6px）—— Nuxt UI 按钮 / 输入框 */
+  --radius-lg: 0.75rem;   /* 12px （原 8px） */
+  --radius-xl: 0.75rem;   /* 12px —— 与现状一致，自订卡片不变 */
+  --radius-2xl: 1rem;     /* 16px —— 与现状一致，面板不变 */
+  --radius-3xl: 1rem;     /* 16px —— 收敛，避免 24px 的过大圆角 */
+
+  /* 语义圆角：写业务代码时用具名令牌，而不是记 xl/2xl 是几像素 */
+  --radius-card: 0.75rem;   /* 12px */
+  --radius-panel: 1rem;     /* 16px */
+  --radius-pill: 9999px;
+
+  /* ============================================================
+     Elevation：5 层语义阴影
+     ------------------------------------------------------------
+     每层都是"近距锐利 + 远距柔和"的双层结构 —— 单层阴影在浅色背景上
+     容易糊成一道灰边，双层才有"物体离桌面有距离"的层次感。
+     偏移量按 1 / 4 / 12 / 24px 递增，层与层之间一眼可分。
+     ============================================================ */
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.06);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 6px -2px rgb(15 23 42 / 0.05);
+  --shadow-lg: 0 12px 32px -8px rgb(15 23 42 / 0.14), 0 4px 12px -4px rgb(15 23 42 / 0.07);
+  --shadow-overlay: 0 24px 64px -16px rgb(15 23 42 / 0.22),
+    0 8px 24px -8px rgb(15 23 42 / 0.1);
+
+  /* 玻璃专用：顶部高光边模拟"玻璃有厚度"（原 .glass-card 的硬编码值搬到这里） */
+  --shadow-glass: inset 0 1px 0 0 var(--glass-highlight),
+    0 12px 40px -16px var(--shadow-ambient);
+
+  /*
+   * Bento 卡片 hover 专用：柔和宽阴影。
+   *
+   * 与上面五层的区别是**刻意不分层**：Bento 的卡片本来就靠 1px 边框分面，
+   * hover 只需要一层"整块浮起来"的柔和扩散，不需要"近距锐利"的那一层。
+   * 30px 的模糊半径配合 8px 下移，观感是抬起而不是投影。
+   *
+   * ⚠️ 这是**非硬边**阴影（无 0 模糊的实心投影），符合 Bento 规范；
+   *    暗色下阴影需要单独加深，见 .dark 块的覆盖。
+   */
+  --shadow-bento: 0 8px 30px rgb(0 0 0 / 0.08);
+
+  /* ============================================================
+     时长 / 缓动
+     ------------------------------------------------------------
+     此前约 11 种时长散落在 keyframes 与 transition 里，改一处要找十处。
+     收成 7 档后，"整体动效快一点/慢一点"变成改一行的事。
+     出场（150ms）刻意快于入场（200ms）：离开不该拖泥带水。
+     ============================================================ */
+  /*
+   * 只保留实际被引用到的四档（instant / slower / spring / in-out 已删除）。
+   * 删除理由：它们全站零引用，留着会让人误以为"有这套刻度"而继续往上加，
+   * 最后变成"文档里有、代码里没有"的假约束。
+   */
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-enter: 200ms;
+  --duration-exit: 150ms;
+
+  /* ============================================================
+     间距语义层
+     ------------------------------------------------------------
+     刻度值沿用 Tailwind 默认（天然 4px 网格），这里只加"用途别名"：
+     以前 p-5 不知道是卡片内距还是区块内距，改密度只能逐个找。
+     ============================================================ */
+  --space-section: 4rem;    /* 64px  区块之间 */
+
+  /* 图标尺寸：此前 18 / 20 / 14 硬编码在各组件里 */
+  --icon-xs: 12px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
 }
 
 /* ------------------------------------------------------------------
    基础层：给整个文档定基调
    ------------------------------------------------------------------ */
 @layer base {
+  /*
+   * 语义层令牌（Layer 2：primitive → semantic → component 的中间层）。
+   *
+   * 为什么写在 @layer base 而不是 @theme：
+   * @theme 里的每个变量都会被 Tailwind 展开成同名工具类
+   * （--z-header → z-header、--layout-header-h → h-header…）。
+   * 这些名字并不需要成为工具类，写进 @theme 只会污染命名空间。
+   * 本层变量一律通过 var() 引用，不生成任何工具类。
+   */
+  :root {
+    /* —— 主色语义分离 —— */
+    /*
+     * Nuxt UI 在构建期生成：
+     *   --ui-color-primary-500: var(--color-brand-500, …)
+     *   --ui-primary:           var(--ui-color-primary-500)   ← 亮色
+     *   .dark 下 --ui-primary:  var(--ui-color-primary-400)
+     * 而 bg-primary / text-primary / border-primary 全部解析到
+     * --color-primary → --ui-primary。所以覆写这一个变量，
+     * 实心底、文字、边框会一起变，不需要逐个组件改。
+     *
+     * 为什么是 brand-700（#0e7490）而不是 brand-500（#06b6d4）：
+     *   白字 on brand-500 = 2.43:1  ✗ 远低于 AA 的 4.5:1
+     *   白字 on brand-700 = 5.36:1  ✓
+     *   brand-700 on 白底 = 5.36:1  ✓（链接与图标文字同时达标）
+     * 装饰渐变的鲜艳青蓝改由 --color-primary-decor 显式提供，不受影响。
+     */
+    --ui-primary: var(--color-brand-700);
+    --color-on-primary: #ffffff;
+
+    /*
+     * AI 语义色：与主色同构的覆写。
+     *
+     * Nuxt UI 生成 --ui-ai: var(--ui-color-ai-500)，
+     * 而 bg-ai / text-ai / border-ai 全部解析到 --color-ai → --ui-ai。
+     *
+     * 为什么是 ai-600（#7c3aed）而不是 ai-500（#8b5cf6）：
+     *   ai-500 对白底 4.24:1，差 0.26 未达 AA 的 4.5:1
+     *   ai-600 对白底 5.70:1 ✓（白字 on ai-600 同为 5.70:1）
+     * ai-400 / ai-500 继续用于渐变与边框这类无对比度要求的装饰。
+     */
+    --ui-ai: var(--color-ai-600);
+
+    /* —— 装饰色：从散落的字面量收进来，并为暗色覆盖预留挂点 —— */
+    --glass-highlight: rgb(255 255 255 / 0.14);
+    --shadow-ambient: rgb(15 23 42 / 0.18);
+    --overlay-scrim: rgb(0 0 0 / 0.4);
+
+    /* —— Z-index（此前全站只有 z-40 / z-50 两个裸值）—— */
+    --z-fab: 30;
+    --z-header: 40;
+    --z-drawer: 50;
+
+    /*
+     * —— 布局 ——
+     * 直接复用 Nuxt UI 既有值（--ui-header-height: 4rem、--ui-container: 80rem），
+     * 避免"Nuxt UI 容器 1280px、自订容器 1200px"两套宽度并存。
+     */
+    --layout-header-h: var(--ui-header-height); /* 4rem / 64px */
+    --layout-sidebar-expanded: 16rem; /* 256px */
+    --layout-sidebar-collapsed: 5rem; /* 80px */
+
+    /*
+     * 侧栏内容的统一左内距（gutter）。
+     *
+     * 侧栏内层容器已有 px-3（12px），但三种子元素各自又叠了不同内距：
+     *   导航项 UButton 内建 px-2.5 → 22px
+     *   分区标题手写 px-3         → 24px
+     *   进度卡 body p-4           → 28px
+     * 三条左边界相差最多 6px，看起来就是「没对齐」。
+     *
+     * 统一由这一个 token 提供，三者内容都落在 12 + 16 = 28px。
+     * 取 16px 是沿用进度卡既有的 p-4 —— 改动最小，且与展开宽度 16rem 的密度匹配。
+     */
+    --layout-sidebar-gutter: 1rem; /* 16px */
+    --layout-content-max: var(--ui-container); /* 80rem / 1280px */
+    --fab-size: 3rem; /* 48px */
+    --fab-inset: 1.5rem; /* 24px */
+
+    /*
+     * —— Elevation 语义层 ——
+     *
+     * ⚠️ 这里曾是**真实存在的回归 bug**：
+     *     --elevation-card-hover: var(--[box-shadow:var(--elevation-card)]);
+     *     --elevation-panel:       var(--[box-shadow:var(--elevation-card)]);
+     *   起因是一次全局替换把 Tailwind 类名 `shadow-sm` 换成
+     *   `[box-shadow:var(--elevation-card)]` 时，误伤了 CSS 变量引用本身。
+     *   `--[box-shadow:...]` 不是合法的 custom property 名，var() 取不到值
+     *   → 整个声明无效 → box-shadow 落到 none。
+     *   表现是"品牌方块与所有卡片的 hover 阴影凭空消失"，且不报任何错。
+     *
+     * 现在一律指向 @theme 里的真实阴影令牌：
+     *   card 用 xs（静止几乎无影，靠边框分面）
+     *   card-hover / panel 用 bento（柔和宽阴影，抬起感）
+     */
+    --elevation-card: var(--shadow-xs);
+    --elevation-card-hover: var(--shadow-bento);
+    --elevation-panel: var(--shadow-bento);
+    --elevation-fab: var(--shadow-md);
+    --elevation-drawer: var(--shadow-overlay);
+  }
+
+  /*
+   * 暗色下主色要换档：
+   * 暗色模式 Nuxt UI 用 --ui-text-inverted: neutral-900（深色字）配实心底，
+   * 若沿用亮色的 brand-700，深色字 on brand-700 只有 3.26:1，不达标。
+   * 改用 brand-400（#22d3ee）后，深色字 on brand-400 = 9.68:1。
+   */
+  .dark {
+    --ui-primary: var(--color-brand-400);
+    /*
+     * 暗色下 --ui-ai 默认已是 ai-400，这里显式写出来，
+     * 是为了让"亮色 600 / 暗色 400"这条规则对两个语义色保持一致、可读。
+     */
+    --ui-ai: var(--color-ai-400);
+
+    /*
+     * 装饰色在暗色下必须单独取值。
+     *
+     * 这三个值是亮色设计的：白色高光在深色背景上会过曝成一道刺眼的亮边，
+     * 18% 的深色环境阴影在深色背景上则几乎看不见、失去"离桌面有距离"的层次。
+     * 挂点早在令牌化时（--glass-highlight / --shadow-ambient / --spot-highlight）
+     * 就预留好了，这里只需覆盖值，.glass-card 会自动跟着变。
+     */
+    --glass-highlight: rgb(255 255 255 / 0.06); /* 亮色 0.14 → 暗色 0.06，避免过曝 */
+    --shadow-ambient: rgb(0 0 0 / 0.4); /* 亮色 slate 18% → 暗色纯黑 40%，否则看不见 */
+
+    /*
+     * Bento 阴影在暗色下必须加深。
+     * 亮色的 8% 黑投在深色背景上几乎不可见，"卡片浮起来"这件事就丢了；
+     * 提到 45% 才有对应的抬起感（与 shadow-ambient 同思路）。
+     */
+    --shadow-bento: 0 8px 30px rgb(0 0 0 / 0.45);
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* 字体：Inter（西文/数字）优先，Noto Sans SC 承接中文，再退化到系统_ui */
-    font-family: 'Inter', 'Noto Sans SC', 'PingFang SC', system-ui, -apple-system,
-      'Segoe UI', Roboto, sans-serif;
+    /* 字体：Inter（西文/数字）优先，Noto Sans SC 承接中文，再退化到系统字体 */
+    font-family: var(--font-sans);
   }
 
   body {
     @apply bg-default text-toned antialiased;
   }
 
-  /* 键盘可达性：所有可聚焦元素都要有清晰但不刺眼的焦点环 */
-  :focus-visible {
-    @apply outline-2 outline-offset-2 outline-brand-500;
+  /*
+   * 输入框聚焦平滑化（Bento 规范要求 duration-200）。
+   *
+   * 写在这里而不是逐个组件加 class：UInput / UTextarea 最终渲染的就是原生
+   * input / textarea，一处生效即全站生效 —— 不必每个表单都记得写一遍，
+   * 也不会出现"这个输入框有过渡、那个没有"的参差。
+   */
+  input,
+  textarea {
+    transition:
+      border-color 200ms var(--ease-out-expo),
+      background-color 200ms var(--ease-out-expo),
+      box-shadow 200ms var(--ease-out-expo);
   }
+
+  /*
+   * 键盘可达性：所有可聚焦元素都要有清晰但不刺眼的焦点环。
+   *
+   * ⚠️ 颜色从 brand-500 改成 brand-700：
+   *   brand-500（#06b6d4）对白底只有 2.43:1，低于焦点指示器要求的 3:1；
+   *   更要命的是它落在同色的主按钮上时，与按钮融为一体、完全看不见。
+   *   brand-700（#0e7490）对白底 5.36:1，两种场景都清晰。
+   */
+  :focus-visible {
+    @apply outline-2 outline-offset-2;
+    outline-color: var(--color-brand-700);
+  }
+
+  /* 暗色下 brand-700 偏暗，改用 brand-400（在 stone-950 上 10.93:1） */
+  .dark :focus-visible {
+    outline-color: var(--color-brand-400);
+  }
+
+/*
+ * Nuxt UI 组件的焦点环与 hover 修正。
+ *
+ * 背景：组件主题（.nuxt/ui/button.ts）里 solid 变体写的是
+ *   text-inverted bg-primary hover:bg-primary/75 active:bg-primary/75
+ *   outline-primary/25 focus-visible:outline-3
+ * 这些类属于 utilities 层，优先级高于上面 @layer base 里的 :focus-visible，
+ * 所以如果不处理，按钮拿到的是"3px 的 25% 主色"焦点环 —— 几乎看不见；
+ * 而 hover 的 /75 会稀释底色，把白字对比度从 5.36:1 拉低到 3.33:1。
+ *
+ * 这里在同一层（utilities）用相同选择器覆写，后定义者胜：
+ *   · 焦点环改为不透明的 brand-700（白底 5.36:1）
+ *   · hover / active 改为不透明的 brand-800（白字 7.27:1），而不是稀释主色
+ */
+/*
+ * ⚠️ 层叠顺序的坑（实测）：
+ *   这些类由 Nuxt UI 的主题生成，产物里排在**本文件之后**。
+ *   同在 utilities 层、特异性相同的情况下"后定义者胜"，
+ *   所以单纯写 .hover\:bg-primary\/75:hover 是不生效的（实测位置在其之前）。
+ *
+ *   解决办法分两处：
+ *   · 焦点环：outline-color 只在 focus-visible 时可见，用 !important 无副作用；
+ *   · hover / active：用 :not(:disabled):not([aria-disabled]) 抬高特异性，
+ *     同时**排除禁用态** —— 否则禁用按钮被 hover 时会错误地变成深色。
+ */
+@layer utilities {
+  .outline-primary\/25 {
+    outline-color: var(--color-brand-700) !important;
+  }
+
+  .dark .outline-primary\/25 {
+    outline-color: var(--color-brand-400) !important;
+  }
+
+  .hover\:bg-primary\/75:not(:disabled):not([aria-disabled='true']):hover {
+    background-color: var(--color-brand-800);
+  }
+
+  .active\:bg-primary\/75:not(:disabled):not([aria-disabled='true']):active {
+    background-color: var(--color-brand-800);
+  }
+}
 
   /* 尊重 prefers-reduced-motion：关闭过渡与动画，避免眩晕（Pre-Delivery Checklist 必查项） */
   @media (prefers-reduced-motion: reduce) {
@@ -168,15 +528,15 @@
 
   /* Markdown 正文排版（颜色一律用语义类，自动适配明暗；行高放宽到 32px 护眼） */
   .prose-post {
-    @apply text-subtitle leading-8 text-toned;
+    @apply text-body leading-7 text-toned;
   }
 
   .prose-post h2 {
-    @apply mt-8 mb-3 text-xl font-semibold text-highlighted;
+    @apply mt-8 mb-3 text-2xl font-semibold text-highlighted;
   }
 
   .prose-post h3 {
-    @apply mt-6 mb-2 text-lg font-semibold text-highlighted;
+    @apply mt-6 mb-2 text-xl font-semibold text-highlighted;
   }
 
   .prose-post p {
@@ -200,19 +560,24 @@
   }
 
   .prose-post pre {
-    @apply my-5 overflow-x-auto rounded-xl bg-inverted p-4 text-body-sm leading-6 text-inverted;
+    @apply my-5 overflow-x-auto rounded-card bg-inverted p-4 text-body-sm leading-6 text-inverted;
   }
 
   .prose-post pre code {
     @apply bg-transparent p-0 text-inverted;
   }
 
+  /*
+   * 引用块：左边框从 border-primary-400 改为 border-default。
+   * brand-400（#22d3ee）对白底只有 1.81:1，作为装饰边框过于刺眼，
+   * 而且"引用"本身不需要强调色 —— 弱化边框、用斜体与缩进表达语义即可。
+   */
   .prose-post blockquote {
-    @apply my-5 border-l-4 border-primary-400 bg-muted py-2 pl-4 italic text-muted;
+    @apply my-5 border-l-4 border-default bg-muted py-2 pl-4 italic text-muted;
   }
 
   .prose-post img {
-    @apply my-5 max-w-full rounded-xl;
+    @apply my-5 max-w-full rounded-card;
   }
 
   .prose-post hr {
@@ -257,9 +622,9 @@
     animation: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  /* 头像光环的呼吸：周期长、幅度小，只在余光里被感知到 */
+  /* 头像光环的呼吸：周期拉长到 8s、幅度收敛（幅度见 keyframes）——静止界面不该有明显节拍 */
   .ring-breathe {
-    animation: ring-breathe 5.5s ease-in-out infinite;
+    animation: ring-breathe 8s ease-in-out infinite;
   }
 
   /*
@@ -294,29 +659,19 @@
    ------------------------------------------------------------------
    这一块的共同前提是：**装饰不能成为内容的依赖**。
    所有效果都满足两条：
-     1. JS 不执行时，内容照常可见（见 .reveal 的注释）；
+     1. JS 不执行时，内容照常可见；
      2. 装饰元素一律 aria-hidden + pointer-events-none，不进 Tab 顺序。
    ------------------------------------------------------------------ */
 
 /*
- * 光晕漂移。
- * 只改 transform（位移 + 缩放），不改位置/尺寸属性 ——
- * transform 走 GPU 合成层，不会触发重排，长周期动画也能保持 60fps。
- * 周期刻意拉到 20s 以上：观感是"呼吸"，不是"跳动"。
+ * 头像光环的呼吸：透明度与轻微缩放一起动，避免只有透明度变化显得"闪"。
+ *
+ * ⚠️ 参数已收敛（原 opacity .35↔.75、scale 1↔1.05、周期 5.5s）：
+ *    这是一个**永不停止**的无限动画，5.5s 的周期在阅读场景下会被余光持续感知，
+ *    幅度 .35↔.75 接近翻倍，观感是"在闪"而不是"在呼吸"。
+ *    改为周期 8s、幅度 .35↔.55、scale 1↔1.02 —— 慢到只留下"活的"印象，
+ *    不再形成可辨识的节拍。
  */
-@keyframes aurora-drift {
-  0% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(6%, -4%, 0) scale(1.12);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-/* 头像光环的呼吸：透明度与轻微缩放一起动，避免只有透明度变化显得"闪" */
 @keyframes ring-breathe {
   0%,
   100% {
@@ -324,64 +679,12 @@
     transform: scale(1);
   }
   50% {
-    opacity: 0.75;
-    transform: scale(1.05);
-  }
-}
-
-/*
- * 渐变流动。
- * 用 background-position 而不是改颜色：颜色插值在部分浏览器里会掉帧，
- * 而位移是纯合成操作。配合 background-size: 200% 形成无缝循环。
- */
-@keyframes gradient-pan {
-  from {
-    background-position: 0% 50%;
-  }
-  to {
-    background-position: 200% 50%;
+    opacity: 0.55;
+    transform: scale(1.02);
   }
 }
 
 @layer components {
-  /*
-   * 光晕容器：铺满父级并裁掉溢出部分。
-   *
-   * 为什么必须 overflow-hidden：光晕是大尺寸模糊圆，不裁切会让页面出现
-   * 横向滚动条 —— 这类"多出一个滚动条"的 bug 在真机上才容易发现。
-   */
-  .aurora-root {
-    @apply pointer-events-none absolute inset-0 overflow-hidden;
-  }
-
-  /* 单个光晕团：形状与模糊在这里，颜色由组件用 CSS 变量注入 */
-  .aurora-blob {
-    @apply absolute rounded-full;
-    filter: blur(var(--blur-aurora));
-    will-change: transform;
-  }
-
-  /*
-   * 三档漂移速度。
-   *
-   * ⚠️ 它们必须挂在**内层**元素上：视差由外层（motion-v 写入 inline transform）
-   *    负责，漂移只能用 animation 改 transform —— 两者若在同一元素上会互相覆盖
-   *    （animation 的优先级高于 inline style，结果是视差失效）。
-   *
-   * 负的 delay 让三团一开始就处在各自周期的不同位置，避免整齐划一地一起动。
-   */
-  .drift-slow {
-    animation: aurora-drift 34s ease-in-out infinite;
-  }
-
-  .drift-mid {
-    animation: aurora-drift 26s ease-in-out infinite -7s;
-  }
-
-  .drift-fast {
-    animation: aurora-drift 20s ease-in-out infinite -13s;
-  }
-
   /*
    * 玻璃卡。
    *
@@ -393,9 +696,8 @@
    */
   .glass-card {
     @apply border border-default bg-default/60 backdrop-blur-2xl;
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.14),
-      0 12px 40px -16px rgb(15 23 42 / 0.18);
+    /* 原为内联的字面量，改引语义令牌：暗色模式下只需覆盖那两个变量即可 */
+    box-shadow: var(--shadow-glass);
   }
 
   /*
@@ -446,16 +748,37 @@
   }
 
   /*
+   * Bento 卡片内的图标底座。
+   *
+   * 只管「圆角 + 过渡 + group-hover 放大」，颜色（含 hover 换色）由使用处
+   * 按卡片色调叠加 —— 因为换色目标是跟着卡片 tone 走的，写死在这里会逼得
+   * 每张卡都要覆盖一次。
+   *
+   * group-hover 而不是 hover：图标要跟着**整张卡**响应，而不是只有指针
+   * 压在图标上时才动。这才是"卡片是一个整体小组件"的观感。
+   */
+  .bento-icon {
+    @apply grid shrink-0 place-items-center rounded-2xl transition-transform duration-200 ease-out group-hover:scale-110;
+  }
+
+  /*
    * 通用卡片外壳：与首页 SectionCard 的内壳像素级一致（圆角 2xl / 默认边框 /
    * 半透明底 / 轻阴影 / hover 加深阴影），只去掉 SectionCard 上的 group-hover
-   * 动效（目标页没有 group 祖先），改用 hover:shadow-md。
+   * 动效（目标页没有 group 祖先），改用 hover:[box-shadow:var(--elevation-card-hover)]。
    *
    * 用途：把首页的卡片式设计语言推进到路线、帖子流、详情、写文章等页面，
    * 让全站卡片外观统一，但保持克制 —— 不叠加 AuroraBackground 光晕、不叠加
    * AppTiltCard 倾斜浮现。改动只动外观，集中在这里一处，后续微调只改这一处。
    */
   .card-surface {
-    @apply rounded-2xl border border-default bg-default/70 p-5 shadow-sm transition-shadow duration-300 hover:shadow-md md:p-6;
+    @apply rounded-panel border border-default bg-default/70 p-5 transition-shadow md:p-6;
+    /* 阴影走语义 elevation 层，不再直接写 shadow-sm / hover:shadow-md */
+    box-shadow: var(--elevation-card);
+    transition-duration: var(--duration-slow);
+  }
+
+  .card-surface:hover {
+    box-shadow: var(--elevation-card-hover);
   }
 
   /*
@@ -463,136 +786,25 @@
    * 比 .card-surface 更收敛（圆角 xl / 内边距更小 / 不抢视线），保留层级又不喧宾夺主。
    */
   .card-surface-sm {
-    @apply rounded-xl border border-default bg-default/70 p-4 shadow-sm transition-shadow duration-300 hover:shadow-md md:p-5;
+    @apply rounded-card border border-default bg-default/70 p-4 transition-shadow md:p-5;
+    box-shadow: var(--elevation-card);
+    transition-duration: var(--duration-slow);
   }
 
-  /*
-   * 渐变流动边框：外层给 1px 渐变底，内层用不透明背景盖住中间，
-   * 只露出边缘那一圈 —— 比 mask / conic-gradient 兼容性更好。
-   */
-  .gradient-frame {
-    @apply rounded-2xl p-[1.5px];
-    background-image: linear-gradient(
-      120deg,
-      var(--color-brand-400),
-      var(--color-ai-500),
-      var(--color-brand-400)
-    );
-    background-size: 200% 100%;
-    animation: gradient-pan 9s linear infinite;
-  }
-}
-
-@layer utilities {
-  /*
-   * 进入视口浮现。
-   *
-   * ⚠️ 这里刻意**不提供"默认隐藏"的初始态**：
-   *    元素在没有 .reveal--pending 时是完全可见的（opacity 由浏览器默认为 1）。
-   *    隐藏只发生在客户端 JS 明确判断"该元素此刻在视口之外"之后。
-   *
-   *    这样做的原因：SSR 输出里没有任何隐藏样式，所以即使 JS 加载失败、
-   *    水合出错、或者用户禁用了 JS，内容依然完整可见。
-   *    反过来说，如果初始态写成 opacity:0 再靠 JS 点亮，一旦 JS 出问题，
-   *    整页就是一片空白 —— 那正是本仓库踩过的"页面能渲染但内容是死的"的翻版。
-   *
-   * 状态由 useReveal 给出：pending（在视口外，先藏起来）→ in（进入视口，浮现）。
-   */
-  .reveal {
-    transition:
-      opacity 0.55s var(--ease-out-expo),
-      transform 0.55s var(--ease-out-expo);
+  .card-surface-sm:hover {
+    box-shadow: var(--elevation-card-hover);
   }
 
-  .reveal--pending {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  .reveal--in {
-    opacity: 1;
-    transform: none;
-    /* 同一批元素按 --i 错落，步进与既有 .stagger 一致（45ms） */
-    transition-delay: calc(var(--i, 0) * 45ms);
-  }
-
-  /*
-   * 3D 倾斜。
-   * 旋转量由 JS 写进 CSS 变量，这里只负责把变量变成 transform。
-   * 好处：JS 只做一次赋值，插值交给 CSS transition，省掉自己写 rAF 循环。
-   */
-  /*
-   * ⚠️ 这里刻意**没有**写 will-change。
-   *
-   * will-change: transform 会让浏览器提前把元素提升为独立的合成层。
-   * 首页只有四张卡，常驻四个层毫无压力；但榜单页一屏二十几张卡片，
-   * 每张都常驻一个层，滚动时的显存与合成开销会明显上升 ——
-   * 而其中绝大多数卡片从头到尾都不会被指针碰到。
-   *
-   * 所以把提示挪到 .tilt--tracking：只有指针真的悬停上去的那一两张
-   * 才临时提升，离开后类被移除，浏览器随即回收。
-   */
-  .tilt {
-    transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
-    transition: transform 0.35s var(--ease-out-expo);
-  }
-
-  /*
-   * 指针进入时：去掉过渡让卡片紧跟指针，同时临时开启合成层提示。
-   * 离开时两类一起消失 —— 过渡回来所以回弹柔和，合成层也随之回收。
-   */
-  .tilt--tracking {
-    transition: none;
-    will-change: transform;
-  }
-
-  /*
-   * 跟随指针的高光。
-   * 用伪元素而不是给内容加背景，这样高永远在卡片最上层但又不影响文本选择。
-   */
-  .tilt-spot {
-    @apply pointer-events-none absolute inset-0 rounded-[inherit];
-    background: radial-gradient(
-      340px circle at var(--spot-x, 50%) var(--spot-y, 50%),
-      rgb(255 255 255 / 0.12),
-      transparent 62%
-    );
-    opacity: 0;
-    transition: opacity 0.3s var(--ease-out-expo);
-  }
-
-  .tilt-spot--on {
-    opacity: 1;
-  }
 }
 
 /*
  * 装饰层的降级。
  *
  * 基础层那条 prefers-reduced-motion 已经把动画时长压到 0.01ms，
- * 但有两件事它覆盖不到，必须在这里补：
- *   1. .reveal--pending 的 opacity:0 —— 那是"状态"不是"过渡"，
- *      压时长救不了它，不补的话用户会看到一片空白；
- *   2. 装饰层本身：晕动症用户对大面积缓慢移动最敏感，直接弱化到静态。
+ * 但装饰层本身它覆盖不到：晕动症用户对大面积缓慢移动最敏感，
+ * 这里直接弱化到静态。
  */
 @media (prefers-reduced-motion: reduce) {
-  .reveal--pending {
-    opacity: 1;
-    transform: none;
-  }
-
-  .aurora-blob {
-    animation: none !important;
-  }
-
-  .gradient-frame {
-    animation: none !important;
-  }
-
-  .tilt {
-    transform: none !important;
-  }
-
   /*
    * 入场动画的延迟也要归零。
    * 时长被压到 0.01ms 之后，如果 delay 还在，元素会先按 fill-mode: both
@@ -606,16 +818,4 @@
   }
 }
 
-/*
- * 触屏不做倾斜。
- * 触屏没有"悬停"概念，指针位置只在按下瞬间存在，倾斜会变成一次突兀的跳动。
- */
-@media (hover: none) {
-  .tilt {
-    transform: none;
-  }
 
-  .tilt-spot {
-    display: none;
-  }
-}

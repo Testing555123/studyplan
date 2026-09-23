@@ -130,6 +130,123 @@ pnpm dev:docs
 
 ---
 
+## 本地容器化运行（Docker Compose）
+
+不想在本地装一整套 Node/pnpm 依赖、只想把整套服务跑在容器里？用 Docker Compose
+一键起 **MongoDB + 后端(NestJS) + 前端(Nuxt SSR)** 三个服务。电子书文档不在此编排内
+（它只是静态产物，按需另跑 `pnpm dev:docs` 或单独部署）。
+
+### 前置条件
+
+- Docker Desktop 已安装且**守护进程在运行**（`docker ps` 能正常返回）；
+- `docker compose` 是 v2（`docker compose version` 有输出）。
+
+### 1. 准备后端环境变量
+
+后端强依赖 MongoDB，缺 `MONGODB_URI` 进程启动即失败。先用模板生成 `apps/api/.env`：
+
+```powershell
+# Windows PowerShell：复制模板
+Copy-Item .env.example apps/api/.env
+```
+
+然后**至少填三项**：
+
+| 变量 | 说明 |
+| --- | --- |
+| `MONGODB_URI` | 本地 Docker 里写 `mongodb://localhost:27017/studyplan` 即可；`docker-compose.yml` 的 api 服务会用 `mongodb://mongo:27017/studyplan` 覆盖它（容器内走服务名 DNS） |
+| `JWT_ACCESS_SECRET` | Access Token 签名密钥，96 字符随机串 |
+| `JWT_REFRESH_SECRET` | Refresh Token 签名密钥，同上，另生成一个 |
+
+两个密钥生成方式（各跑一次，把输出分别粘进 `.env`）：
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+> `AI`（`NVNIM_*`）与 `GitHub`（`GITHUB_TOKEN`）相关变量**全部可留空**——未配 Key 时
+> AI 自动降级为「未启用」，应用其余部分完全正常。当前仓库里的 `apps/api/.env`
+> 已按此填好，可直接用于本地 Docker。
+
+### 2. 构建并启动
+
+```bash
+docker compose up --build -d
+#   或等价地走根脚本：pnpm docker:up
+```
+
+编排关系（`docker-compose.yml` 已写好）：
+
+| 服务 | 镜像 | 宿主端口 | 说明 |
+| --- | --- | --- | --- |
+| `mongo` | mongo:7 | 27017 | 数据卷 `mongo-data` 持久化；健康检查通过后才起 api |
+| `api` | 本地构建 | 3000 | NestJS；`depends_on` mongo healthy |
+| `web` | 本地构建 | 3001←3000 | Nuxt SSR；浏览器侧接口地址烘焙进 bundle |
+
+无需反向代理：浏览器直连 `http://localhost:3000/api`，SSR 服务端走容器内部
+`http://api:3000/api`（前后端用两套接口地址，天然兼容）。
+
+### 3. 访问地址
+
+| 用途 | 地址 |
+| --- | --- |
+| 前端首页 | http://localhost:3001 |
+| 后端接口 | http://localhost:3000/api |
+| Swagger 文档 | http://localhost:3000/docs |
+| 健康检查 | http://localhost:3000/api/health |
+
+验证后端真正健康（MongoDB 可达）：
+
+```bash
+curl http://localhost:3000/api/health
+# → {"status":"ok","info":{"mongodb":{"status":"up"}}}
+```
+
+### 4. 数据与生命周期
+
+```bash
+docker compose ps              # 看三个服务状态
+docker compose logs -f api     # 跟踪 api 日志（web / mongo 同理）
+docker compose down            # 停服务，保留 mongo 数据卷
+docker compose down -v         # 停服务，连 mongo 数据卷一起删（数据清空）
+```
+
+### 5. 改源码后如何重建 / 更新
+
+改了某个服务源码，单独重建它即可，不用全量重来：
+
+```bash
+docker compose up --build -d api     # 只重建后端
+docker compose up --build -d web     # 只重建前端
+```
+
+> ⚠️ **待办：应用 AI 状态修复**。源码已修好「空 `NVNIM_API_KEY` 被误报为已启用」的问题
+> （`apps/api/src/modules/ai/nv-nim.client.ts`），但**运行中的 api 镜像还没包含它**——
+> 因为构建需从 Docker Hub 拉取 `node:24-alpine` 基础镜像，而当时本机网络不通、镜像未缓存。
+> 待网络恢复后，跑下面任一命令即可重建并生效：
+> ```bash
+> powershell scripts/rebuild-api.ps1            # 带退避重试，网络抖动会自动重连（pwsh 亦可）
+> # 或：pnpm docker:rebuild:api
+> ```
+> 验证：未配 Key 时 `curl http://localhost:3000/api/ai/status` 应返回
+> `enabled:false`、`keyConfigured:false`（与「未启用」设计行为一致）。
+
+### 6. Docker Hub 网络注意事项（国内常见）
+
+`docker-compose.yml` 用的基础镜像（`node:24-alpine`、`mongo:7`）都来自 Docker Hub。
+大陆网络可能遭遇 TLS 阻断导致拉取超时（`net/http: TLS handshake timeout`）。
+
+- **重试即可恢复**：多数情况是瞬时封锁，用上面的 `scripts/rebuild-api.ps1`
+  （默认 60 次、指数退避封顶 60s）能自动扛过去；
+- **加速 / 绕开（本机环境设置，不改仓库）**：在 Docker Desktop 的
+  `Settings → Docker Engine` 里配置 `registry-mirrors`，例如：
+  ```json
+  "registry-mirrors": ["https://<你的镜像加速地址>"]
+  ```
+  保存后 `Apply & Restart`，再重新 `docker compose up --build -d`。
+
+---
+
 ## 常用命令
 
 | 命令 | 作用 |

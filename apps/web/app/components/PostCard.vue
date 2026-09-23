@@ -12,7 +12,6 @@
  * 语义类在暗色模式下尤其省事：过去每个颜色要写两遍（亮色一遍 + `dark:` 一遍），现在一遍即可，
  * 全站口径也统一。布局类（间距、flex、绝对定位）Nuxt UI 不提供，照常保留。
  */
-import { ChevronRight, Heart, MessageSquare, Sparkles } from 'lucide-vue-next'
 import { GITHUB_SOURCE_TAG, type Post } from '@studyplan/shared'
 
 const props = defineProps<{
@@ -39,10 +38,12 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
 </script>
 
 <template>
-  <UCard
-    class="group relative transition-all duration-300 hover:border-primary hover:shadow-sm"
-    :ui="{ body: 'p-5 sm:p-6' }"
-  >
+  <!--
+    外壳改走 BentoCard（容器模式，不传 to）：
+    卡片内有标题链接、标签链接、点赞按钮，若把整卡包成 <a> 会造成
+    「a 里嵌 a」的非法结构，所以这里只借用它的外壳与微交互，不借用链接。
+  -->
+  <BentoCard class="hover:border-primary">
     <!--
       每日报道角标：放在标题**上方**，而不是塞进标签行。
       标签行里那几个是可以点击筛选的技术标签，混进一个"不可筛选的来源标识"
@@ -56,7 +57,7 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
         class="!bg-ai-500/10 !text-ai-600 dark:!text-ai-400"
       >
         <template #leading>
-          <Sparkles :size="12" />
+          <UIcon name="i-lucide-sparkles" class="size-[var(--icon-xs)]" />
         </template>
         AI 每日推荐
       </UBadge>
@@ -67,7 +68,7 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
     <h3 class="text-title leading-7 font-semibold tracking-tight">
       <NuxtLink
         :to="`/posts/${post.id}`"
-        class="text-highlighted transition-colors after:absolute after:inset-0 after:rounded-2xl group-hover:text-primary"
+        class="text-highlighted transition-colors after:absolute after:inset-0 after:rounded-panel group-hover:text-primary"
         :aria-label="`阅读：${post.title}`"
       >
         {{ post.title }}
@@ -93,14 +94,14 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
     <div class="relative z-10 mt-4 flex items-center justify-between gap-4">
       <div class="flex items-center gap-2.5">
         <span
-          class="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
+          class="grid h-7 w-7 place-items-center rounded-pill bg-primary/10 text-caption font-semibold text-primary"
         >
           {{ avatarInitial(post.author.username) }}
         </span>
         <span class="text-body-sm text-toned">
           {{ post.author.username }}
         </span>
-        <span class="text-dimmed">·</span>
+        <span class="text-muted">·</span>
         <time class="text-meta text-muted" :datetime="post.createdAt">
           {{ formatRelativeTime(post.createdAt) }}
         </time>
@@ -116,13 +117,18 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
           @click.stop="emit('toggle-like', post.id)"
         >
           <template #leading>
-            <Heart :size="14" :fill="liked ? 'currentColor' : 'none'" />
+            <!-- 改用 UIcon（全站图标统一走 Iconify）；已赞的实心效果靠 fill-current -->
+            <UIcon
+              name="i-lucide-heart"
+              class="size-[var(--icon-sm)]"
+              :class="liked ? 'fill-current' : ''"
+            />
           </template>
           {{ post.likeCount }}
         </UButton>
 
         <span class="inline-flex items-center gap-1.5">
-          <MessageSquare :size="14" />
+          <UIcon name="i-lucide-message-square" class="size-[var(--icon-sm)]" />
           <span>{{ post.commentCount }}</span>
         </span>
       </div>
@@ -130,9 +136,9 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
 
     <!-- 悬停时右侧滑出的小箭头：给"可以点进去"一个视觉提示 -->
     <span
-      class="pointer-events-none absolute top-1/2 right-4 z-10 -translate-y-1/2 text-primary opacity-0 transition-all duration-300 group-hover:translate-x-0.5 group-hover:opacity-100"
+      class="pointer-events-none absolute top-1/2 right-4 z-10 -translate-y-1/2 text-primary opacity-0 transition-all [transition-duration:var(--duration-slow)] group-hover:translate-x-0.5 group-hover:opacity-100"
     >
-      <ChevronRight :size="18" />
+      <UIcon name="i-lucide-chevron-right" class="size-[var(--icon-md)]" />
     </span>
-  </UCard>
+  </BentoCard>
 </template>

@@ -8,10 +8,15 @@
  * （未启用 / 额度用完 / 太快了 / 上游出错），用户该做的操作完全不同。
  * Toast 一闪而过装不下这些区分；放在面板里，用户读完再决定要不要重试。
  *
- * 悬浮按钮走 GitHub 克制风：中性表面 + 细边框 + 轻阴影，只让 Sparkles 图标用主色
- * 点出「这是 AI」，其余保持中性以降低视觉噪音。
+ * 悬浮按钮：中性表面 + 细边框 + 轻阴影，只让 Sparkles 图标着色点出「这是 AI」，
+ * 其余保持中性以降低视觉噪音。
+ *
+ * ⚠️ 图标用的是 **AI 语义色（ai-紫罗兰）**，不是主色（brand-青蓝）：
+ *   这是 main.css 里 `--color-ai-*` 一直声明的设计意图 —— 紫与青蓝冷暖对立，
+ *   让"AI 功能"与主功能的品牌色一眼可分。
+ *   此前这里用的是 text-primary，与那份声明相互矛盾，现已统一到紫罗兰。
+ *   （配色取值走 `--ui-ai` 覆写，亮色 ai-600 / 暗色 ai-400，均满足 AA。）
  */
-import { Sparkles } from 'lucide-vue-next'
 import MarkdownIt from 'markdown-it'
 import type { AiStatus, AskAiResponse, RepoQuestionContext } from '@studyplan/shared'
 
@@ -140,17 +145,28 @@ watch(open, (isOpen) => {
 
 <template>
   <!--
-    悬浮按钮：GitHub 克制风（中性表面 + 1px 细边框 + 轻阴影 + 圆角方形）。
-    只让 Sparkles 图标用单一强调色（text-primary）点出"这是 AI"，
-    其余一律中性，降低视觉噪音——正是 GitHub Copilot「中性按钮 + 着色图标」的范式。
+    悬浮按钮：中性表面 + 1px 细边框 + 轻阴影 + 圆角方形，
+    只让 Sparkles 图标着色点出「这是 AI」，其余一律中性 —— 降低视觉噪音。
+
+    ⚠️ 这个"着色"用的是 **AI 语义色（ai-紫罗兰）**，不是主色（brand-青蓝）：
+       紫与青蓝冷暖对立，用户一眼就能把"AI 功能"和主功能区分开；
+       这也是 main.css 中 --color-ai-* 一直声明的设计意图。
+       此前写的是 text-primary，与那份声明矛盾，现已统一。
+  -->
+  <!--
+    外观改由 UButton 的属性表达：color="ai" + variant="soft" 取代手刻的
+    border-default / bg-default / text-ai-600 与各组 hover 覆盖。
+    剩下的 class 只管组件不管的事 —— 固定定位、正方形尺寸、投影与按压缩放。
   -->
   <UButton
-    variant="ghost"
-    class="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-xl border border-default bg-default text-primary shadow-sm transition-transform hover:scale-105 hover:border-emphasis hover:bg-muted hover:text-default active:scale-95"
+    color="ai"
+    variant="soft"
+    size="xl"
+    class="fixed bottom-[var(--fab-inset)] right-[var(--fab-inset)] z-[var(--z-fab)] size-[var(--fab-size)] justify-center rounded-card transition-transform [box-shadow:var(--elevation-fab)] hover:scale-105 active:scale-95"
     :aria-label="open ? '关闭 AI 助手' : '打开 AI 助手'"
     @click="open ? close() : (open = true)"
   >
-    <Sparkles :size="20" />
+    <UIcon name="i-lucide-sparkles" class="size-[var(--icon-lg)]" />
   </UButton>
 
   <!--
@@ -172,7 +188,7 @@ watch(open, (isOpen) => {
       <div class="flex items-center justify-between gap-3 border-b border-default pb-3">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-body-sm font-semibold text-highlighted">
-            <Sparkles :size="14" class="text-primary" />
+            <UIcon name="i-lucide-sparkles" class="size-[var(--icon-sm)] text-ai-600" />
             AI 学习助手
           </p>
           <p class="mt-0.5 truncate text-eyebrow text-muted">{{ contextLabel }}</p>
@@ -182,7 +198,7 @@ watch(open, (isOpen) => {
           variant="subtle"
           color="neutral"
           size="xs"
-          class="rounded-full"
+          class="rounded-pill"
         >
           今日剩余 {{ remaining }}
         </UBadge>
@@ -211,9 +227,9 @@ watch(open, (isOpen) => {
           <div class="prose-post text-body" v-html="renderedAnswer" />
 
           <!-- 引用到的本站代码文件：让答案可核对，对一个学习项目尤其重要 -->
-          <div v-if="sources.length > 0" class="rounded-lg border border-default bg-muted p-3">
+          <div v-if="sources.length > 0" class="rounded-sm border border-default bg-muted p-3">
             <p class="mb-1.5 flex items-center gap-1.5 text-eyebrow font-medium text-toned">
-              <UIcon name="i-lucide-file" :size="13" class="text-muted" />
+              <UIcon name="i-lucide-file" class="size-[var(--icon-sm)] text-muted" />
               回答参考了这些文件
             </p>
             <ul class="space-y-1">
@@ -264,8 +280,9 @@ watch(open, (isOpen) => {
           placeholder="输入你的问题（最多 500 字）"
           @keydown.enter.exact.prevent="submit"
         />
+        <!-- color="ai" 走 --ui-ai（亮色 ai-600 / 暗色 ai-400），与 AI 语义色保持一致 -->
         <UButton
-          color="primary"
+          color="ai"
           :loading="loading"
           :disabled="!question.trim()"
           icon="i-lucide-send"

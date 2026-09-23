@@ -8,7 +8,7 @@
  *
  * 把这些都覆盖到，「能跑」和「能用」之间才真正补齐。
  */
-import { MessageSquare } from 'lucide-vue-next'
+
 import { COMMENT_MAX_LENGTH, type Comment } from '@studyplan/shared'
 
 const props = withDefaults(
@@ -71,10 +71,10 @@ function submit(): void {
 <template>
   <section class="mt-10">
     <header class="mb-5 flex items-center gap-2">
-      <MessageSquare :size="18" class="text-dimmed" />
+      <UIcon name="i-lucide-message-square" class="size-[var(--icon-md)] text-muted" />
       <h2 class="text-subtitle font-semibold text-highlighted">
         评论
-        <span class="ml-1 text-dimmed">{{ comments.length }}</span>
+        <span class="ml-1 text-muted">{{ comments.length }}</span>
       </h2>
     </header>
 
@@ -85,7 +85,7 @@ function submit(): void {
       color="neutral"
       variant="outline"
       icon="i-lucide-pen-line"
-      class="rounded-xl"
+      class="rounded-card"
       @click="composing = true"
     >
       写评论
@@ -136,7 +136,7 @@ function submit(): void {
 
         <p
           class="mt-2 text-caption tabular-nums"
-          :class="tooLong ? 'text-error' : remaining < 50 ? 'text-warning' : 'text-dimmed'"
+          :class="tooLong ? 'text-error' : remaining < 50 ? 'text-warning' : 'text-muted'"
         >
           还可以写 {{ remaining }} 字
         </p>
@@ -163,7 +163,7 @@ function submit(): void {
       <template v-if="loading">
         <UCard v-for="index in 2" :key="`skeleton-${index}`">
           <div class="flex items-center gap-2.5">
-            <USkeleton class="h-7 w-7 rounded-full" />
+            <USkeleton class="h-7 w-7 rounded-pill" />
             <USkeleton class="h-3 w-24" />
           </div>
           <USkeleton class="mt-3 h-3 w-3/4" />
@@ -194,14 +194,14 @@ function submit(): void {
         >
           <div class="flex items-center gap-2.5">
             <span
-              class="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
+              class="grid h-7 w-7 place-items-center rounded-pill bg-primary/10 text-caption font-semibold text-primary"
             >
               {{ avatarInitial(comment.author.username) }}
             </span>
             <span class="text-body-sm font-medium text-toned">
               {{ comment.author.username }}
             </span>
-            <span class="text-dimmed">·</span>
+            <span class="text-muted">·</span>
             <time class="text-caption text-muted" :datetime="comment.createdAt">
               {{ formatRelativeTime(comment.createdAt) }}
             </time>

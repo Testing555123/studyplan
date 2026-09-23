@@ -1,0 +1,481 @@
+{
+  "meta": {
+    "project": "studyplan",
+    "document": "页面修改计划（三版本）",
+    "basis": [
+      "design-audit/01-visual-style-analysis.md",
+      "design-audit/design-tokens.json",
+      "design-audit/02-design-system-recommendations.md",
+      "design-audit/03-issues-and-fixes.md"
+    ],
+    "benchmark": ["Notion", "Linear"],
+    "currentScore": 6.0,
+    "scoreMax": 10,
+    "versionRelation": "累积：V1 ⊂ V2 ⊂ V3（不是三套并行方案，是同一条改进链的三个停止点）",
+    "stack": {
+      "framework": "Nuxt 4.5",
+      "ui": "Vue 3.5",
+      "componentLibrary": "Nuxt UI v4.11",
+      "css": "Tailwind CSS 4.3 (CSS-first)",
+      "icons": "lucide-vue-next + @iconify-json/lucide",
+      "motion": "motion-v 2.4"
+    },
+    "contrastMethod": "WCAG 2.1 relative luminance (sRGB linearization + ITU-R BT.709), (L1+0.05)/(L2+0.05), reference #FFFFFF",
+    "unverified": [
+      "--ui-text-dimmed / --ui-text-muted / --ui-text-toned 绑定色阶",
+      "bg-primary 解析为 500 还是 600",
+      "Nuxt UI 内部 z-index 值",
+      "侧栏折叠态 accessible name 是否已自动生成"
+    ],
+    "unverifiedReason": "node_modules 未安装，无法查证 Nuxt UI v4 运行时绑定"
+  },
+
+  "diagnosis": [
+    { "dimension": "风格统一性", "severity": "high", "status": "企业级克制骨干 + 消费级装饰动效并存", "evidence": ["main.css:307-317 aurora-drift 20-34s infinite", "main.css:320-330 ring-breathe 5.5s infinite", "main.css:337-344 gradient-pan 9s infinite", "main.css:373-383 drift ×3", "main.css:482"], "gap": "5 组无限动效与 Notion/Linear 的克制纪律相悖；判定骨干为主风格", "version": ["V2", "V3"] },
+    { "dimension": "色彩", "severity": "high", "status": "brand-500 一个值承担三种对比度要求", "evidence": ["main.css:53", "app.config.ts:23", "main.css:127", "AppHeader.vue:91", "AppSidebar.vue:43"], "gap": "白字 2.43:1，AA 全项不达标；ai-500 4.24:1 未达 4.5；ai 色阶缺 5 档", "version": ["V1"] },
+    { "dimension": "字体", "severity": "medium", "status": "Inter + Noto Sans SC 选型正确但未令牌化", "evidence": ["main.css:117-118", "nuxt.config.ts:184"], "gap": "font-family 在 @layer base 而非 @theme 的 --font-*；无 --font-mono", "version": ["V2"], "note": "不换字体：风格库佐证 Inter 与本项目定位高度吻合" },
+    { "dimension": "字阶与排版", "severity": "high", "status": "9 档非模数化，含 2 个分数像素，无配对", "evidence": ["main.css:83-91"], "gap": "11/12/12.5/13/13.5/15/17/22/26；正文 13.5px < 16px 底线；无 line-height/letter-spacing/font-weight 配对", "version": ["V2"] },
+    { "dimension": "布局", "severity": "medium", "status": "侧栏 256/80px、页头 64px、内容区无最大宽度", "evidence": ["app.vue:114-115", "AppHeader.vue:63", "app.vue:144"], "gap": "超宽屏下各页内容宽度不一致；长文行宽不可控", "version": ["V2", "V3"] },
+    { "dimension": "间距", "severity": "low", "status": "Tailwind 默认刻度，符合 4px 网格，无语义层", "evidence": ["px-5", "gap-2.5", "mt-16", "p-4/5/6"], "gap": "无法一键调整全站密度", "version": ["V2"], "note": "刻度值不改，只加语义别名" },
+    { "dimension": "圆角", "severity": "medium", "status": "2 枚死令牌 + 4 种裸值", "evidence": ["main.css:76-77", "rounded-xl/2xl/full/lg 实际使用"], "gap": "--radius-card / --radius-pill 全仓零使用", "version": ["V2"] },
+    { "dimension": "阴影", "severity": "high", "status": "无 elevation 令牌、无语义层级", "evidence": ["main.css:396-399", "main.css:458", "main.css:466", "app.vue:130", "AppHeader.vue:91", "AppSidebar.vue:43", "AiAssistant.vue:149"], "gap": "4 种裸值；风格库 Dimensional Layering 给出 4 层基准且标注 accessibility risk: high", "version": ["V2"] },
+    { "dimension": "图标", "severity": "medium", "status": "lucide，来源单一、零 emoji（已达标），但两套引入方式并存", "evidence": ["AppSidebar.vue:44 i-lucide-sparkles", "AppHeader.vue:10→92 组件导入", "AiAssistant.vue:14→153/175 组件导入", "AppFooter.vue:9→27"], "gap": "Sparkles 两条路径；尺寸硬编码 18/20/14", "version": ["V2"], "note": "不迁移到 Phosphor：Lucide 已被规范接受" },
+    { "dimension": "图片", "severity": "low", "status": "无任何真实图片资产，仅首字母与品牌方块占位", "evidence": ["AppHeader.vue:131-135", "AppSidebar.vue:43", "packages/shared/src/constants/avatar.ts:28/54"], "gap": "无 logo、无 favicon、无 OG 图", "version": ["V3"] },
+    { "dimension": "按钮", "severity": "high", "status": "实心按钮白字 2.43:1", "evidence": ["AppHeader.vue:91", "AppSidebar.vue:43", "AiAssistant.vue:149"], "gap": "WCAG AA 不达标；hover/active 缩放为硬编码", "version": ["V1", "V2"] },
+    { "dimension": "卡片", "severity": "medium", "status": "圆角与阴影皆非令牌", "evidence": ["main.css:458", "main.css:466", "main.css:396-399"], "gap": "卡片圆角 16px 与按钮 12px 无层级关系，是裸值巧合", "version": ["V2"] },
+    { "dimension": "导航", "severity": "medium", "status": "侧栏 4 项、折叠态只剩图标、底部进度为假数据；页脚仅 1 个链接", "evidence": ["AppSidebar.vue:26-31", "AppSidebar.vue:57/66/69", "AppSidebar.vue:84/87", "AppFooter.vue:15-31"], "gap": "折叠态 accessible name 待确认（推测缺失）；页脚层级单薄", "version": ["V1", "V2", "V3"] },
+    { "dimension": "动效", "severity": "medium", "status": "reduced-motion 三层覆盖已达标；但无限动效密度过高、时长无令牌", "evidence": ["main.css:131-140", "main.css:578-607", "useTilt.ts:77", "useReveal.ts:58", "main.css:613-621"], "gap": "约 11 种时长散落；5 组无限动效", "version": ["V2", "V3"], "note": "reduced-motion 处理禁止改动（已达标）" },
+    { "dimension": "品牌气质", "severity": "medium", "status": "识别仅青蓝方块 + Sparkles；无 logo；页脚单薄", "evidence": ["AppHeader.vue:91", "AppSidebar.vue:43", "AppFooter.vue:22-29"], "gap": "brand checklist 的 Logo/Colors/Typography/Imagery/Voice 五节基本全空", "version": ["V3"] },
+    { "dimension": "可读性与无障碍", "severity": "high", "status": "正文 13.5px、无行高配对、焦点环 2.43:1、⌘K 未绑 Ctrl+K", "evidence": ["main.css:87", "main.css:126-128", "app.vue:52-54", "AppFooter.vue:30"], "gap": "多项 AA 不达标 + 1 项功能缺陷", "version": ["V1", "V2"] },
+    { "dimension": "信息层级", "severity": "medium", "status": "有隐性层级但无显性定义，9 档中至少 5 档未使用", "evidence": ["main.css:83-91", "main.css:175/179 .prose-post 绕过令牌"], "gap": "层级在实作中被绕过", "version": ["V3"] }
+  ],
+
+  "strategy": [
+    { "dimension": "色彩", "means": "分离用途 + 加深实底", "params": "实心 500→700（白字 2.43→5.36:1）；文字 500→700；装饰保留 400/500；焦点环 500→700", "version": "V1" },
+    { "dimension": "色彩", "means": "补齐色阶", "params": "ai 补 200/300/800/900/950 共 5 阶", "version": "V1" },
+    { "dimension": "字阶", "means": "模数化 + 配对", "params": "9 档→7 档 4px 对齐 12/14/16/18/20/24/30；消分数像素；配 --leading-*（正文 1.5）；配 --tracking-*", "version": "V2" },
+    { "dimension": "字重", "means": "建立对比", "params": "400 body / 500 次要 / 600 卡片标题与按钮 / 700 区块标题", "version": "V2" },
+    { "dimension": "布局", "means": "加约束", "params": "内容区 max-w 1200px；页头高、侧栏宽、FAB 尺寸令牌化", "version": "V2" },
+    { "dimension": "间距", "means": "加语义层", "params": "5 个语义别名，刻度值不变", "version": "V2" },
+    { "dimension": "圆角", "means": "复活 + 统一", "params": "card 12 / panel 16 / sm 8 / pill 9999；全站替换 4 种裸值", "version": "V2" },
+    { "dimension": "阴影", "means": "建层级", "params": "5 层 elevation（4 层基准 + 玻璃层），双层结构", "version": "V2" },
+    { "dimension": "边框", "means": "弱化", "params": "装饰性边框 border-primary-400（1.81:1）→ border-default", "version": "V2" },
+    { "dimension": "图标", "means": "统一引入", "params": "全走 i-lucide-*；尺寸令牌 5 档 12/14/16/20/24", "version": "V2" },
+    { "dimension": "图片", "means": "建资产", "params": "SVG logo + favicon 多尺寸 + OG 1200×630", "version": "V3" },
+    { "dimension": "按钮", "means": "建规格", "params": "Default/Hover/Active/Disabled × 6 属性；触控 ≥24×24 CSS px", "version": "V2" },
+    { "dimension": "卡片", "means": "绑令牌", "params": "padding/radius/shadow 全走 component 层令牌", "version": "V2" },
+    { "dimension": "导航", "means": "补语义 + 层级", "params": "折叠态加 accessible name；z-index 8 级；页脚补到 ≥3 组", "version": "V1/V2/V3" },
+    { "dimension": "动效", "means": "收敛 + 令牌化", "params": "duration 7 档 + easing 3 条；无限动效空间隔离（只进首页）", "version": "V2/V3" },
+    { "dimension": "品牌", "means": "建识别", "params": "logo + 品牌指南 + 语气规范", "version": "V3" },
+    { "dimension": "可读性", "means": "放大 + 配行高", "params": "正文 13.5→16px，行高 24px（1.5）", "version": "V2" },
+    { "dimension": "无障碍", "means": "消灭不达标", "params": "焦点环 / AI 文字 / ⌘K / 折叠态标签 / dimmed 文字", "version": "V1" },
+    { "dimension": "信息层级", "means": "显性定义", "params": "4 级层级 × 字阶 × 字重 × 色彩 绑定表", "version": "V3" }
+  ],
+
+  "premiumPath": [
+    { "step": 1, "action": "降低强调色饱和冲击", "param": "实心主色 #06b6d4(S94%,L43%) → #0e7490(S82%,L31%)，明度降 12 个百分点", "verify": "实算对比度 5.36:1" },
+    { "step": 2, "action": "拉大留白", "param": "区块间距 mt-16(64px) 标准化为 --space-section: 64px，允许页面覆写为 80/96px", "verify": "grep 全站 mt-16 归零" },
+    { "step": 3, "action": "减少杂色", "param": "装饰色从 7 处字面量收敛为 5 个令牌；强调色限定用于互动与选中，装饰边框改 border-default", "verify": "grep rgb( 字面量归零" },
+    { "step": 4, "action": "统一圆角", "param": "4 种裸值 → 4 令牌，建立层级 sm8 < card12 < panel16 < pill", "verify": "grep rounded-xl/2xl/lg/full 归零" },
+    { "step": 5, "action": "弱化边框", "param": "border-primary-400(1.81:1) → border-default 中性低对比", "verify": "目测 + grep" },
+    { "step": 6, "action": "优化字重对比", "param": "建立 400/500/600/700 四级，标题与正文至少差 2 级", "verify": "字重分布统计" },
+    { "step": 7, "action": "建立阴影层次", "param": "4 种裸值 → 5 层语义 elevation，偏移量递增 1/4/12/24px", "verify": "grep shadow-sm/md/xl 归零" },
+    { "step": 8, "action": "减少持续动效", "param": "同页 infinite ≤2 组；ring-breathe 5.5s→8s，幅度 .35↔.75→.35↔.55", "verify": "DevTools 动效面板计数" }
+  ],
+
+  "versions": {
+    "V1": {
+      "name": "轻量优化版",
+      "goal": "消灭所有 WCAG 不达标项与唯一的功能缺陷。不追求视觉升级，只追求合规与正确",
+      "scope": "7 个档案的色值调整 + 1 处快捷键补绑 + 5 个令牌新增。不动布局、不动字阶、不动结构、不新增依赖",
+      "scenario": "两周内上线 / 只需通过无障碍审核 / 前端人力 < 1 人日 / 作为 V2 的前置阶段",
+      "effort": "1-2 天",
+      "changes": ["M1-01", "M1-02", "M1-03", "M1-04", "M1-05", "M1-06", "M1-07", "M1-08", "M1-09", "M1-10"],
+      "params": {
+        "--color-primary-solid": { "from": "隐含 brand-500 #06b6d4", "to": "#0e7490 (brand-700)", "metric": "白字 2.43:1 → 5.36:1" },
+        "--color-primary-solid-hover": { "from": "无", "to": "#155e75 (brand-800)", "metric": "白字 7.27:1" },
+        "--color-primary-text": { "from": "隐含 brand-500", "to": "#0e7490 (brand-700)", "metric": "白底 2.43:1 → 5.36:1" },
+        "--color-primary-decor": { "from": "无", "to": "#06b6d4 (brand-500)", "metric": "装饰用，无对比度要求" },
+        ":focus-visible outline": { "from": "brand-500 (2.43:1)", "to": "brand-700 (5.36:1) / 暗色 brand-400 (10.93:1)" },
+        "AI 文字/图标": { "from": "ai-500 #8b5cf6 (4.24:1)", "to": "ai-600 #7c3aed (5.70:1)" },
+        "--color-ai-200": { "from": "缺", "to": "#ddd6fe" },
+        "--color-ai-300": { "from": "缺", "to": "#c4b5fd" },
+        "--color-ai-800": { "from": "缺", "to": "#5b21b6" },
+        "--color-ai-900": { "from": "缺", "to": "#4c1d95" },
+        "--color-ai-950": { "from": "缺", "to": "#2e1065" },
+        "--color-on-primary": { "from": "text-white 硬编码", "to": "#ffffff" },
+        "--overlay-scrim": { "from": "bg-black/40", "to": "rgb(0 0 0 / .4)" },
+        "--glass-highlight": { "from": "rgb(255 255 255 / .14)", "to": "同值令牌化" },
+        "--shadow-ambient": { "from": "rgb(15 23 42 / .18)", "to": "同值令牌化" },
+        "--spot-highlight": { "from": "rgb(255 255 255 / .12)", "to": "同值令牌化" },
+        "--opacity-secondary": { "from": "opacity-70", "to": ".7" },
+        "快捷键": { "from": "meta_k", "to": "meta_k + ctrl_k" }
+      },
+      "impact": ["main.css", "app.config.ts（可能需要）", "app.vue", "AppHeader.vue", "AppSidebar.vue", "AppFooter.vue", "AiAssistant.vue"],
+      "risks": [
+        { "risk": "全站强调色变深，是可见的品牌观感改变", "level": "medium", "mitigation": "先单页套用，设计/产品确认后再全站推" },
+        { "risk": "bg-primary 解析值未实测", "level": "medium", "mitigation": "pnpm install 后优先查证" },
+        { "risk": "ctrl_k 与浏览器快捷键冲突", "level": "low", "mitigation": "实测主要浏览器" },
+        { "risk": "白环焦点样式在白底失效", "level": "low", "mitigation": "用 :where() 限制仅实心按钮生效" }
+      ],
+      "acceptance": [
+        "实心按钮白字对比 ≥4.5:1（实测，目标 5.36:1）",
+        "所有 text-primary 对 bg-default ≥4.5:1",
+        "焦点环对相邻色 ≥3:1，实心按钮上可见",
+        "AI 文字/图标 ≥4.5:1",
+        "Tab 遍历全站焦点环清晰",
+        "⌘K 与 Ctrl+K 皆可开启（含平台化提示）",
+        "build 产物含完整 11 阶 --color-ai-*",
+        "grep rgb( / bg-black/40 / text-white 字面量归零",
+        "侧栏折叠态每个图标有 accessible name",
+        "视觉回归：首页、/posts、/roadmap、/trending 四页 375/768/1440px 无溢出"
+      ],
+      "expectedOutcome": { "scoreFrom": 6.0, "scoreTo": 7.0, "summary": "全站无 WCAG AA 不达标项，功能缺陷归零。视觉上唯一变化是强调色变深——从鲜艳萤光青转为沉稳科技青，更接近 Linear 的精密感，代价是可能被视为没那么活泼" }
+    },
+
+    "V2": {
+      "name": "中度重构版",
+      "goal": "补齐令牌维度、统一控件规格、建立可调控的视觉系统。这是从「能用」到「好维护」的跃升，三个版本中 CP 最高",
+      "scope": "新增约 60 个令牌（primitive / semantic / component 三层）+ 全站替换约 40 处裸值 + 字阶 9 档→7 档重构（含单页试点）。保留信息架构与布局结构",
+      "scenario": "有 1–2 周前端工时 / 准备长期迭代 / 准备做第二个页面 / 团队开始有「设计不一致」的抱怨",
+      "effort": "1-2 周",
+      "changes": ["M2-01", "M2-02", "M2-03", "M2-04", "M2-05", "M2-06", "M2-07", "M2-08", "M2-09", "M2-10", "M2-11", "M2-12", "M2-13", "M2-14"],
+      "params": {
+        "primitive": {
+          "--text-xs": "0.75rem (12px)", "--text-sm": "0.875rem (14px)", "--text-base": "1rem (16px)",
+          "--text-lg": "1.125rem (18px)", "--text-xl": "1.25rem (20px)", "--text-2xl": "1.5rem (24px)", "--text-3xl": "1.875rem (30px)",
+          "--leading-xs": "1rem", "--leading-sm": "1.25rem", "--leading-base": "1.5rem",
+          "--leading-lg": "1.75rem", "--leading-xl": "1.75rem", "--leading-2xl": "2rem", "--leading-3xl": "2.375rem",
+          "--tracking-tight": "-0.011em", "--tracking-normal": "0em", "--tracking-eyebrow": "0.18em",
+          "--font-sans": "'Inter','Noto Sans SC','PingFang SC',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif",
+          "--font-mono": "ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,monospace",
+          "--radius-sm": "0.5rem (8px)", "--radius-card": "0.75rem (12px)", "--radius-panel": "1rem (16px)", "--radius-pill": "9999px",
+          "--shadow-xs": "0 1px 2px rgb(15 23 42 / .06)",
+          "--shadow-sm": "0 1px 3px rgb(15 23 42 / .08), 0 1px 2px rgb(15 23 42 / .05)",
+          "--shadow-md": "0 4px 12px -2px rgb(15 23 42 / .10), 0 2px 6px -2px rgb(15 23 42 / .05)",
+          "--shadow-lg": "0 12px 32px -8px rgb(15 23 42 / .14), 0 4px 12px -4px rgb(15 23 42 / .07)",
+          "--shadow-overlay": "0 24px 64px -16px rgb(15 23 42 / .22), 0 8px 24px -8px rgb(15 23 42 / .10)",
+          "--shadow-glass": "inset 0 1px 0 var(--glass-highlight), 0 12px 40px -16px var(--shadow-ambient)",
+          "--duration-instant": "100ms", "--duration-fast": "150ms", "--duration-base": "200ms",
+          "--duration-slow": "300ms", "--duration-slower": "450ms", "--duration-enter": "200ms", "--duration-exit": "150ms",
+          "--ease-out-expo": "cubic-bezier(.22,1,.36,1)", "--ease-spring": "cubic-bezier(.34,1.56,.64,1)", "--ease-in-out": "cubic-bezier(.4,0,.2,1)",
+          "--space-inline": "0.5rem (8px)", "--space-stack": "0.75rem (12px)", "--space-card": "1.25rem (20px)", "--space-block": "1.5rem (24px)", "--space-section": "4rem (64px)",
+          "--icon-xs": "12px", "--icon-sm": "14px", "--icon-md": "16px", "--icon-lg": "20px", "--icon-xl": "24px"
+        },
+        "semantic": {
+          "--z-base": "0", "--z-sticky": "10", "--z-dropdown": "20", "--z-fab": "30", "--z-header": "40",
+          "--z-drawer": "50", "--z-modal": "60", "--z-toast": "70", "--z-tooltip": "80",
+          "--layout-header-h": "4rem (64px)", "--layout-sidebar-expanded": "16rem (256px)", "--layout-sidebar-collapsed": "5rem (80px)",
+          "--layout-content-max": "75rem (1200px)", "--fab-size": "3rem (48px)", "--fab-inset": "1.5rem (24px)", "--blur-glass": "24px",
+          "--elevation-card": "var(--shadow-xs)", "--elevation-card-hover": "var(--shadow-sm)",
+          "--elevation-panel": "var(--shadow-sm)", "--elevation-fab": "var(--shadow-md)",
+          "--elevation-drawer": "var(--shadow-overlay)", "--elevation-glass": "var(--shadow-glass)"
+        },
+        "component": {
+          "--card-padding": "var(--space-card)", "--card-radius": "var(--radius-card)", "--card-shadow": "var(--elevation-card)",
+          "--button-bg": "var(--color-primary-solid)", "--button-fg": "var(--color-on-primary)", "--button-radius": "var(--radius-card)",
+          "--nav-item-bg-active": "var(--color-primary-solid)", "--nav-item-fg-active": "var(--color-on-primary)"
+        }
+      },
+      "impact": ["全部页面与组件", "字阶变更需逐页视觉回归"],
+      "risks": [
+        { "risk": "字阶放大导致版面溢出", "level": "high", "mitigation": "/posts 单页试点 → 全站推；五断点回归" },
+        { "risk": "Nuxt UI 内部 z 值冲突", "level": "medium", "mitigation": "实测 UHeader / UModal / USlideover 的 z 值后再定层级" },
+        { "risk": "加 --layout-content-max 改变全站留白", "level": "medium", "mitigation": "逐页确认，允许特殊页面覆写" },
+        { "risk": "令牌数量增加导致学习成本", "level": "low", "mitigation": "分层命名 + 每个令牌写注解" },
+        { "risk": "图标统一影响 bundle", "level": "low", "mitigation": "替换后对比 bundle 体积" }
+      ],
+      "acceptance": [
+        "字阶 7 档，无分数像素，正文 16px / 行高 24px",
+        "五断点（375/768/1024/1440/1920）无溢出",
+        "阴影 5 层，grep shadow-sm/md/xl 归零",
+        "圆角 4 令牌，grep rounded-xl/2xl/lg/full 归零，令牌使用率 100%",
+        "Z-index 8 级，无裸值；抽屉开启时 AI 钮被遮罩覆盖",
+        "图标单一路径 + 尺寸令牌",
+        "font-sans 解析为 Inter",
+        "所有互动元素 ≥24×24px，间距 ≥8px",
+        "Chip 容器可换行，无强制裁切",
+        "内容区最大宽度一致（≤1200px）",
+        "四张组件规格表被遵循",
+        "新增令牌全部有注解说明为什么是这个值"
+      ],
+      "expectedOutcome": { "scoreFrom": 7.0, "scoreTo": 8.0, "summary": "字更大更清楚、圆角与阴影有明确层次、品牌色沉稳、全站留白一致。工程上：改一个令牌能调全站，新增页面不需重新决策视觉参数——从零件库到系统的转变" }
+    },
+
+    "V3": {
+      "name": "全面升级版",
+      "goal": "建立品牌识别资产与信息层级体系，完成风格哲学收敛。从「好用的工具」变成「有辨识度的品牌」",
+      "scope": "新增品牌资产（logo/favicon/OG）+ 装饰层空间与语义隔离 + 页脚信息层级重排 + 暗色模式装饰色覆盖 + 信息层级显性定义。涉及版面与品牌决策",
+      "scenario": "品牌升级专案 / 有设计师参与 / 准备对外正式发布 / 有变现或招募诉求",
+      "effort": "3-6 周",
+      "changes": ["M3-01", "M3-02", "M3-03", "M3-04", "M3-05", "M3-06", "M3-07", "M3-08", "M3-09"],
+      "params": {
+        "ring-breathe 周期": { "from": "5.5s infinite", "to": "8s（或改为条件触发）" },
+        "ring-breathe opacity 幅度": { "from": ".35↔.75", "to": ".35↔.55" },
+        "ring-breathe scale 幅度": { "from": "1↔1.05", "to": "1↔1.02" },
+        "gradient-pan 触发": { "from": "9s infinite 常驻", "to": "hover/focus 才流动，静止停 background-position: 50%" },
+        "内页 infinite 动效数": { "from": "未限制", "to": "0" },
+        "同页 infinite 上限": { "from": "未限制", "to": "≤2 组" },
+        "暗色 --glass-highlight": { "from": "rgb(255 255 255 / .14)", "to": "rgb(255 255 255 / .06)" },
+        "暗色 --shadow-ambient": { "from": "rgb(15 23 42 / .18)", "to": "rgb(0 0 0 / .40)" },
+        "暗色 --spot-highlight": { "from": "rgb(255 255 255 / .12)", "to": "rgb(255 255 255 / .05)" },
+        "页脚资讯组数": { "from": "2 槽 / 1 连结", "to": "≥3 组 / ≥3 连结" },
+        "侧栏进度": { "from": "静态 42%", "to": "真实值或移除" },
+        "资讯层级": { "from": "隐性 9 档（5 档未用）", "to": "4 级显性绑定表" },
+        "L1 页面标题": "--text-3xl (30px) / 700 / text-highlighted",
+        "L2 区块标题": "--text-2xl (24px) / 600 / text-highlighted",
+        "L3 卡片标题": "--text-xl (20px) / 600 / text-highlighted",
+        "L4 正文": "--text-base (16px) / 400 / text-toned",
+        "辅助": "--text-sm (14px) / 400 / text-muted；--text-xs (12px) / 500 / text-muted"
+      },
+      "impact": ["全部页面", "品牌对外形象", "新增 docs/brand-guidelines.md"],
+      "risks": [
+        { "risk": "品牌识别改变需决策者确认", "level": "medium-high", "mitigation": "先出 2-3 个方向提案，确认后再落地" },
+        { "risk": "首页与内页视觉差异加大", "level": "medium", "mitigation": "明确这是刻意策略（对标 Notion/Linear），写入品牌指南" },
+        { "risk": "装饰收敛可能被认为是变无聊", "level": "medium", "mitigation": "保留首页记忆点，只收敛内页与持续动效" },
+        { "risk": "假进度资料移除后侧栏底部留白", "level": "low", "mitigation": "用其他真实内容替代或移除卡片" }
+      ],
+      "acceptance": [
+        "logo 在 16px–512px 全尺寸可辨识，有安全留白与单色版本",
+        "内页无 infinite 动效；同页 infinite ≤2 组",
+        "ring-breathe 周期 8s / 幅度 .35↔.55，或改为条件触发",
+        "gradient-pan 静止时无位移",
+        "页脚 ≥3 组资讯，无字面量 |",
+        "侧栏进度为真实值或已移除",
+        "暗色下玻璃卡不过曝，两种模式对比度各测一次",
+        "4 级资讯层级表建立，抽检 10 处文字符合",
+        "docs/brand-guidelines.md 含 Logo/Colors/Typography/Imagery/Voice 五节",
+        "brand checklist 的 Visual Consistency 四组可执行"
+      ],
+      "expectedOutcome": { "scoreFrom": 8.0, "scoreTo": 9.0, "summary": "内页极度安静、首页有记忆点、品牌有识别、信息层级一眼可辨。从「好看的介面」到「有观点的产品」的转变，也是唯一能支撑对外正式发布与品牌变现的版本" }
+    }
+  },
+
+  "changes": [
+    { "id": "M1-01", "version": "V1", "problem": "brand-500 #06b6d4 对白底 2.43:1，白字实心按钮不达 AA（AppHeader.vue:91、AppSidebar.vue:43）", "goal": "实心按钮白字对比 ≥4.5:1", "solution": "新增语义别名 --color-primary-solid: brand-700（白字 5.36:1）、-solid-hover: brand-800（白字 7.27:1）、--color-primary-text: brand-700（白底 5.36:1）、--color-primary-decor: brand-500（装饰）。写入 @layer base { :root }", "difficulty": "low", "impact": "全站所有实心按钮、品牌方块、强调态", "priority": "P0", "risk": "中：全站强调色变深是可见的品牌观感改变；需实测 bg-primary 解析值", "acceptance": "白字对实心填充 ≥4.5:1（目标 5.36:1）；text-primary 对 bg-default ≥4.5:1；375/768/1440px 无溢出", "targetFiles": ["main.css", "app.config.ts"] },
+    { "id": "M1-02", "version": "V1", "problem": "main.css:126-128 :focus-visible 用 outline-brand-500，2.43:1 < 3:1；且在 brand-500 实心按钮上同色不可见", "goal": "焦点环对相邻色 ≥3:1，实心按钮上可见", "solution": "outline-color: var(--color-brand-700)（5.36:1）；暗色分支 .dark :focus-visible 用 brand-400（10.93:1）；实心按钮额外加 box-shadow: 0 0 0 2px var(--color-on-primary) 白环", "difficulty": "low", "impact": "全站所有可聚焦元素", "priority": "P0", "risk": "低；白环在白底不可见，需用 :where() 限制仅实心按钮生效", "acceptance": "Tab 遍历焦点环清晰；实心按钮上可辨识；实测 ≥3:1", "targetFiles": ["main.css:126-128"] },
+    { "id": "M1-03", "version": "V1", "problem": "ai-500 #8b5cf6 对白底 4.24:1，差 0.26 未达 4.5:1", "goal": "AI 文字/图标 ≥4.5:1", "solution": "AI 文字与图标改用 ai-600 #7c3aed（5.70:1）；ai-500 仅保留给装饰渐变与边框；ai-700（7.10:1）作为深态文字", "difficulty": "low", "impact": "main.css:426 渐变线、所有 text-ai-*、AiAssistant.vue", "priority": "P0", "risk": "低", "acceptance": "AI 文字/图标对 bg-default ≥4.5:1（目标 5.70:1）", "targetFiles": ["main.css", "AiAssistant.vue"] },
+    { "id": "M1-04", "version": "V1", "problem": "ai 色阶只有 6 阶（50/100/400/500/600/700），缺 200/300/800/900/950；已注册为 Nuxt UI 别名会展开 11 阶引用，缺档取空兜底", "goal": "与 brand 的 11 阶对称", "solution": "补入 Tailwind violet 标准值：ai-200 #ddd6fe / ai-300 #c4b5fd / ai-800 #5b21b6 / ai-900 #4c1d95 / ai-950 #2e1065", "difficulty": "low", "impact": "main.css:68-73、所有 color=\"ai\" 组件", "priority": "P0", "risk": "无（@theme static 已保证输出）", "acceptance": "build 产物含全部 11 个 --color-ai-*；--ui-color-ai-950 不为空", "targetFiles": ["main.css:68-73"] },
+    { "id": "M1-05", "version": "V1", "problem": "app.vue:52-54 只注册 meta_k，但 L51 注解写「⌘K / Ctrl+K」，UI 显示 ⌘K——Windows/Linux 使用者按不出来", "goal": "全平台可用", "solution": "defineShortcuts({ meta_k, ctrl_k })；UKbd 依平台显示", "difficulty": "low", "impact": "app.vue 全局、AppHeader.vue 搜寻入口提示", "priority": "P0", "risk": "低；ctrl_k 可能与部分浏览器快捷键冲突，需实测", "acceptance": "macOS ⌘K 与 Windows/Linux Ctrl+K 皆可开启；提示文字随平台变化", "targetFiles": ["app.vue:52-54", "AppHeader.vue"] },
+    { "id": "M1-06", "version": "V1", "problem": "rgb(255 255 255 / .14)（main.css:397）、rgb(15 23 42 / .18)（:398）、rgb(255 255 255 / .12)（:557）、bg-black/40（app.vue:129）、text-white、opacity-70 均为硬编码", "goal": "令牌化，并为 V3 的暗色覆盖预留挂点", "solution": "新增 --glass-highlight / --shadow-ambient / --spot-highlight / --overlay-scrim / --color-on-primary / --opacity-secondary", "difficulty": "low", "impact": "main.css 装饰层、app.vue、AppHeader.vue、AppSidebar.vue", "priority": "P1", "risk": "低", "acceptance": "grep 上述字面量归零；视觉无差异（值完全相同）", "targetFiles": ["main.css", "app.vue", "AppHeader.vue", "AppSidebar.vue"] },
+    { "id": "M1-07", "version": "V1", "problem": "text-dimmed 用于页脚分隔符（AppFooter.vue:30）；若绑定 stone-400 #a8a29e，对白底仅 2.52:1", "goal": "所有需阅读的文字 ≥4.5:1", "solution": "先实测 @nuxt/ui 的 --ui-text-dimmed 绑定值；若确为 stone-400，将需阅读处改为 text-muted（stone-500，4.80:1）或 text-toned（stone-600，7.63:1）；纯装饰元素保留 dimmed 但加 aria-hidden", "difficulty": "low", "impact": "AppFooter.vue 及全站 text-dimmed 使用处", "priority": "P0", "risk": "低；当前标推测，等级可能因实测调整", "acceptance": "实测文档化；所有可读文字 ≥4.5:1", "targetFiles": ["AppFooter.vue:30"] },
+    { "id": "M1-08", "version": "V1", "problem": "侧栏折叠为 w-20 时导航文字隐藏（AppSidebar.vue:57/66/69），只剩图标；若无 aria-label 则键盘与屏幕阅读器无法辨识", "goal": "两种状态下皆有可访问名称", "solution": "为导航按钮加 aria-label={link.label}（或 UTooltip），展开/折叠两态保持一致", "difficulty": "low", "impact": "AppSidebar.vue 4 个导航项", "priority": "P0", "risk": "低；需先实测 Nuxt UI 的 UButton + icon prop 是否已自动生成", "acceptance": "屏幕阅读器在折叠态能读出每个导航项名称；键盘 Tab 可遍历", "targetFiles": ["AppSidebar.vue:60-70"] },
+    { "id": "M1-09", "version": "V1", "problem": "M1-01 改色后需确认无版面回归", "goal": "四页 × 三断点视觉一致", "solution": "首页 / /posts / /roadmap / /trending 在 375/768/1440px 逐页检查溢出与对比度", "difficulty": "low", "impact": "四个主要页面", "priority": "P0", "risk": "低", "acceptance": "四页 × 三断点无溢出；对比度达标", "targetFiles": ["pages/index.vue", "pages/posts/index.vue", "pages/roadmap.vue", "pages/trending/index.vue"] },
+    { "id": "M1-10", "version": "V1", "problem": "Sparkles 双路径已存在但不影响功能", "goal": "记录，不修（V2 处理）", "solution": "仅在文件中记录，避免在 V1 扩大范围", "difficulty": "none", "impact": "无", "priority": "P2", "risk": "无", "acceptance": "已记录于设计系统文件", "targetFiles": [] },
+
+    { "id": "M2-01", "version": "V2", "problem": "9 档非模数化字阶（11/12/12.5/13/13.5/15/17/22/26），含 2 个分数像素，无 line-height/letter-spacing/font-weight 配对；正文 13.5px 低于行动端 16px 底线", "goal": "建立 4px 对齐、有配对、有层级的字阶系统", "solution": "7 档替换 9 档：12/14/16/18/20/24/30；配 --leading-*（正文 16→24 为 1.5）；配 --tracking-*（tight -0.011em / normal 0 / eyebrow 0.18em）；字重 4 级 400/500/600/700。先在 /posts 单页试点", "difficulty": "high", "impact": "全站所有文字", "priority": "P0", "risk": "高：正文 13.5→16px 使内容区高度增加约 18%，首页 2×2 分区、帖子卡片列表、路线页可能溢出", "acceptance": "五断点无溢出；正文行高 1.5；行动端正文 ≥16px；无分数像素；.prose-post 的 text-xl/text-lg 已改指令牌", "targetFiles": ["main.css:83-91", "main.css:171/175/179", "AppSidebar.vue:53/70/71/78/82/91"] },
+    { "id": "M2-02", "version": "V2", "problem": "无 elevation 令牌，4 种裸值（shadow-sm/md/xl/自订双层），无语义层级", "goal": "建立可表达层次关系的阴影系统", "solution": "5 层：--shadow-xs/sm/md/lg/overlay + --shadow-glass（依风格库 Dimensional Layering 4 层为基底）；语义层 --elevation-card/-card-hover/-panel/-fab/-drawer/-glass", "difficulty": "medium", "impact": "main.css:396-399/458/466、app.vue:130、AppHeader.vue:91、AppSidebar.vue:43、AiAssistant.vue:149", "priority": "P1", "risk": "低；风格库标注 Dimensional Layering accessibility risk 为 high，需同步确认焦点环不被阴影干扰", "acceptance": "grep shadow-sm/md/xl 归零；相邻层级偏移量递增 1/4/12/24px；卡片 hover 有明确层次变化", "targetFiles": ["main.css"] },
+    { "id": "M2-03", "version": "V2", "problem": "只有 z-40（AiAssistant.vue:149）与 z-50（AppHeader.vue:63、app.vue:128）两个裸值，无体系；AI 悬浮钮层级低于页头", "goal": "建立可预测的层级", "solution": "8 级：--z-base 0 / --z-sticky 10 / --z-dropdown 20 / --z-fab 30 / --z-header 40 / --z-drawer 50 / --z-modal 60 / --z-toast 70 / --z-tooltip 80", "difficulty": "medium", "impact": "3 个档案 + 未来所有浮层", "priority": "P1", "risk": "中：UHeader/UModal/USlideover 内部有自己的 z 值（推测 z-50 级别），需实测", "acceptance": "行动端抽屉开启时 AI 悬浮钮被遮罩覆盖；⌘K 面板在所有元素之上；无 z-40/z-50 裸值", "targetFiles": ["main.css", "app.vue", "AppHeader.vue", "AiAssistant.vue"] },
+    { "id": "M2-04", "version": "V2", "problem": "--radius-card: 1rem / --radius-pill: 9999px 零使用（死令牌）；实际用 rounded-xl/2xl/full/lg 四种裸值", "goal": "令牌值对齐实际使用，建立层级关系", "solution": "--radius-sm 8px / --radius-card 12px / --radius-panel 16px / --radius-pill 9999px；全站替换 rounded-lg→sm、xl→card、2xl→panel、full→pill", "difficulty": "medium", "impact": "AppHeader.vue、AppSidebar.vue、AiAssistant.vue、main.css:203/215/359/458/466/554", "priority": "P1", "risk": "低；--radius-card 从 1rem 改为 0.75rem 是修正令牌而非改视觉", "acceptance": "grep rounded-xl/2xl/lg/full 归零；令牌使用率 100%", "targetFiles": ["main.css", "AppHeader.vue", "AppSidebar.vue", "AiAssistant.vue"] },
+    { "id": "M2-05", "version": "V2", "problem": "约 11 种时长散落（main.css:251-563、app.vue:114/123-126），仅 1 个 easing 令牌", "goal": "统统一处可调", "solution": "--duration-instant 100ms / -fast 150ms / -base 200ms / -slow 300ms / -slower 450ms / -enter 200ms / -exit 150ms（出场快于入场）；easing 3 条：--ease-out-expo（已有）/ --ease-spring（回弹）/ --ease-in-out", "difficulty": "medium", "impact": "main.css 动效区、app.vue", "priority": "P2", "risk": "低", "acceptance": "grep 硬编码时长归零；出场时长 ≤ 入场时长", "targetFiles": ["main.css", "app.vue"] },
+    { "id": "M2-06", "version": "V2", "problem": "app.vue:144 的 main 无 max-w-*；页头高、侧栏宽、FAB 尺寸均为裸值", "goal": "建立可预测的内容宽度与布局参数", "solution": "--layout-header-h 64px / --layout-sidebar-expanded 256px / --layout-sidebar-collapsed 80px / --layout-content-max 1200px / --fab-size 48px / --fab-inset 24px / --blur-glass 24px；app.vue:144 加 mx-auto w-full max-w-[var(--layout-content-max)]", "difficulty": "medium", "impact": "app.vue、AppHeader.vue、AiAssistant.vue + 全站页面宽度", "priority": "P1", "risk": "中：加最大宽度会改变全站页面的水平留白，需逐页确认", "acceptance": "1920px 下各页内容宽度一致且 ≤1200px；长文行宽可读（建议 ≤75 字符）", "targetFiles": ["main.css", "app.vue:144"] },
+    { "id": "M2-07", "version": "V2", "problem": "Sparkles 走两条路径（AppSidebar.vue:44 用 i-lucide-sparkles，AppHeader.vue:10→92、AiAssistant.vue:14→153/175 用组件导入）；尺寸硬编码 18/20/14", "goal": "单一路径 + 尺寸令牌", "solution": "全站统一 i-lucide-* 字符串；--icon-xs 12 / -sm 14 / -md 16 / -lg 20 / -xl 24；仅需传复杂 props 时才用组件导入", "difficulty": "low", "impact": "AppHeader.vue、AppSidebar.vue、AppFooter.vue、AiAssistant.vue、app.vue", "priority": "P1", "risk": "低；注意 tree-shaking 行为差异，替换后需确认 bundle 体积", "acceptance": "Sparkles 只有一种引入方式；无硬编码 :size=；同层级图标尺寸一致", "targetFiles": ["AppHeader.vue", "AppSidebar.vue", "AppFooter.vue", "AiAssistant.vue", "app.vue"] },
+    { "id": "M2-08", "version": "V2", "problem": "font-family 写在 @layer base（main.css:117-118）而非 @theme 的 --font-*；font-sans 不指向 Inter；无 --font-mono", "goal": "字体可令牌化替换", "solution": "@theme static 加 --font-sans 与 --font-mono；base 层改为 @apply font-sans", "difficulty": "low", "impact": "main.css:112-119", "priority": "P1", "risk": "低；不换字体", "acceptance": "font-sans 解析为 Inter；font-mono 可用", "targetFiles": ["main.css"] },
+    { "id": "M2-09", "version": "V2", "problem": "全用 Tailwind 默认刻度，无语义层，无法一键调整密度", "goal": "加别名，不改刻度值", "solution": "--space-inline 8px / --space-stack 12px / --space-card 20px / --space-block 24px / --space-section 64px（取代 mt-16）", "difficulty": "low", "impact": "全站间距（可渐进替换）", "priority": "P2", "risk": "低", "acceptance": "主要组件的间距走语义令牌；可透过改一个值调整全站密度", "targetFiles": ["main.css", "AppFooter.vue:15"] },
+    { "id": "M2-10", "version": "V2", "problem": "无组件状态规格，新增组件时重复决策", "goal": "4 类核心组件的状态 × 属性表", "solution": "建立 Button（4 态 × 6 属性）/ Card / NavItem / Chip 四张规格表", "difficulty": "medium", "impact": "全站组件（文档化为主）", "priority": "P1", "risk": "低", "acceptance": "四张表存在且被新组件遵循；现有组件与表一致", "targetFiles": ["main.css @layer components", "04-modification-plan.md:5.5"] },
+    { "id": "M2-11", "version": "V2", "problem": "侧栏导航项、标签筛选器等小尺寸互动元素未测", "goal": "符合 WCAG 2.2 AA", "solution": "网页指标目标 ≥24×24 CSS px，相邻目标间距 ≥8px；不达标者用 padding 或伪元素加大 hit area，不改视觉尺寸", "difficulty": "medium", "impact": "侧栏、标签筛选、页头右区图标钮", "priority": "P1", "risk": "低", "acceptance": "所有互动元素 ≥24×24px 且间距 ≥8px；DevTools 量测通过", "targetFiles": ["AppHeader.vue", "AppSidebar.vue", "TagFilter.vue"] },
+    { "id": "M2-12", "version": "V2", "problem": "main.css:24 的 @source 硬编码 5 层相对路径；失效时不报错，只是颜色静默消失", "goal": "失效时能被发现", "solution": "加 CI 检查：build 后 grep 产物是否含 from-brand-400 对应规则；或在 avatarGradientClass 的测试中断言", "difficulty": "low", "impact": "CI 配置", "priority": "P2", "risk": "低", "acceptance": "人为改错路径时 CI 失败", "targetFiles": ["CI 配置", "main.css:24"] },
+    { "id": "M2-13", "version": "V2", "problem": "--radius-card / --radius-pill 已是死令牌案例，需防止新增", "goal": "令牌使用率 100%", "solution": "每季 grep 一次令牌使用率；新增令牌时同步在 PR 中说明使用位置", "difficulty": "low", "impact": "流程", "priority": "P2", "risk": "无", "acceptance": "grep 令牌使用率无零命中项", "targetFiles": [] },
+    { "id": "M2-14", "version": "V2", "problem": "字阶放大与 max-width 变更后需全站确认", "goal": "五断点无溢出、无裁切", "solution": "375/768/1024/1440/1920px 逐页检查", "difficulty": "medium", "impact": "全站页面", "priority": "P0", "risk": "中", "acceptance": "五断点无溢出；长文行宽可读", "targetFiles": ["全部 pages/"] },
+
+    { "id": "M3-01", "version": "V3", "problem": "无 logo、无 favicon、无 OG 图；品牌识别只有青蓝方块 + Sparkles（AI 类产品通用符号，识别度低）", "goal": "品牌可携、可辨识", "solution": "SVG logo（字标 + 单独符号两版）+ favicon 多尺寸 + OG 1200×630；写入 docs/brand-guidelines.md，定义最小尺寸、安全留白、单色版本、禁用场景", "difficulty": "medium", "impact": "app.vue（head）、AppHeader.vue:91、AppSidebar.vue:43、public/", "priority": "P1", "risk": "中：品牌识别改变是可见的对外变化，需决策者确认", "acceptance": "logo 在 16px favicon 至 512px OG 全尺寸可辨识；有安全留白与单色版本规范；brand checklist 的 Logo 5 项全通过", "targetFiles": ["public/", "app.vue", "AppHeader.vue", "AppSidebar.vue", "docs/brand-guidelines.md"] },
+    { "id": "M3-02", "version": "V3", "problem": "Aurora 光晕、gradient-frame 等装饰动效未限定范围，可能渗入内页", "goal": "装饰只出现在欢迎场景，内容场景保持安静", "solution": "Aurora 与 .gradient-frame 仅用于首页 Hero 与欢迎区；内页不载入装饰层；建立新增装饰动效前的 4 问决策", "difficulty": "medium", "impact": "AuroraBackground.vue、main.css:346-484、各页面", "priority": "P1", "risk": "中：首页与内页视觉差异加大，需确认这是想要的（Notion/Linear 正是如此）", "acceptance": "内页无 infinite 动效；首页保留品牌记忆点；同页 infinite 动效 ≤2 组", "targetFiles": ["AuroraBackground.vue", "main.css", "各页面"] },
+    { "id": "M3-03", "version": "V3", "problem": "ring-breathe 5.5s 无限呼吸（main.css:320-330），opacity .35↔.75、scale 1↔1.05；阅读场景下是持续闪烁", "goal": "消除被动注意力干扰，或让其承载明确语义", "solution": "二选一：A 改为有内容时才呼吸，静止时停用；B 保留无限但弱化——周期 5.5s→8s，opacity .35↔.75→.35↔.55，scale 1↔1.05→1↔1.02。若承载「有新内容」语义，必须同时提供非动效提示", "difficulty": "low", "impact": "main.css:320-330/261-263、使用 .ring-breathe 的头像/卡片", "priority": "P1", "risk": "低", "acceptance": "选 B：周期 8s、幅度 .35↔.55；选 A：静止时无动效且有非动效提示；reduced-motion 下完全停止", "targetFiles": ["main.css"] },
+    { "id": "M3-04", "version": "V3", "problem": "gradient-pan 9s 无限渐变流动（main.css:337-344/482），静止介面有持续位移", "goal": "静止时绝对安静", "solution": "改为 hover/focus 时才流动，静止时停在 background-position: 50%", "difficulty": "low", "impact": "main.css:337-344/475-480/482", "priority": "P2", "risk": "低", "acceptance": "静止时无位移；hover 时有流动；reduced-motion 下 hover 也不流动", "targetFiles": ["main.css"] },
+    { "id": "M3-05", "version": "V3", "problem": "AppFooter.vue:15-31 只有 1 行 2 槽、全站仅 1 个连结；分隔符为字面量 |", "goal": "建立基本的资讯层级与信任感", "solution": "依品牌定位（个人技术品牌）补到 4 组：版权 / 关于 / 回馈或联络 / 配套电子书；分隔符改 border-l 或 aria-hidden 的 span；mt-16 改 --space-section", "difficulty": "low", "impact": "AppFooter.vue", "priority": "P2", "risk": "低；若定位为个人站，过度补连结反而违背不过度修改原则——建议至少补回馈/联络一个入口", "acceptance": "页脚有 ≥3 组资讯；无字面量 |；对照 brand checklist 的 Website→Footer/navigation 项", "targetFiles": ["AppFooter.vue:15-31"] },
+    { "id": "M3-06", "version": "V3", "problem": "「学习进度 42%」为静态假资料（AppSidebar.vue:84 文字 + :87 w-[42%]），对使用者是误导", "goal": "显示真实资料，或移除", "solution": "接入真实资料源（/roadmap 的 ProgressHeader 已有计算逻辑可复用）；资料就绪前移除该卡片。若保留进度条，需有文字替代", "difficulty": "medium", "impact": "AppSidebar.vue:77-96、/roadmap 页", "priority": "P1", "risk": "低", "acceptance": "进度为真实值或卡片已移除；若有进度条则有文字替代", "targetFiles": ["AppSidebar.vue", "pages/roadmap.vue"] },
+    { "id": "M3-07", "version": "V3", "problem": ".glass-card 的 rgb(255 255 255 / .14) 高光、rgb(15 23 42 / .18) 环境阴影、rgb(255 255 255 / .12) 高光都是为亮色设计的，暗色下白色高光会过曝", "goal": "暗色模式有独立的装饰参数", "solution": ".dark { --glass-highlight: rgb(255 255 255 / .06); --shadow-ambient: rgb(0 0 0 / .40); --spot-highlight: rgb(255 255 255 / .05); }；main.css:397-398/557 改引用变数", "difficulty": "low", "impact": "main.css 装饰层（V1 的 M1-06 已预留挂点）", "priority": "P2", "risk": "低", "acceptance": "暗色下玻璃卡不过曝；两种模式各测一次对比度", "targetFiles": ["main.css"] },
+    { "id": "M3-08", "version": "V3", "problem": "9 档字阶中至少 5 档未被使用（V2 已减为 7 档），层级在实作中被绕过（.prose-post 用 text-xl/text-lg 绕过 --text-heading/--text-title）", "goal": "层级有定义、有绑定、被遵循", "solution": "定义 4 级资讯层级：L1 页面标题 --text-3xl/700/text-highlighted；L2 区块标题 --text-2xl/600；L3 卡片标题 --text-xl/600；L4 正文 --text-base/400/text-toned；辅助 --text-sm/400/text-muted、--text-xs/500/text-muted", "difficulty": "medium", "impact": "全站（文档化 + 元件绑定）", "priority": "P1", "risk": "低", "acceptance": "任何新文字都能对号入座到某层级；抽检 10 处文字全部符合；.prose-post 已改指令牌", "targetFiles": ["main.css prose 区块", "各页面", "04-modification-plan.md"] },
+    { "id": "M3-09", "version": "V3", "problem": "无语气规范、无术语表、无大小写规范（brand checklist 的 Voice 3 项全空）", "goal": "文案一致", "solution": "写入 docs/brand-guidelines.md：语气（技术、直接、不浮夸）、术语表、大小写（按钮用动词开头）、CTA 一致性", "difficulty": "low", "impact": "全站文案", "priority": "P2", "risk": "低", "acceptance": "brand checklist 的 Tone / Language / Messaging 三组可执行；抽检 10 处文案一致", "targetFiles": ["docs/brand-guidelines.md"] }
+  ],
+
+  "beforeAfter": [
+    { "category": "色彩", "item": "实心按钮填充", "before": "brand-500 #06b6d4", "after": "brand-700 #0e7490", "metric": "白字 2.43:1 → 5.36:1" },
+    { "category": "色彩", "item": "实心按钮 hover", "before": "无定义", "after": "brand-800 #155e75", "metric": "白字 7.27:1" },
+    { "category": "色彩", "item": "连结/图标文字", "before": "brand-500 (2.43:1)", "after": "brand-700 (5.36:1)", "metric": "不达标 → 达标" },
+    { "category": "色彩", "item": "焦点环", "before": "brand-500 (2.43:1)", "after": "brand-700 (5.36:1) / 暗色 brand-400 (10.93:1)", "metric": "不达标 → 达标" },
+    { "category": "色彩", "item": "AI 文字/图标", "before": "ai-500 #8b5cf6 (4.24:1)", "after": "ai-600 #7c3aed (5.70:1)", "metric": "不达标 → 达标" },
+    { "category": "色彩", "item": "ai 色阶", "before": "6 阶", "after": "11 阶", "metric": "消除空兜底" },
+    { "category": "色彩", "item": "装饰边框", "before": "border-primary-400 (1.81:1)", "after": "border-default", "metric": "弱化" },
+    { "category": "色彩", "item": "遮罩", "before": "bg-black/40 硬编码", "after": "--overlay-scrim", "metric": "令牌化" },
+    { "category": "排版", "item": "字阶数", "before": "9 档", "after": "7 档", "metric": "模数化" },
+    { "category": "排版", "item": "字阶值", "before": "11/12/12.5/13/13.5/15/17/22/26", "after": "12/14/16/18/20/24/30", "metric": "4px 对齐" },
+    { "category": "排版", "item": "分数像素", "before": "2 个", "after": "0", "metric": "" },
+    { "category": "排版", "item": "正文", "before": "13.5px", "after": "16px", "metric": "达行动端底线" },
+    { "category": "排版", "item": "行高", "before": "无配对，散落 leading-6/8", "after": "--leading-*，正文 24px (1.5)", "metric": "符合 1.5–1.75" },
+    { "category": "排版", "item": "字重", "before": "散落 font-medium/semibold", "after": "4 级 400/500/600/700", "metric": "" },
+    { "category": "排版", "item": "硬编码字号", "before": "5 种", "after": "0", "metric": "" },
+    { "category": "排版", "item": "字体族位置", "before": "@layer base", "after": "@theme 的 --font-sans / --font-mono", "metric": "" },
+    { "category": "维度令牌", "item": "阴影", "before": "4 种裸值，无层级", "after": "5 层语义 elevation", "metric": "" },
+    { "category": "维度令牌", "item": "圆角", "before": "2 枚死令牌 + 4 种裸值", "after": "4 令牌，使用率 100%", "metric": "" },
+    { "category": "维度令牌", "item": "Z-index", "before": "z-40 / z-50 裸值", "after": "8 级语义层级", "metric": "" },
+    { "category": "维度令牌", "item": "时长", "before": "约 11 种散落", "after": "7 档令牌", "metric": "" },
+    { "category": "维度令牌", "item": "Easing", "before": "1 个令牌", "after": "3 条", "metric": "" },
+    { "category": "维度令牌", "item": "间距", "before": "Tailwind 默认刻度，无语义层", "after": "5 个语义别名（刻度值不变）", "metric": "" },
+    { "category": "维度令牌", "item": "布局", "before": "全裸值，内容区无 max-w", "after": "7 个布局令牌 + max-w 1200px", "metric": "" },
+    { "category": "维度令牌", "item": "图标尺寸", "before": "18/20/14 硬编码", "after": "5 档令牌", "metric": "" },
+    { "category": "维度令牌", "item": "图标引入", "before": "2 种方式", "after": "1 种（i-lucide-*）", "metric": "" },
+    { "category": "动效与装饰", "item": "ring-breathe", "before": "5.5s infinite / .35↔.75 / scale 1↔1.05", "after": "8s / .35↔.55 / scale 1↔1.02，或改条件触发", "metric": "" },
+    { "category": "动效与装饰", "item": "gradient-pan", "before": "9s infinite 常驻", "after": "hover/focus 才流动，静止停 50%", "metric": "" },
+    { "category": "动效与装饰", "item": "内页 infinite 动效", "before": "未限制", "after": "0", "metric": "" },
+    { "category": "动效与装饰", "item": "同页 infinite 上限", "before": "未限制", "after": "≤2 组", "metric": "" },
+    { "category": "动效与装饰", "item": "暗色玻璃高光", "before": "rgb(255 255 255 / .14)（过曝）", "after": "rgb(255 255 255 / .06)", "metric": "" },
+    { "category": "动效与装饰", "item": "暗色环境阴影", "before": "rgb(15 23 42 / .18)", "after": "rgb(0 0 0 / .40)", "metric": "" },
+    { "category": "动效与装饰", "item": "reduced-motion", "before": "三层覆盖", "after": "不变（已达标）", "metric": "禁止改动" },
+    { "category": "组件与品牌", "item": "按钮状态规格", "before": "无", "after": "4 态 × 6 属性表", "metric": "" },
+    { "category": "组件与品牌", "item": "卡片规格", "before": "圆角/阴影/内距皆裸值", "after": "全绑 component 令牌", "metric": "" },
+    { "category": "组件与品牌", "item": "侧栏折叠态标签", "before": "无（推测）", "after": "aria-label", "metric": "" },
+    { "category": "组件与品牌", "item": "触控目标", "before": "未测", "after": "≥24×24 CSS px，间距 ≥8px", "metric": "WCAG 2.2 AA" },
+    { "category": "组件与品牌", "item": "Chip 换行", "before": "未验证", "after": "flex-wrap + +n 披露", "metric": "" },
+    { "category": "组件与品牌", "item": "侧栏进度", "before": "静态 42%", "after": "真实值或移除", "metric": "" },
+    { "category": "组件与品牌", "item": "页脚资讯组", "before": "2 槽 / 1 连结", "after": "≥3 组 / ≥3 连结", "metric": "" },
+    { "category": "组件与品牌", "item": "页脚分隔符", "before": "字面量 |", "after": "border-l 或 aria-hidden span", "metric": "" },
+    { "category": "组件与品牌", "item": "Logo", "before": "无（青蓝方块 + Sparkles）", "after": "SVG logo + favicon + OG", "metric": "" },
+    { "category": "组件与品牌", "item": "资讯层级", "before": "隐性 9 档（5 档未用）", "after": "4 级显性绑定表", "metric": "" },
+    { "category": "组件与品牌", "item": "品牌指南", "before": "无", "after": "docs/brand-guidelines.md", "metric": "" }
+  ],
+
+  "keepModifyRemoveAvoid": {
+    "keep": [
+      { "item": "prefers-reduced-motion 三层覆盖", "reason": "CSS 全域（main.css:131-140）+ 装饰补丁（:578-607）+ JS（useTilt.ts:77 / useReveal.ts:58）+ @media (hover:none)（:613-621）。品质高于多数商业产品" },
+      { "item": "色值单一来源架构", "reason": "@theme 定义、app.config.ts 只做别名映射（app.config.ts:8-11 注解明言）" },
+      { "item": "@theme static 强制输出", "reason": "main.css:41，注解 L30-39 记录踩坑。正确修复，并应套用到 ai" },
+      { "item": "壳层零手写 dark:", "reason": "5 个 Vue 档 dark: 计数 = 0，全靠语义令牌" },
+      { "item": "Inter 字体选型", "reason": "风格库 Modern Dark Cinema (Inter System) 的 mood 与 Best For 与本项目定位完全吻合" },
+      { "item": "lucide 图标库", "reason": "风格库 Pre-Delivery Checklist 明确接受 Lucide；全站来源单一、线性统一、零 emoji" },
+      { "item": "使用 Nuxt UI 组件而非自造类", "reason": "main.css:148-160 记录了删除历程，方向正确" },
+      { "item": "AuroraBackground 本身", "reason": "是品牌记忆点。问题在扩散到内页而非存在与否" },
+      { "item": "踩坑即写注解的习惯", "reason": "@source（L15-23）、@theme static（L30-39）、v-if 取代 v-model（L156-163）、.glass-panel 无阴影（L440-442）" },
+      { "item": "warm neutral（stone）", "reason": "app.config.ts:31，注解说明改动意图为护眼舒适" },
+      { "item": "v-if + :open=true 的挂载策略", "reason": "AiAssistant.vue:156-163 注解说明 v-model 下抽屉不渲染。踩过坑的正确解" }
+    ],
+    "tweakOnly": [
+      { "item": "主色", "detail": "只加深实底与文字用色（500→700），不改色相（维持青蓝识别）" },
+      { "item": "ai 色板", "detail": "只补色阶 + 文字改用 600，不改色相" },
+      { "item": "字阶", "detail": "重组为 7 档，但不改字体、不改字重家族" },
+      { "item": "圆角", "detail": "值基本不变（8/12/16/pill），只是从裸值改为令牌" },
+      { "item": "间距", "detail": "刻度值完全不变，只加语义别名" },
+      { "item": "装饰动效", "detail": "只调参数（周期/幅度/触发条件），不删除" },
+      { "item": "图标", "detail": "只统一引入方式与尺寸来源，不换库" },
+      { "item": "布局", "detail": "只加 max-width 约束与参数令牌化，不改侧栏/页头结构" }
+    ],
+    "mustRefactor": [
+      { "item": "字阶系统", "reason": "9 档含分数像素且比值挤在 1.04–1.11，微调无效，必须重组为 7 档" },
+      { "item": "色彩语义分离", "reason": "一个 brand-500 同时当实底/文字/装饰是结构性错误，必须拆为 3 个语义别名" },
+      { "item": "Elevation 体系", "reason": "从无到有，无从微调" },
+      { "item": "Z-index 体系", "reason": "从 2 个裸值到 8 级，无从微调" },
+      { "item": "令牌三层架构", "reason": "目前只有 primitive 层（且只有颜色与字号），需建立 semantic 与 component 两层" },
+      { "item": "AI 色彩语义", "reason": "AiAssistant 完全不用 ai 色板，与设计意图矛盾。必须二选一：改实作或改注解，不能维持现状" },
+      { "item": "品牌资产", "reason": "从无到有" },
+      { "item": "资讯层级", "reason": "从隐性到显性定义" }
+    ],
+    "avoidIntroducing": [
+      { "item": "换掉 Inter", "reason": "选型已被风格库佐证正确，换字体是纯风险无收益" },
+      { "item": "迁移图标库到 Phosphor", "reason": "ui-ux-pro-max 默认推荐 Phosphor，但 Lucide 已被规范接受且全站统一。迁移是纯成本" },
+      { "item": "手写 dark: 变体", "reason": "壳层零手写是正确架构，引入手工 dark 会破坏语义令牌的单一来源" },
+      { "item": "重写 reduced-motion 处理", "reason": "已达标且超过标准，重写可能引入回退" },
+      { "item": "删除 AuroraBackground", "reason": "是品牌记忆点，问题在范围控制不在存在与否" },
+      { "item": "引入第二个强调色", "reason": "brand + ai 已是冷暖双色，再加入第三色会破坏单一强调色的克制原则" },
+      { "item": "引入 CSS-in-JS / 新的样式方案", "reason": "专案已用 Tailwind 4 CSS-first + Nuxt UI，引入第二套样式系统会造成双轨" },
+      { "item": "为了高级感加更多阴影与渐变", "reason": "本项目的高级感路径是做减法（弱化边框、统一圆角、减少杂色、降低持续动效），不是加法" },
+      { "item": "引入 emoji 作为图标", "reason": "全站目前零 emoji，这是对的" },
+      { "item": "一次性全站替换字阶而不试点", "reason": "正文放大 18% 有溢出风险，必须先 /posts 单页试点" },
+      { "item": "在 V1 阶段改布局或字阶", "reason": "V1 的价值就是零结构变动、零回归风险，扩大范围会丧失这个特性" }
+    ]
+  },
+
+  "acceptanceChecklist": {
+    "common": [
+      "实心按钮白字对填充 ≥4.5:1（目标 5.36:1）",
+      "所有 text-primary 对 bg-default ≥4.5:1",
+      "焦点环对相邻色 ≥3:1，且在实心按钮上可见",
+      "AI 文字/图标对 bg-default ≥4.5:1",
+      "所有可读文字（非装饰）对背景 ≥4.5:1",
+      "暗色模式重跑上述全部（不假设亮色值适用）",
+      "Tab 遍历全站，每个可聚焦元素焦点环清晰",
+      "⌘K 与 Ctrl+K 皆可开启命令面板",
+      "侧栏折叠态每个图标有 accessible name",
+      "屏幕阅读器朗读顺序与视觉顺序一致",
+      "prefers-reduced-motion: reduce 下全站无持续动效",
+      "所有互动元素 ≥24×24 CSS px，相邻间距 ≥8px（WCAG 2.2 AA）",
+      "装饰性图标 aria-hidden，有意义图标有文字替代",
+      "颜色不是唯一资讯载体",
+      "375 / 768 / 1024 / 1440 / 1920px 五断点无溢出、无裁切",
+      "行动端抽屉开启时 AI 悬浮钮被遮罩覆盖",
+      "触控目标在行动端加大（不放用桌面尺寸）",
+      "长文行宽可读（建议 ≤75 字符）",
+      "grep：rgb( 字面量 = 0",
+      "令牌使用率 100%（无死令牌）",
+      "每个新增令牌有注解说明为什么是这个值"
+    ],
+    "V1": [
+      "build 产物含完整 11 阶 --color-ai-*，--ui-color-ai-950 不为空",
+      "四页（/、/posts、/roadmap、/trending）× 三断点视觉回归通过",
+      "已完成 --ui-text-dimmed 与 bg-primary 的实测并文档化",
+      "grep shadow-sm/md/xl 不适用（V2 才处理）"
+    ],
+    "V2": [
+      "字阶 7 档，无分数像素，正文 16px / 行高 24px",
+      "/posts 单页试点通过后才全站推",
+      "grep shadow-sm/md/xl = 0",
+      "grep rounded-xl/2xl/lg/full = 0",
+      "grep z-40/z-50 = 0",
+      "grep text-[Npx] = 0",
+      "Chip 容器可换行，无强制裁切，溢出有 +n 披露",
+      "内容区最大宽度一致（≤1200px）",
+      "四张组件规格表（Button/Card/NavItem/Chip）被遵循",
+      "图标单一路径，bundle 体积无异常增长"
+    ],
+    "V3": [
+      "logo 在 16px（favicon）至 512px（OG）全尺寸可辨识",
+      "logo 有安全留白规范与单色版本",
+      "内页 infinite 动效数 = 0；首页同页 infinite ≤2 组",
+      "ring-breathe 若承载语义则有非动效替代",
+      "gradient-pan 静止时无位移",
+      "页脚 ≥3 组资讯，无字面量 |",
+      "侧栏进度为真实值或已移除",
+      "暗色下玻璃卡不过曝",
+      "docs/brand-guidelines.md 含 Logo/Colors/Typography/Imagery/Voice 五节",
+      "brand checklist 的 Visual Consistency 四组可执行",
+      "4 级资讯层级表建立，抽检 10 处文字符合"
+    ]
+  },
+
+  "roadmap": [
+    { "phase": "前置", "week": "Week 0（0.5 天）", "tasks": ["pnpm install → 实测 Nuxt UI 的 --ui-* 绑定与 bg-primary 解析值"], "checkpoint": "CP0：实测结果是否推翻 brand-500 → 700 的方案" },
+    { "phase": "V1", "week": "Week 1 Day 1", "tasks": ["M1-01 实心主色", "M1-02 焦点环", "M1-03 AI 色", "M1-04 补 ai 色阶", "M1-05 ⌘K", "M1-06 令牌化"], "checkpoint": null },
+    { "phase": "V1", "week": "Week 1 Day 2", "tasks": ["M1-07 dimmed 实测处理", "M1-08 折叠态标签", "M1-09 视觉回归"], "checkpoint": "CP1：强调色变深是否被接受（V1 唯一的主观代价）" },
+    { "phase": "V2", "week": "Week 2 Day 1-2", "tasks": ["M2-02 Elevation", "M2-04 圆角", "M2-03 Z-index"], "checkpoint": null },
+    { "phase": "V2", "week": "Week 2 Day 3-4", "tasks": ["M2-07 图标", "M2-08 字体", "M2-05 时长", "M2-09 间距"], "checkpoint": null },
+    { "phase": "V2", "week": "Week 2 Day 5", "tasks": ["M2-01 字阶试点（仅 /posts）"], "checkpoint": "CP2：正文 16px 是否导致版面溢出" },
+    { "phase": "V2", "week": "Week 3 Day 1-2", "tasks": ["M2-01 全站推", "M2-06 布局 max-w"], "checkpoint": null },
+    { "phase": "V2", "week": "Week 3 Day 3", "tasks": ["M2-10 组件规格", "M2-11 触控目标"], "checkpoint": null },
+    { "phase": "V2", "week": "Week 3 Day 4-5", "tasks": ["M2-12 CI 检查", "M2-13 死令牌检查", "M2-14 五断点全站回归"], "checkpoint": "CP3：是否投入 V3（需品牌方决策与设计资源）" },
+    { "phase": "V3 设计（可与 V2 并行）", "week": "Week 4-5", "tasks": ["M3-01 品牌资产", "M3-09 品牌语气规范"], "checkpoint": "CP4：logo 方向、AI 色彩语义、装饰收敛程度" },
+    { "phase": "V3 开发", "week": "Week 6-9", "tasks": ["M3-08 资讯层级定义", "M3-02 装饰层空间隔离", "M3-03 ring-breathe 收敛", "M3-04 gradient-pan 改 hover", "M3-06 侧栏假进度", "M3-05 页脚层级重排", "M3-07 暗色装饰色覆盖"], "checkpoint": "V3 验收标准全过 + brand checklist 可执行" }
+  ],
+
+  "checkpoints": [
+    { "id": "CP0", "timing": "Week 0 后", "decision": "实测结果是否推翻「brand-500 → 700」的方案？若 bg-primary 实为 600，改为 700 的幅度更小" },
+    { "id": "CP1", "timing": "V1 完成", "decision": "强调色变深是否被接受？这是 V1 唯一的主观代价" },
+    { "id": "CP2", "timing": "V2 字阶试点后", "decision": "正文 16px 是否导致版面溢出？是否要退回 15px 或调整行高补偿？" },
+    { "id": "CP3", "timing": "V2 完成", "decision": "是否投入 V3？（需品牌方决策与设计资源）" },
+    { "id": "CP4", "timing": "V3 设计阶段", "decision": "logo 方向、AI 色彩语义（改实作 vs 改注解）、装饰收敛程度" }
+  ],
+
+  "blockers": [
+    { "item": "node_modules 未安装", "impact": ["M1-01", "M1-07", "M1-08", "M2-03"], "resolution": "pnpm install（Week 0 必做）" },
+    { "item": "设计资源未到位", "impact": ["M3-01", "M3-09"], "resolution": "提前 2 周提出需求，可与 V2 并行" },
+    { "item": "真实进度资料源", "impact": ["M3-06"], "resolution": "后端/状态层支援，或先移除卡片" },
+    { "item": "品牌方向未决策", "impact": ["M3-01", "M3-02"], "resolution": "CP3 后才启动" }
+  ],
+
+  "unverifiedItems": [
+    { "item": "--ui-text-dimmed 绑定", "assumption": "推测为 stone-400 #a8a29e（2.52:1）", "verify": "pnpm install 后 grep @nuxt/ui 的 --ui-text-dimmed" },
+    { "item": "--ui-text-muted / --ui-text-toned 绑定", "assumption": "推测为 stone-500（4.80:1）/ stone-600（7.63:1）", "verify": "同上" },
+    { "item": "bg-primary 解析值", "assumption": "推测为 brand-500（2.43:1）", "verify": "build 后实测按钮实际背景色" },
+    { "item": "Nuxt UI 内部 z 值", "assumption": "推测为 z-50 级别，可能与 M2-03 的 8 级冲突", "verify": "实测 UHeader / UModal / USlideover" },
+    { "item": "侧栏折叠态 accessible name", "assumption": "推测 UButton + icon prop 不自动生成", "verify": "屏幕阅读器实测或查 DOM" },
+    { "item": "success/warning 语义色对比度", "assumption": "本计划未给实测值", "verify": "若引入需另行实算" }
+  ]
+}

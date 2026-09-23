@@ -23,6 +23,9 @@ const emit = defineEmits<{ close: [] }>()
 
 const route = useRoute()
 
+// 底部「学习进度」不再写死 42%：与路线页共用同一份 stages 与同一个进度算法
+const { progress } = useRoadmapProgress()
+
 const links = [
   { label: '首页', description: '学习概览', to: '/', icon: 'i-lucide-home' },
   { label: '帖子流', description: '监视最新讨论', to: '/posts', icon: 'i-lucide-message-square-text' },
@@ -39,9 +42,11 @@ function isActive(to: string): boolean {
 <template>
   <div class="flex h-full flex-col bg-default">
     <!-- 品牌区 -->
-    <div class="flex h-16 items-center gap-2 border-b border-default px-5">
-      <span class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-white shadow-sm">
-        <UIcon name="i-lucide-sparkles" :size="18" />
+    <div class="flex h-[var(--layout-header-h)] items-center gap-2 border-b border-default px-5">
+      <span
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-card bg-primary text-[var(--color-on-primary)] [box-shadow:var(--elevation-panel)]"
+      >
+        <UIcon name="i-lucide-sparkles" class="size-[var(--icon-md)]" />
       </span>
       <span v-if="open" class="flex min-w-0 flex-col leading-none">
         <span class="text-subtitle font-semibold tracking-tight text-highlighted">studyplan</span>
@@ -50,10 +55,19 @@ function isActive(to: string): boolean {
     </div>
 
     <div class="flex flex-1 flex-col px-3 py-5">
-      <p v-if="open" class="px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">
+      <!-- 原为硬编码的 11px 字号与 0.18em 字距，改用字阶与字距令牌（视觉值不变） -->
+      <p
+        v-if="open"
+        class="px-[var(--layout-sidebar-gutter)] text-eyebrow font-semibold uppercase tracking-eyebrow text-muted"
+      >
         学习工作区
       </p>
 
+      <!--
+        折叠态只剩图标、没有可见文字，必须补 aria-label，
+        否则屏幕阅读器与键盘用户读不出这四个导航项分别是什么。
+        展开态有可见文字，交给内容本身，不再叠加 aria-label。
+      -->
       <nav class="mt-3 space-y-1" :class="open ? '' : 'flex flex-col items-center'">
         <UButton
           v-for="link in links"
@@ -63,37 +77,55 @@ function isActive(to: string): boolean {
           :variant="isActive(link.to) ? 'solid' : 'ghost'"
           :icon="link.icon"
           size="md"
-          :class="open ? 'justify-start' : 'justify-center'"
+          :class="[
+            // 覆写 UButton 内建的 px-2.5，让导航项与下方进度卡共用同一条左边界
+            'px-[var(--layout-sidebar-gutter)]',
+            open ? 'justify-start' : 'justify-center',
+          ]"
+          :aria-label="open ? undefined : link.label"
           @click="closable && emit('close')"
         >
           <span v-if="open" class="min-w-0 text-left">
-            <span class="block text-sm font-medium">{{ link.label }}</span>
-            <span class="block truncate text-xs opacity-70">{{ link.description }}</span>
+            <span class="block text-body-sm font-medium">{{ link.label }}</span>
+            <!-- 原 opacity-70 会把 text-muted（4.80:1）压到达不到 4.5:1，去掉 -->
+            <span class="block truncate text-caption text-muted">{{ link.description }}</span>
           </span>
         </UButton>
       </nav>
 
       <!-- 底部学习进度卡（折叠时隐藏） -->
-      <div v-if="open" class="mt-auto rounded-2xl border border-default bg-muted/60 p-4">
-        <div class="flex items-center gap-2 text-sm font-semibold text-highlighted">
-          <UIcon name="i-lucide-book-open" :size="16" class="text-primary" />
+      <!-- 进度面板改用 UCard：边框与底色交给 variant，内距交给 ui，不再手刻 -->
+      <!--
+        ⚠️ UCard 的 body 预设是 `p-4 sm:p-6` —— 只覆写 `p-*` 的话，
+        螢幕 ≥640px 时 `sm:p-6` 仍会生效，卡片内容又会比导航项多 8px。
+        所以两个断点都要指向同一个 gutter，否则「对齐」只在小萤幕成立。
+      -->
+      <UCard
+        v-if="open"
+        variant="soft"
+        class="mt-auto"
+        :ui="{ body: 'p-[var(--layout-sidebar-gutter)] sm:p-[var(--layout-sidebar-gutter)]' }"
+      >
+        <div class="flex items-center gap-2 text-body-sm font-semibold text-highlighted">
+          <UIcon name="i-lucide-book-open" class="size-[var(--icon-sm)] text-primary" />
           全栈学习进度
         </div>
-        <div class="mt-3 flex items-center justify-between text-xs">
+        <div class="mt-3 flex items-center justify-between text-caption">
           <span class="text-muted">当前路线</span>
-          <span class="font-semibold text-highlighted">42%</span>
+          <!-- 进度不再写死：由共享的 computeRoadmapProgress 从同一份 stages 算出 -->
+          <span class="font-semibold text-highlighted">{{ progress.percent }}%</span>
         </div>
-        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div class="h-full w-[42%] rounded-full bg-primary" />
+        <div class="mt-2 h-1.5 overflow-hidden rounded-pill bg-muted">
+          <div class="h-full rounded-pill bg-primary" :style="{ width: progress.percent + '%' }" />
         </div>
         <NuxtLink
           to="/roadmap"
-          class="mt-3 block text-xs font-medium text-primary hover:underline"
+          class="mt-3 block text-caption font-medium text-primary hover:underline"
           @click="closable && emit('close')"
         >
           继续学习路线 →
         </NuxtLink>
-      </div>
+      </UCard>
     </div>
   </div>
 </template>

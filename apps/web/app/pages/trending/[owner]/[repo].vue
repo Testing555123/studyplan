@@ -9,7 +9,6 @@
  * 与列表页一致，用 `useAsyncData` 在服务端取好，
  * 所以直接打开一个分享链接就能看到内容，而不是先一屏骨架。
  */
-import { ArrowLeft, ExternalLink, GitFork, Star } from 'lucide-vue-next'
 import { languageColor, type RepoDetailResponse } from '@studyplan/shared'
 import type { BreadcrumbItem } from '@nuxt/ui'
 
@@ -59,10 +58,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- 与列表页同源的弱光晕：从列表点进详情时，视觉不该断一层 -->
+  <!--
+    此处原本有一层弱光晕（AuroraBackground variant="soft"），现已移除。
+    原注释写"与列表页同源，视觉不该断一层"—— 但列表页的光晕也已同时移除，
+    两页现在同为"无光晕"的内容场景，一致性反而更好。
+    详情页是阅读型页面，背景不该有持续位移。
+  -->
   <div class="relative isolate">
-    <AuroraBackground variant="soft" />
-
     <UContainer class="relative">
       <!-- 面包屑：可点路径导航，替代裸返回链接 -->
       <UBreadcrumb :items="breadcrumbItems" class="pt-10" />
@@ -102,19 +104,12 @@ onMounted(() => {
       </section>
 
       <!--
-      详情卡同样套外壳，但两处刻意调轻：
-        · :reveal="false" —— 它就在首屏，本来就该立刻可见，入场动画只会让首屏慢一拍；
-        · :max="1.5"      —— 这是阅读型页面，倾斜只是"有质感"，不该有存在感。
-    -->
-      <AppTiltCard v-else-if="repo" :max="1.5" :reveal="false">
-        <!--
-        详情页只有这一张卡，所以这里可以用**真正的**毛玻璃（半透明 + 背景模糊）——
-        与首页资料卡同一档质感，而列表页因为卡片数量多，只做了半透明没做模糊。
+        详情卡改用 BentoCard：原先的 AppTiltCard（3D 倾斜）已全站移除，
+        这里改成与列表卡片同源的外壳，圆角 / 间距 / hover 微交互全站统一。
+        详情页只有这一张卡，所以保留真正的毛玻璃（半透明 + 背景模糊）——
+        列表页卡片多才刻意不做模糊（滚动时每帧重采样背景，代价太大）。
       -->
-      <UCard
-        class="rounded-2xl"
-        :ui="{ root: 'bg-default/70 backdrop-blur-md', body: 'p-6 sm:p-8' }"
-      >
+      <BentoCard v-else-if="repo" class="bg-default/70 backdrop-blur-md sm:p-8">
           <!-- 拥有者 -->
           <div class="flex items-center gap-2">
             <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
@@ -133,7 +128,7 @@ onMounted(() => {
               class="inline-flex items-center gap-1 text-body-sm text-primary hover:underline"
             >
               在 GitHub 打开
-              <ExternalLink :size="12" />
+              <UIcon name="i-lucide-external-link" class="size-[var(--icon-xs)]" />
             </ULink>
           </div>
 
@@ -182,25 +177,25 @@ onMounted(() => {
           <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-body-sm text-muted">
             <span class="inline-flex items-center gap-1.5">
               <span
-                class="h-2.5 w-2.5 shrink-0 rounded-full"
+                class="h-2.5 w-2.5 shrink-0 rounded-pill"
                 :style="{ backgroundColor: dotColor }"
               />
               <span>{{ repo.language ?? '未标注语言' }}</span>
             </span>
 
             <span class="inline-flex items-center gap-1 tabular-nums">
-              <Star :size="14" />
+              <UIcon name="i-lucide-star" class="size-[var(--icon-sm)]" />
               {{ repo.stargazersCount.toLocaleString() }}
             </span>
 
             <span class="inline-flex items-center gap-1 tabular-nums">
-              <GitFork :size="14" />
+              <UIcon name="i-lucide-git-fork" class="size-[var(--icon-sm)]" />
               {{ repo.forksCount.toLocaleString() }}
             </span>
 
             <span>未关闭 issue {{ repo.openIssuesCount.toLocaleString() }}</span>
-            <span class="text-dimmed">创建于 {{ formatRelativeTime(repo.createdAt) }}</span>
-            <span class="text-dimmed">最近推送 {{ formatRelativeTime(repo.pushedAt) }}</span>
+            <span class="text-muted">创建于 {{ formatRelativeTime(repo.createdAt) }}</span>
+            <span class="text-muted">最近推送 {{ formatRelativeTime(repo.pushedAt) }}</span>
           </div>
 
           <div class="mt-6 flex flex-wrap items-center gap-3">
@@ -222,11 +217,10 @@ onMounted(() => {
               class="inline-flex items-center gap-1 text-body-sm text-primary hover:underline"
             >
               项目官网
-              <ExternalLink :size="12" />
+              <UIcon name="i-lucide-external-link" class="size-[var(--icon-xs)]" />
             </ULink>
           </div>
-        </UCard>
-      </AppTiltCard>
+      </BentoCard>
     </UContainer>
   </div>
 </template>

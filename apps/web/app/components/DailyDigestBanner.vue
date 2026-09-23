@@ -11,7 +11,7 @@
  * 所以后端把各项开关状态一起返回（见 `DailyDigestStatusResponse`），
  * 这个区块负责把它翻译成人话。降级可以，但必须**说得出来**。
  */
-import { ExternalLink, Sparkles } from 'lucide-vue-next'
+
 
 const { status, loading, generating, error, refresh, generate, ensureOnce } = useDailyDigest()
 
@@ -64,11 +64,23 @@ const actionLabel = computed(() => {
 </script>
 
 <template>
-  <UCard v-if="status || error" class="mb-6" :ui="{ body: 'p-4 sm:p-5' }">
+  <!--
+    my-4（16px）：与 BentoGrid 的 gap-4、筛选面板的 mb-4 同值，
+    使「筛选面板 ↔ 本卡 ↔ 项目网格」三者的间距一致。
+    相邻外距会折叠，所以上方 16px、下方 16px，不会累加成 32px。
+
+    body 用 p-5（20px）而非 p-4 sm:p-5：与下方项目卡（BentoCard p-5）同值，
+    本卡的 sparkles 图标才会和卡片内容落在同一条左边界上。
+
+    ⚠️ 必须连 `sm:` 断点一起写：UCard 的 body 预设是 `p-4 sm:p-6`，
+       只覆写 `p-*` 的话，≥640px 时 `sm:p-6` 仍会生效、内距跳回 24px，
+       对齐全功尽弃（侧栏的进度卡踩过同一个坑）。
+  -->
+  <UCard v-if="status || error" class="my-4" :ui="{ body: 'p-5 sm:p-5' }">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-1.5">
-          <Sparkles :size="14" class="text-ai-500" />
+          <UIcon name="i-lucide-sparkles" class="size-[var(--icon-sm)] text-ai-600" />
           <span class="text-body-sm font-medium text-toned">每日 GitHub 项目报道</span>
           <UBadge v-if="status" variant="subtle" color="neutral" size="xs">
             {{ status.date }}
@@ -96,18 +108,18 @@ const actionLabel = computed(() => {
               class="inline-flex items-center gap-1 text-muted hover:text-primary"
             >
               仓库
-              <ExternalLink :size="11" />
+              <UIcon name="i-lucide-external-link" class="size-[var(--icon-xs)]" />
             </ULink>
-            <span v-if="pick.source === 'template'" class="text-dimmed">AI 不可用，这是模板版</span>
+            <span v-if="pick.source === 'template'" class="text-muted">AI 不可用，这是模板版</span>
           </div>
         </template>
 
         <p v-else-if="notice" class="mt-2 text-body-sm text-muted">{{ notice }}</p>
 
-        <p v-if="status && status.enabled && !status.aiEnabled" class="mt-2 text-caption text-dimmed">
+        <p v-if="status && status.enabled && !status.aiEnabled" class="mt-2 text-caption text-muted">
           提示：未配置 NVNIM_API_KEY，报道会以模板兜底版发布。
         </p>
-        <p v-if="error" class="mt-2 text-caption text-dimmed">{{ error }}</p>
+        <p v-if="error" class="mt-2 text-caption text-muted">{{ error }}</p>
       </div>
 
       <!-- 装置没启用时连按钮都不给：按了也不会发生任何事，不如不显示 -->

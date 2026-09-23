@@ -13,6 +13,8 @@
     "dev:api": "pnpm run build:shared && pnpm --filter @studyplan/api dev",
     "dev:docs": "pnpm --filter @studyplan/docs dev",
     "build:shared": "pnpm --filter @studyplan/shared build",
+    "docker:up": "docker compose up --build -d",
+    "docker:rebuild:api": "powershell scripts/rebuild-api.ps1",
     "prepare": "pnpm run build:shared",
     "build": "pnpm run build:shared && pnpm -r build",
     "typecheck": "pnpm run build:shared && pnpm -r typecheck",

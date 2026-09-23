@@ -36,9 +36,9 @@ useHead({
 useSeoMeta({
   ogTitle: 'studyplan · 学习社区',
   ogDescription: '一个边做边学的全栈项目：分享你的学习笔记与技术心得。',
-  ogImage: `${siteOrigin}/og-cover.png`,
+  ogImage: `${siteOrigin}/og-cover.jpg`,
   ogUrl: canonicalUrl,
-  twitterImage: `${siteOrigin}/og-cover.png`,
+  twitterImage: `${siteOrigin}/og-cover.jpg`,
 })
 
 /** 侧栏折叠态（桌面）与移动抽屉开关 */
@@ -48,9 +48,17 @@ const mobileNavOpen = ref(false)
 /** 命令面板开关：useState 保证 SSR 安全且跨组件共享 */
 const commandOpen = useState<boolean>('command-palette-open', () => false)
 
-// ⌘K / Ctrl+K 唤起全局搜索
+/*
+ * ⌘K / Ctrl+K 唤起全局搜索。
+ *
+ * ⚠️ 这里原先只注册了 meta_k，是一个真实的功能缺陷：
+ *    macOS 的 ⌘ 映射到 meta，而 Windows / Linux 上只有 ctrl，
+ *    于是非 Mac 用户看到页头的「⌘K」提示却怎么按都没反应。
+ *    两个键一起注册，跨平台才都可用。
+ */
 defineShortcuts({
   meta_k: () => { commandOpen.value = !commandOpen.value },
+  ctrl_k: () => { commandOpen.value = !commandOpen.value },
 })
 
 const selected = ref<CommandPaletteItem | null>(null)
@@ -109,10 +117,14 @@ onMounted(async () => {
 <template>
   <UApp>
     <div class="flex min-h-screen bg-default">
-      <!-- 桌面侧栏：宽度随折叠态在 w-64 / w-20 间过渡 -->
+      <!-- 桌面侧栏：宽度随折叠态在展开/折叠之间过渡（宽度改引布局令牌） -->
       <aside
-        class="hidden shrink-0 overflow-hidden border-r border-default transition-[width] duration-200 sm:flex sm:flex-col"
-        :class="sidebarOpen ? 'w-64' : 'w-20'"
+        class="hidden shrink-0 overflow-hidden border-r border-default transition-[width] sm:flex sm:flex-col [transition-duration:var(--duration-base)]"
+        :class="
+          sidebarOpen
+            ? 'w-[var(--layout-sidebar-expanded)]'
+            : 'w-[var(--layout-sidebar-collapsed)]'
+        "
       >
         <AppSidebar :open="sidebarOpen" />
       </aside>
@@ -120,14 +132,20 @@ onMounted(async () => {
       <!-- 移动端抽屉 -->
       <Teleport to="body">
         <Transition
-          enter-active-class="transition-opacity duration-200 ease-out"
+          enter-active-class="transition-opacity ease-out [transition-duration:var(--duration-enter)]"
           enter-from-class="opacity-0"
-          leave-active-class="transition-opacity duration-150 ease-in"
+          leave-active-class="transition-opacity ease-in [transition-duration:var(--duration-exit)]"
           leave-to-class="opacity-0"
         >
-          <div v-if="mobileNavOpen" class="fixed inset-0 z-50 sm:hidden">
-            <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="mobileNavOpen = false" />
-            <aside class="absolute inset-y-0 left-0 w-64 border-r border-default bg-default shadow-xl">
+          <!-- 层级改引 --z-drawer：必须高于 FAB 与页头，否则 AI 悬浮钮会浮在遮罩之上 -->
+          <div v-if="mobileNavOpen" class="fixed inset-0 z-[var(--z-drawer)] sm:hidden">
+            <div
+              class="absolute inset-0 bg-[var(--overlay-scrim)] backdrop-blur-sm"
+              @click="mobileNavOpen = false"
+            />
+            <aside
+              class="absolute inset-y-0 left-0 w-[var(--layout-sidebar-expanded)] border-r border-default bg-default [box-shadow:var(--elevation-drawer)]"
+            >
               <AppSidebar :open="true" closable @close="mobileNavOpen = false" />
             </aside>
           </div>
@@ -141,7 +159,13 @@ onMounted(async () => {
           @toggle-mobile-nav="mobileNavOpen = true"
         />
 
-        <main class="flex-1">
+        <!--
+          内容区统一约束最大宽度。
+          此前 main 没有任何宽度约束，各页面自行决定，超宽屏（≥1920px）下
+          不同页面的内容宽度会不一致。这里对齐 Nuxt UI 自带的 --ui-container
+          （80rem / 1280px），避免出现"Nuxt UI 容器 1280px、自订容器另算"两套宽度。
+        -->
+        <main class="mx-auto w-full max-w-[var(--layout-content-max)] flex-1">
           <NuxtPage />
         </main>
 

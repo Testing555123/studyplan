@@ -10,7 +10,7 @@
  * 编辑 / 预览切换交给定 UTabs 统一接管：桌面与移动共用同一套标签，
  * 不再维护自写的底部切换条与显隐逻辑，体验完全一致。
  */
-import { Eye } from 'lucide-vue-next'
+
 import type { Post } from '@studyplan/shared'
 import {
   CONTENT_MAX_LENGTH,
@@ -83,7 +83,7 @@ const visibleErrors = computed(() => (submitted.value ? errors.value : []))
 const previewHtml = computed(() =>
   form.content.trim()
     ? render(form.content)
-    : '<p class="text-dimmed">左侧开始写，这里会实时出现渲染结果。</p>',
+    : '<p class="text-muted">左侧开始写，这里会实时出现渲染结果。</p>',
 )
 
 function toggleTag(tag: string): void {
@@ -172,7 +172,7 @@ async function publish(): Promise<void> {
     >
       <!-- 编辑面板 -->
       <template #edit>
-        <section class="card-surface mt-6 space-y-5">
+        <BentoCard as="section" class="mt-6 space-y-5">
           <!-- 标题 -->
           <div>
             <UInput
@@ -186,7 +186,7 @@ async function publish(): Promise<void> {
             <div class="mt-1.5 flex justify-end">
               <span
                 class="text-caption tabular-nums"
-                :class="titleLength > TITLE_MAX_LENGTH ? 'text-error' : 'text-dimmed'"
+                :class="titleLength > TITLE_MAX_LENGTH ? 'text-error' : 'text-muted'"
               >
                 {{ titleLength }} / {{ TITLE_MAX_LENGTH }}
               </span>
@@ -204,10 +204,10 @@ async function publish(): Promise<void> {
               class="w-full font-mono text-body leading-7"
             />
             <div class="mt-1.5 flex justify-between">
-              <span class="text-caption text-dimmed">最少 {{ CONTENT_MIN_LENGTH }} 字</span>
+              <span class="text-caption text-muted">最少 {{ CONTENT_MIN_LENGTH }} 字</span>
               <span
                 class="text-caption tabular-nums"
-                :class="contentLength > CONTENT_MAX_LENGTH ? 'text-error' : 'text-dimmed'"
+                :class="contentLength > CONTENT_MAX_LENGTH ? 'text-error' : 'text-muted'"
               >
                 {{ contentLength }} 字
               </span>
@@ -218,7 +218,7 @@ async function publish(): Promise<void> {
           <div>
             <div class="mb-2.5 flex items-center justify-between">
               <span class="text-body-sm font-medium text-toned">标签</span>
-              <span class="text-caption text-dimmed">
+              <span class="text-caption text-muted">
                 已选 {{ form.tags.length }} / {{ MAX_TAGS_PER_POST }}
               </span>
             </div>
@@ -230,7 +230,7 @@ async function publish(): Promise<void> {
                 size="xs"
                 :variant="form.tags.includes(tag) ? 'solid' : 'outline'"
                 :color="form.tags.includes(tag) ? 'primary' : 'neutral'"
-                class="rounded-full"
+                class="rounded-pill"
                 @click="toggleTag(tag)"
               >
                 {{ tag }}
@@ -265,7 +265,7 @@ async function publish(): Promise<void> {
             variant="soft"
             icon="i-lucide-sparkles"
             title="发布后自动完成"
-            :ui="{ icon: 'text-ai-500' }"
+            :ui="{ icon: 'text-ai-600' }"
           >
             <template #description>
               <p class="text-body-sm leading-6">
@@ -318,9 +318,9 @@ async function publish(): Promise<void> {
               清空
             </UButton>
 
-            <span class="text-caption text-dimmed">作者信息由登录凭证决定，无法手动指定</span>
+            <span class="text-caption text-muted">作者信息由登录凭证决定，无法手动指定</span>
           </div>
-        </section>
+        </BentoCard>
       </template>
 
       <!-- 预览面板 -->
@@ -328,20 +328,20 @@ async function publish(): Promise<void> {
         <section class="mt-6">
           <div class="mb-2.5 flex items-center justify-between">
             <span class="inline-flex items-center gap-1.5 text-body-sm font-medium text-toned">
-              <Eye :size="14" />
+              <UIcon name="i-lucide-eye" class="size-[var(--icon-sm)]" />
               实时预览
             </span>
-            <span class="text-caption text-dimmed">与读者看到的一致</span>
+            <span class="text-caption text-muted">与读者看到的一致</span>
           </div>
 
-          <UCard :ui="{ body: 'p-6' }">
+          <BentoCard>
             <h1
               v-if="form.title"
               class="text-heading leading-tight font-semibold tracking-tight text-highlighted"
             >
               {{ form.title }}
             </h1>
-            <p v-else class="text-heading leading-tight font-semibold text-dimmed">
+            <p v-else class="text-heading leading-tight font-semibold text-muted">
               文章标题会出现在这里
             </p>
 
@@ -359,7 +359,7 @@ async function publish(): Promise<void> {
 
             <!-- eslint-disable-next-line vue/no-v-html -->
             <div class="prose-post mt-6" v-html="previewHtml" />
-          </UCard>
+          </BentoCard>
         </section>
       </template>
     </UTabs>

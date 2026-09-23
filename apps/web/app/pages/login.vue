@@ -7,7 +7,7 @@
  * 真正的校验必须由后端再做一遍——本项目的 `RegisterDto` / `LoginDto` 用的就是这里同一批共享常量。
  * 以为「前端校验过了后端就不必校验」，等于把规则放在用户能随意改的地方。
  */
-import { LogIn } from 'lucide-vue-next'
+
 import { PASSWORD_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH } from '@studyplan/shared'
 import { ApiRequestError } from '~/composables/useApi'
 
@@ -123,9 +123,9 @@ async function submit(): Promise<void> {
     <!-- 品牌与标语 -->
     <div class="text-center">
       <span
-        class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-sm"
+        class="mx-auto grid h-12 w-12 place-items-center rounded-panel bg-primary text-[var(--color-on-primary)] [box-shadow:var(--elevation-panel)]"
       >
-        <LogIn :size="22" />
+        <UIcon name="i-lucide-log-in" class="size-[var(--icon-lg)]" />
       </span>
       <h1 class="mt-5 text-heading font-semibold tracking-tight text-highlighted">
         {{ mode === 'login' ? '欢迎回来' : '创建你的账号' }}
@@ -136,7 +136,7 @@ async function submit(): Promise<void> {
     </div>
 
     <!-- 页签：用 UButton 组而不是手写按钮，圆角/内边距/hover 全由组件统一 -->
-    <div class="mt-8 grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+    <div class="mt-8 grid grid-cols-2 gap-1 rounded-card bg-muted p-1">
       <UButton
         :variant="mode === 'login' ? 'solid' : 'ghost'"
         :color="mode === 'login' ? 'primary' : 'neutral'"
@@ -156,7 +156,8 @@ async function submit(): Promise<void> {
     </div>
 
     <!-- 表单：UForm + UFormField + UInput，图标直接由 UInput 的 icon 属性承担 -->
-    <UForm class="mt-6 space-y-4" :state="form" @submit="submit">
+    <BentoCard class="mt-6">
+      <UForm class="space-y-4" :state="form" @submit="submit">
       <UFormField label="邮箱" name="email">
         <UInput
           v-model.trim="form.email"
@@ -247,7 +248,8 @@ async function submit(): Promise<void> {
       >
         {{ submitting ? '处理中…' : mode === 'login' ? '登录' : '创建账号' }}
       </UButton>
-    </UForm>
+      </UForm>
+    </BentoCard>
 
     <!-- 辅助文案 -->
     <p class="pt-4 text-center text-meta text-muted">
@@ -266,7 +268,7 @@ async function submit(): Promise<void> {
     </p>
 
     <!-- 安全说明：这里描述的都是**本阶段已经真正实现**的行为 -->
-    <UCard class="mt-8" :ui="{ body: 'p-4' }">
+    <BentoCard class="mt-8">
       <p class="text-caption font-medium tracking-wide text-muted">这个登录是怎么保护你的</p>
       <ul class="mt-2 space-y-1.5 text-caption leading-6 text-muted">
         <li>· 密码用 bcrypt 哈希后入库，数据库里看不到明文</li>
@@ -275,6 +277,6 @@ async function submit(): Promise<void> {
         <li>· 两个 Token 用不同密钥签发，Access 无法当 Refresh 用</li>
         <li>· 前端校验只为体验，真正的校验在后端再做了一遍</li>
       </ul>
-    </UCard>
+    </BentoCard>
   </div>
 </template>

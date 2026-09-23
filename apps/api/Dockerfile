@@ -28,6 +28,12 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
+# 根 package.json 的 prepare = build:shared（tsc -p tsconfig.json）。
+# pnpm install 会自动跑它，而此时还没 COPY 源码，会导致 tsc 找不到 tsconfig.json 失败。
+# 所以这里把 shared 的 tsconfig 与 src 一起拷进来，让 prepare 能成功编译；
+# 这样既能保留 esbuild / vue-demi 等原生依赖的安装脚本，又能避免 deps 阶段报错。
+COPY packages/shared/tsconfig.json packages/shared/
+COPY packages/shared/src packages/shared/src
 # --filter @studyplan/api... 的「...」很关键：它把 workspace 内部的 shared 一并装入
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter @studyplan/api...
@@ -48,8 +54,11 @@ FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
+# --ignore-scripts：prod 阶段不跑 root 的 prepare（build:shared）。
+# 否则 --prod 不装 typescript，prepare 调 tsc 直接失败。
+# shared 的 dist 已在 build 阶段编好并由运行层拷贝，这里只需运行时依赖。
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prod --filter @studyplan/api...
+    pnpm install --frozen-lockfile --prod --ignore-scripts --filter @studyplan/api...
 
 # ---------- 运行层 ----------
 FROM node:${NODE_VERSION}-alpine AS runtime

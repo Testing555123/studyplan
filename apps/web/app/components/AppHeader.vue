@@ -7,9 +7,22 @@
  * 外壳用 UHeader（自带居中容器、明暗适配）；保留的 Tailwind 都是布局类
  * （fixed/sticky、flex、gap），交互元素全部走 Nuxt UI 组件与语义色。
  */
-import { Sparkles } from 'lucide-vue-next'
-
 const auth = useAuth()
+
+/**
+ * 快捷键提示随平台变化。
+ *
+ * ⚠️ 原先固定显示「⌘K」，但 app.vue 只注册了 meta_k —— 非 macOS 用户
+ *    既看到 ⌘K 提示、又按不出来（现已补 ctrl_k）。这里让提示跟着平台走。
+ *
+ * SSR 首屏统一按 ⌘K 渲染，水合后再校正，避免服务端与客户端输出不一致
+ * 触发 hydration mismatch。
+ */
+const shortcutHint = ref('⌘K')
+onMounted(() => {
+  const isApple = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent)
+  shortcutHint.value = isApple ? '⌘K' : 'Ctrl+K'
+})
 
 /**
  * 滚动后，页头底部渐显一条 brand→ai 的渐变分隔线（样式在 main.css）。
@@ -60,7 +73,7 @@ async function handleLogout(): Promise<void> {
 <template>
   <UHeader
     :toggle="false"
-    class="header-gradient-line sticky top-0 z-50 h-16 border-b border-default bg-default/75 backdrop-blur-xl"
+    class="header-gradient-line sticky top-0 z-[var(--z-header)] h-[var(--layout-header-h)] border-b border-default bg-default/75 backdrop-blur-xl"
     :class="{ 'is-scrolled': scrolled }"
   >
     <!-- 左侧：侧栏控制 -->
@@ -88,8 +101,14 @@ async function handleLogout(): Promise<void> {
         />
         <!-- 移动端品牌（侧栏隐藏时显示） -->
         <NuxtLink to="/" class="group flex items-center gap-2.5 sm:hidden">
-          <span class="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white shadow-sm">
-            <Sparkles :size="18" />
+          <!--
+            品牌方块：圆角与阴影改引令牌；图标统一走 i-lucide-* 字符串
+            （此前 Sparkles 一会儿用组件导入、一会儿用 Iconify 名，两条路径并存）
+          -->
+          <span
+            class="grid h-9 w-9 place-items-center rounded-card bg-primary text-[var(--color-on-primary)] [box-shadow:var(--elevation-panel)]"
+          >
+            <UIcon name="i-lucide-sparkles" class="size-[var(--icon-md)]" />
           </span>
           <span class="text-subtitle font-semibold text-highlighted">studyplan</span>
         </NuxtLink>
@@ -108,7 +127,7 @@ async function handleLogout(): Promise<void> {
         />
         <template #content>
           <span>搜索</span>
-          <UKbd>⌘K</UKbd>
+          <UKbd>{{ shortcutHint }}</UKbd>
         </template>
       </UTooltip>
 
@@ -129,7 +148,7 @@ async function handleLogout(): Promise<void> {
           :aria-label="`用户菜单：${auth.user.value?.username}`"
         >
           <span
-            class="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-caption font-semibold text-primary"
+            class="grid h-7 w-7 place-items-center rounded-pill bg-primary/10 text-caption font-semibold text-primary"
           >
             {{ avatarInitial(auth.user.value?.username ?? '') }}
           </span>

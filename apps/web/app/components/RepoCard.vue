@@ -8,7 +8,7 @@
  * （很多仓库不写简介，纯文档仓库没有语言）。不兜底会渲染出空白或 "undefined"，
  * 所以两者都要有明确的兜底文案，而不是假设它们一定有值。
  */
-import { ExternalLink, GitFork, Star } from 'lucide-vue-next'
+
 import { languageColor } from '@studyplan/shared'
 import type { GithubRepo } from '@studyplan/shared'
 
@@ -69,14 +69,16 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     ⚠️ 注释只能写在标签外。Vue 模板的属性表达式不支持块注释，
        写进去会得到 "Error parsing JavaScript expression: Unterminated comment"。
   -->
-  <UCard
-    class="group relative flex flex-col transition-all duration-300 hover:border-primary hover:shadow-sm"
-    :ui="{ root: 'bg-default/80', body: 'flex-1 p-5', footer: 'pt-0 pb-4 px-5' }"
-  >
+  <!--
+    外壳改走 BentoCard（容器模式）：与 PostCard 同一套圆角 / 间距 / 微交互。
+    原本的 `bg-default/80` 半透明是为了让背景光晕透上来，光晕移除后
+    已无必要，改用 BentoCard 的实心底 —— 卡片边界更清晰，也更省渲染。
+  -->
+  <BentoCard class="hover:border-primary">
     <!-- 拥有者：hover / 点击弹出浮层，内用 .card-surface-sm 子卡，风格与主卡同源 -->
     <UPopover>
       <div
-        class="relative z-10 flex cursor-pointer items-center gap-2 rounded-full transition-opacity hover:opacity-80"
+        class="relative z-10 flex cursor-pointer items-center gap-2 rounded-pill transition-opacity hover:opacity-80"
       >
         <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
         <span class="truncate text-caption text-muted">{{ repo.ownerLogin }}</span>
@@ -118,7 +120,7 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     <h3 class="mt-2 flex items-center gap-1.5">
       <NuxtLink
         :to="`/trending/${repo.ownerLogin}/${repo.name}`"
-        class="truncate text-subtitle font-semibold tracking-tight text-highlighted transition-colors after:absolute after:inset-0 after:rounded-2xl hover:text-primary group-hover:text-primary"
+        class="truncate text-subtitle font-semibold tracking-tight text-highlighted transition-colors after:absolute after:inset-0 after:rounded-panel hover:text-primary group-hover:text-primary"
         :aria-label="`查看 ${repo.fullName} 的项目详情`"
       >
         {{ repo.name }}
@@ -127,11 +129,11 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
         :to="repo.htmlUrl"
         target="_blank"
         rel="noopener"
-        class="relative z-10 shrink-0 text-dimmed transition-colors hover:text-primary group-hover:text-primary"
+        class="relative z-10 shrink-0 text-muted transition-colors hover:text-primary group-hover:text-primary"
         :aria-label="`在 GitHub 打开 ${repo.fullName}`"
         @click.stop
       >
-        <ExternalLink :size="13" />
+        <UIcon name="i-lucide-external-link" class="size-[var(--icon-sm)]" />
       </ULink>
     </h3>
 
@@ -166,31 +168,30 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
     <!-- 元信息行 -->
     <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-meta text-muted">
       <span class="inline-flex items-center gap-1.5">
-        <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: dotColor }" />
+        <span class="h-2.5 w-2.5 shrink-0 rounded-pill" :style="{ backgroundColor: dotColor }" />
         <span>{{ repo.language ?? '未标注语言' }}</span>
       </span>
 
       <span class="inline-flex items-center gap-1 tabular-nums">
-        <Star :size="13" />
+        <UIcon name="i-lucide-star" class="size-[var(--icon-sm)]" />
         {{ repo.stargazersCount.toLocaleString() }}
       </span>
 
       <span class="inline-flex items-center gap-1 tabular-nums">
-        <GitFork :size="13" />
+        <UIcon name="i-lucide-git-fork" class="size-[var(--icon-sm)]" />
         {{ repo.forksCount.toLocaleString() }}
       </span>
 
-      <span class="text-dimmed">创建于 {{ formatRelativeTime(repo.createdAt) }}</span>
+      <span class="text-muted">创建于 {{ formatRelativeTime(repo.createdAt) }}</span>
     </div>
 
-    <template #footer>
       <!--
-        footer 用 UFieldGroup 把两个按钮并排咬合：`问 AI` 走 primary 强调色，
+        底部按钮用 UFieldGroup 并排咬合：`问 AI` 走 primary 强调色，
         `自动编写简介` 走 neutral 次级色，视觉权重一主一次、对齐统一。
-        `relative z-10` 同样是必须的：footer 在标题那层覆盖区之下，
+        `relative z-10` 同样是必须的：它在标题那层覆盖区之下，
         不抬起来的话按钮会被整卡点击区吞掉（看起来"点了没反应"）。
       -->
-      <UFieldGroup class="relative z-10">
+      <UFieldGroup class="relative z-10 mt-4">
         <UButton
           class="relative z-10"
           size="xs"
@@ -214,6 +215,5 @@ const visibleTopics = computed(() => props.repo.topics.slice(0, 3))
           自动编写简介
         </UButton>
       </UFieldGroup>
-    </template>
-  </UCard>
+  </BentoCard>
 </template>

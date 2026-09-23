@@ -1,0 +1,74 @@
+# ============================================================
+#  本地容器化运行：MongoDB + 后端(NestJS) + 前端(Nuxt SSR)
+# ------------------------------------------------------------
+#  ⚠️ 两个 Dockerfile 的构建上下文都是**仓库根**（要 COPY packages/shared），
+#     所以本文件的 build.context 必须填 "."（仓库根），dockerfile 指向子目录。
+#
+#  接口地址分工（无需反向代理）：
+#    · 浏览器侧  → NUXT_PUBLIC_API_BASE = http://localhost:3000/api （直连 api 发布的 3000）
+#    · SSR 服务端 → NUXT_API_BASE_INTERNAL = http://api:3000/api   （容器内部 DNS）
+#
+#  启动：  docker compose up --build
+#  停止：  docker compose down          （保留 mongo 数据卷）
+#          docker compose down -v       （连数据卷一起删）
+# ============================================================
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: studyplan-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: studyplan
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: studyplan-api
+    restart: unless-stopped
+    env_file:
+      - apps/api/.env
+    environment:
+      # 容器内端口 + 连 mongo 服务（覆盖 .env 里的 localhost）
+      PORT: "3000"
+      MONGODB_URI: "mongodb://mongo:27017/studyplan"
+      NODE_ENV: "development"
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # 构建期注入：浏览器侧接口地址（烘焙进客户端 bundle）
+        NUXT_PUBLIC_API_BASE: "http://localhost:3000/api"
+    container_name: studyplan-web
+    restart: unless-stopped
+    environment:
+      # SSR 服务端在容器内部调用后端，走 compose 内部 DNS
+      NUXT_API_BASE_INTERNAL: "http://api:3000/api"
+      NODE_ENV: "production"
+      HOST: "0.0.0.0"
+      PORT: "3000"
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+
+volumes:
+  mongo-data:

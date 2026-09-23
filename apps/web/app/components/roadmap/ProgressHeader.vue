@@ -1,38 +1,20 @@
 <script setup lang="ts">
 /**
  * 路线进度头（对应 v0 的 ProgressHeader）：三张统计卡 + 整体进度条。
- * 数据由父组件传入 stages，这里只做聚合计算与展示。
- * 颜色类用字面量（Tailwind JIT 不识别动态拼接），统计卡配色用 Nuxt UI 语义色。
+ *
+ * 聚合逻辑来自 `@studyplan/shared` 的 `computeRoadmapProgress`，
+ * 与侧栏底部的「学习进度」共用同一份算法与同一份 `stages` 数据 ——
+ * 之前这里内联聚合、侧栏写死 42%，两处各算一遍还可能不一致；
+ * 现在改走共享函数，路线数据一改，两处会同时、一致地变化。
  */
-interface Course {
-  name: string
-  credits: number
-  status: 'completed' | 'in-progress' | 'planned'
-}
-interface Semester {
-  name: string
-  courses: Course[]
-}
-interface Stage {
-  id: string
-  title: string
-  description: string
-  semesters: Semester[]
-}
+import type { Stage } from '@studyplan/shared'
 
 const props = defineProps<{ stages: Stage[] }>()
 
-const allSteps = computed(() =>
-  props.stages.flatMap(stage => stage.semesters.flatMap(sem => sem.courses)),
-)
-const completed = computed(() => allSteps.value.filter(c => c.status === 'completed').length)
-const inProgress = computed(() => allSteps.value.filter(c => c.status === 'in-progress').length)
-const percent = computed(() =>
-  Math.round((completed.value / (allSteps.value.length || 1)) * 100),
-)
+const { total, completed, inProgress, percent } = useRoadmapProgress(() => props.stages)
 
 const stats = computed(() => [
-  { label: '学习节点', value: allSteps.value.length, icon: 'i-lucide-layers', iconClass: 'bg-primary/10 text-primary' },
+  { label: '学习节点', value: total.value, icon: 'i-lucide-layers', iconClass: 'bg-primary/10 text-primary' },
   { label: '已完成', value: completed.value, icon: 'i-lucide-circle-check-big', iconClass: 'bg-success/10 text-success' },
   { label: '进行中', value: inProgress.value, icon: 'i-lucide-circle-dashed', iconClass: 'bg-info/10 text-info' },
 ])
@@ -46,8 +28,8 @@ const stats = computed(() => [
         :key="stat.label"
         class="card-surface-sm flex items-center gap-3"
       >
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg" :class="stat.iconClass">
-          <UIcon :name="stat.icon" :size="20" />
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm" :class="stat.iconClass">
+          <UIcon :name="stat.icon" class="size-[var(--icon-lg)]" />
         </div>
         <div>
           <p class="text-xs text-muted">{{ stat.label }}</p>

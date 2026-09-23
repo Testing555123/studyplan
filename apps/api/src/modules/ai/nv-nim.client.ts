@@ -86,7 +86,11 @@ export class NvNimClient {
   private readonly timeoutMs: number
 
   constructor(config: ConfigService) {
-    this.apiKey = config.get<string>('NVNIM_API_KEY') ?? null
+    // ⚠️ 空字符串也要视为"未配置"：.env 里 `NVNIM_API_KEY=` 会让 config.get 返回 ''，
+    // 而 '' !== null 会被 enabled 误判成 true（状态接口谎报"AI 已启用"，实际调用必 401）。
+    // 用 trim() 后再 || null，空串 / 纯空格 / 未设置 都归一成 null。
+    const rawKey = config.get<string>('NVNIM_API_KEY')
+    this.apiKey = rawKey && rawKey.trim() ? rawKey.trim() : null
     this.model = config.get<string>('NVNIM_MODEL')?.trim() || DEFAULT_MODEL
 
     const rawTimeout = Number(config.get<string>('NVNIM_TIMEOUT_MS'))
