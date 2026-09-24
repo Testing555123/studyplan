@@ -3,10 +3,10 @@
     "project": "studyplan",
     "document": "页面修改计划（三版本）",
     "basis": [
-      "design-audit/01-visual-style-analysis.md",
-      "design-audit/design-tokens.json",
-      "design-audit/02-design-system-recommendations.md",
-      "design-audit/03-issues-and-fixes.md"
+      "01-visual-style-analysis.md",
+      "design-tokens.json",
+      "02-design-system-recommendations.md",
+      "03-issues-and-fixes.md"
     ],
     "benchmark": ["Notion", "Linear"],
     "currentScore": 6.0,
@@ -228,7 +228,7 @@
         "L4 正文": "--text-base (16px) / 400 / text-toned",
         "辅助": "--text-sm (14px) / 400 / text-muted；--text-xs (12px) / 500 / text-muted"
       },
-      "impact": ["全部页面", "品牌对外形象", "新增 docs/brand-guidelines.md"],
+      "impact": ["全部页面", "品牌对外形象", "新增 brand.md"],
       "risks": [
         { "risk": "品牌识别改变需决策者确认", "level": "medium-high", "mitigation": "先出 2-3 个方向提案，确认后再落地" },
         { "risk": "首页与内页视觉差异加大", "level": "medium", "mitigation": "明确这是刻意策略（对标 Notion/Linear），写入品牌指南" },
@@ -244,7 +244,7 @@
         "侧栏进度为真实值或已移除",
         "暗色下玻璃卡不过曝，两种模式对比度各测一次",
         "4 级资讯层级表建立，抽检 10 处文字符合",
-        "docs/brand-guidelines.md 含 Logo/Colors/Typography/Imagery/Voice 五节",
+        "brand.md 含 Logo/Colors/Typography/Imagery/Voice 五节",
         "brand checklist 的 Visual Consistency 四组可执行"
       ],
       "expectedOutcome": { "scoreFrom": 8.0, "scoreTo": 9.0, "summary": "内页极度安静、首页有记忆点、品牌有识别、信息层级一眼可辨。从「好看的介面」到「有观点的产品」的转变，也是唯一能支撑对外正式发布与品牌变现的版本" }
@@ -278,7 +278,7 @@
     { "id": "M2-13", "version": "V2", "problem": "--radius-card / --radius-pill 已是死令牌案例，需防止新增", "goal": "令牌使用率 100%", "solution": "每季 grep 一次令牌使用率；新增令牌时同步在 PR 中说明使用位置", "difficulty": "low", "impact": "流程", "priority": "P2", "risk": "无", "acceptance": "grep 令牌使用率无零命中项", "targetFiles": [] },
     { "id": "M2-14", "version": "V2", "problem": "字阶放大与 max-width 变更后需全站确认", "goal": "五断点无溢出、无裁切", "solution": "375/768/1024/1440/1920px 逐页检查", "difficulty": "medium", "impact": "全站页面", "priority": "P0", "risk": "中", "acceptance": "五断点无溢出；长文行宽可读", "targetFiles": ["全部 pages/"] },
 
-    { "id": "M3-01", "version": "V3", "problem": "无 logo、无 favicon、无 OG 图；品牌识别只有青蓝方块 + Sparkles（AI 类产品通用符号，识别度低）", "goal": "品牌可携、可辨识", "solution": "SVG logo（字标 + 单独符号两版）+ favicon 多尺寸 + OG 1200×630；写入 docs/brand-guidelines.md，定义最小尺寸、安全留白、单色版本、禁用场景", "difficulty": "medium", "impact": "app.vue（head）、AppHeader.vue:91、AppSidebar.vue:43、public/", "priority": "P1", "risk": "中：品牌识别改变是可见的对外变化，需决策者确认", "acceptance": "logo 在 16px favicon 至 512px OG 全尺寸可辨识；有安全留白与单色版本规范；brand checklist 的 Logo 5 项全通过", "targetFiles": ["public/", "app.vue", "AppHeader.vue", "AppSidebar.vue", "docs/brand-guidelines.md"] },
+    { "id": "M3-01", "version": "V3", "problem": "无 logo、无 favicon、无 OG 图；品牌识别只有青蓝方块 + Sparkles（AI 类产品通用符号，识别度低）", "goal": "品牌可携、可辨识", "solution": "SVG logo（字标 + 单独符号两版）+ favicon 多尺寸 + OG 1200×630；写入 brand.md，定义最小尺寸、安全留白、单色版本、禁用场景", "difficulty": "medium", "impact": "app.vue（head）、AppHeader.vue:91、AppSidebar.vue:43、public/", "priority": "P1", "risk": "中：品牌识别改变是可见的对外变化，需决策者确认", "acceptance": "logo 在 16px favicon 至 512px OG 全尺寸可辨识；有安全留白与单色版本规范；brand checklist 的 Logo 5 项全通过", "targetFiles": ["public/", "app.vue", "AppHeader.vue", "AppSidebar.vue", "brand.md"] },
     { "id": "M3-02", "version": "V3", "problem": "Aurora 光晕、gradient-frame 等装饰动效未限定范围，可能渗入内页", "goal": "装饰只出现在欢迎场景，内容场景保持安静", "solution": "Aurora 与 .gradient-frame 仅用于首页 Hero 与欢迎区；内页不载入装饰层；建立新增装饰动效前的 4 问决策", "difficulty": "medium", "impact": "AuroraBackground.vue、main.css:346-484、各页面", "priority": "P1", "risk": "中：首页与内页视觉差异加大，需确认这是想要的（Notion/Linear 正是如此）", "acceptance": "内页无 infinite 动效；首页保留品牌记忆点；同页 infinite 动效 ≤2 组", "targetFiles": ["AuroraBackground.vue", "main.css", "各页面"] },
     { "id": "M3-03", "version": "V3", "problem": "ring-breathe 5.5s 无限呼吸（main.css:320-330），opacity .35↔.75、scale 1↔1.05；阅读场景下是持续闪烁", "goal": "消除被动注意力干扰，或让其承载明确语义", "solution": "二选一：A 改为有内容时才呼吸，静止时停用；B 保留无限但弱化——周期 5.5s→8s，opacity .35↔.75→.35↔.55，scale 1↔1.05→1↔1.02。若承载「有新内容」语义，必须同时提供非动效提示", "difficulty": "low", "impact": "main.css:320-330/261-263、使用 .ring-breathe 的头像/卡片", "priority": "P1", "risk": "低", "acceptance": "选 B：周期 8s、幅度 .35↔.55；选 A：静止时无动效且有非动效提示；reduced-motion 下完全停止", "targetFiles": ["main.css"] },
     { "id": "M3-04", "version": "V3", "problem": "gradient-pan 9s 无限渐变流动（main.css:337-344/482），静止介面有持续位移", "goal": "静止时绝对安静", "solution": "改为 hover/focus 时才流动，静止时停在 background-position: 50%", "difficulty": "low", "impact": "main.css:337-344/475-480/482", "priority": "P2", "risk": "低", "acceptance": "静止时无位移；hover 时有流动；reduced-motion 下 hover 也不流动", "targetFiles": ["main.css"] },
@@ -286,7 +286,7 @@
     { "id": "M3-06", "version": "V3", "problem": "「学习进度 42%」为静态假资料（AppSidebar.vue:84 文字 + :87 w-[42%]），对使用者是误导", "goal": "显示真实资料，或移除", "solution": "接入真实资料源（/roadmap 的 ProgressHeader 已有计算逻辑可复用）；资料就绪前移除该卡片。若保留进度条，需有文字替代", "difficulty": "medium", "impact": "AppSidebar.vue:77-96、/roadmap 页", "priority": "P1", "risk": "低", "acceptance": "进度为真实值或卡片已移除；若有进度条则有文字替代", "targetFiles": ["AppSidebar.vue", "pages/roadmap.vue"] },
     { "id": "M3-07", "version": "V3", "problem": ".glass-card 的 rgb(255 255 255 / .14) 高光、rgb(15 23 42 / .18) 环境阴影、rgb(255 255 255 / .12) 高光都是为亮色设计的，暗色下白色高光会过曝", "goal": "暗色模式有独立的装饰参数", "solution": ".dark { --glass-highlight: rgb(255 255 255 / .06); --shadow-ambient: rgb(0 0 0 / .40); --spot-highlight: rgb(255 255 255 / .05); }；main.css:397-398/557 改引用变数", "difficulty": "low", "impact": "main.css 装饰层（V1 的 M1-06 已预留挂点）", "priority": "P2", "risk": "低", "acceptance": "暗色下玻璃卡不过曝；两种模式各测一次对比度", "targetFiles": ["main.css"] },
     { "id": "M3-08", "version": "V3", "problem": "9 档字阶中至少 5 档未被使用（V2 已减为 7 档），层级在实作中被绕过（.prose-post 用 text-xl/text-lg 绕过 --text-heading/--text-title）", "goal": "层级有定义、有绑定、被遵循", "solution": "定义 4 级资讯层级：L1 页面标题 --text-3xl/700/text-highlighted；L2 区块标题 --text-2xl/600；L3 卡片标题 --text-xl/600；L4 正文 --text-base/400/text-toned；辅助 --text-sm/400/text-muted、--text-xs/500/text-muted", "difficulty": "medium", "impact": "全站（文档化 + 元件绑定）", "priority": "P1", "risk": "低", "acceptance": "任何新文字都能对号入座到某层级；抽检 10 处文字全部符合；.prose-post 已改指令牌", "targetFiles": ["main.css prose 区块", "各页面", "04-modification-plan.md"] },
-    { "id": "M3-09", "version": "V3", "problem": "无语气规范、无术语表、无大小写规范（brand checklist 的 Voice 3 项全空）", "goal": "文案一致", "solution": "写入 docs/brand-guidelines.md：语气（技术、直接、不浮夸）、术语表、大小写（按钮用动词开头）、CTA 一致性", "difficulty": "low", "impact": "全站文案", "priority": "P2", "risk": "低", "acceptance": "brand checklist 的 Tone / Language / Messaging 三组可执行；抽检 10 处文案一致", "targetFiles": ["docs/brand-guidelines.md"] }
+    { "id": "M3-09", "version": "V3", "problem": "无语气规范、无术语表、无大小写规范（brand checklist 的 Voice 3 项全空）", "goal": "文案一致", "solution": "写入 brand.md：语气（技术、直接、不浮夸）、术语表、大小写（按钮用动词开头）、CTA 一致性", "difficulty": "low", "impact": "全站文案", "priority": "P2", "risk": "低", "acceptance": "brand checklist 的 Tone / Language / Messaging 三组可执行；抽检 10 处文案一致", "targetFiles": ["brand.md"] }
   ],
 
   "beforeAfter": [
@@ -332,7 +332,7 @@
     { "category": "组件与品牌", "item": "页脚分隔符", "before": "字面量 |", "after": "border-l 或 aria-hidden span", "metric": "" },
     { "category": "组件与品牌", "item": "Logo", "before": "无（青蓝方块 + Sparkles）", "after": "SVG logo + favicon + OG", "metric": "" },
     { "category": "组件与品牌", "item": "资讯层级", "before": "隐性 9 档（5 档未用）", "after": "4 级显性绑定表", "metric": "" },
-    { "category": "组件与品牌", "item": "品牌指南", "before": "无", "after": "docs/brand-guidelines.md", "metric": "" }
+    { "category": "组件与品牌", "item": "品牌指南", "before": "无", "after": "brand.md", "metric": "" }
   ],
 
   "keepModifyRemoveAvoid": {
@@ -435,7 +435,7 @@
       "页脚 ≥3 组资讯，无字面量 |",
       "侧栏进度为真实值或已移除",
       "暗色下玻璃卡不过曝",
-      "docs/brand-guidelines.md 含 Logo/Colors/Typography/Imagery/Voice 五节",
+      "brand.md 含 Logo/Colors/Typography/Imagery/Voice 五节",
       "brand checklist 的 Visual Consistency 四组可执行",
       "4 级资讯层级表建立，抽检 10 处文字符合"
     ]

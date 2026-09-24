@@ -23,7 +23,7 @@
 | 访问日志 | 自建中间件 + requestId | — | 不引第三方日志库：用 Nest 自带 Logger + 链路 ID，把响应头与日志串起来 |
 | 契约 | `packages/shared` | — | 前后端唯一事实来源，字段只定义一次 |
 | 容器化 | Docker（多阶段构建） | — | 本地可复现、跨平台可携带 |
-| 部署 | Vercel 容器镜像 / Dokploy + VPS | — | 两条路径都保留，见「部署」章节 |
+| 部署 | Vercel 容器镜像 | — | 见「部署」章节 |
 | 文档 | VitePress | 1.6.4 | 与 Vite 同源，边写边发布电子书 |
 | 测试 | Jest（后端）+ Playwright（E2E） | 30.5.1 / 1.63.0 | 先保证业务核心，再补端到端 |
 | AI | NVIDIA NIM（OpenAI 兼容） | — | 发帖摘要 + AI 学习助手，见下方说明 |
@@ -318,7 +318,7 @@ $env:E2E_PROXY='http://127.0.0.1:7897'
 > ⚠️ **已知网络限制**：`*.vercel.app` 这类域名在中国大陆会遭遇 DNS 污染与 TLS SNI 阻断
 > （实测：同一 IP 换成其他 SNI 可正常访问，说明被针对的是域名而非 IP）。
 > 因此本机浏览器可能需要代理；正式对外使用应绑定**自有域名**。
-> 完整实测记录见 `deploy/vercel-verification.md`。
+> 完整实测记录见电子书 [部署经验：上线时踩过的十个坑](./apps/docs/guide/deployment-lessons.md) 文末附录。
 
 ### 线上启用 AI 学习助手（三步 + 一条自检命令）
 
@@ -339,16 +339,6 @@ curl https://你的域名/api/ai/status
 
 > 未配 Key 时应用**照常启动**，`/ai/status` 返回 `enabled:false`，前端提示"去部署平台配置后重新部署"——这是设计行为，不是故障。完整踩坑见
 > [部署经验：上线时踩过的十个坑](./apps/docs/guide/deployment-lessons.md) 的「坑 11」。
-
-### 路径 B：Dokploy + VPS（自托管回退方案）
-
-在自己的一台服务器上用 Docker 跑，前后端各一个镜像，网关自动签发 HTTPS。
-
-- 两个镜像入口：`apps/api/Dockerfile`、`apps/web/Dockerfile`（构建上下文同样是仓库根）；
-- 平台侧操作手册：`deploy/dokploy-setup.md`；
-- 环境变量与构建参数填写清单：`deploy/env.keys.example`；
-- ⚠️ **电子书目前只在路径 A 里被托管**（`/ebook`）。走这条路要另外给它安排 ——
-  例如再起一个静态站点，或把 `apps/docs/.vitepress/dist` 并进前端镜像由网关一起提供。
 
 ### 部署前必读
 

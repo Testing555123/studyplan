@@ -75,6 +75,16 @@ export default defineConfig({
         ],
       },
       {
+        text: '设计',
+        items: [
+          { text: '视觉风格分析', link: '/design/01-visual-style-analysis' },
+          { text: '设计系统建议', link: '/design/02-design-system-recommendations' },
+          { text: '问题与修复', link: '/design/03-issues-and-fixes' },
+          { text: '修改方案', link: '/design/04-modification-plan' },
+          { text: '品牌规范', link: '/design/brand' },
+        ],
+      },
+      {
         text: '阶段正文',
         items: [
           { text: '阶段 1 · 工程地基与 TypeScript 起步', link: '/stages/stage-1' },
@@ -121,6 +131,17 @@ export default defineConfig({
           { text: '调试经验：出问题时先看什么', link: '/guide/debugging-lessons' },
           { text: '集成经验：从接口到浏览器', link: '/guide/integration-lessons' },
           { text: '每日 GitHub 报道装置：设计与运维', link: '/guide/daily-digest' },
+        ],
+      },
+      {
+        text: '设计',
+        collapsed: true,
+        items: [
+          { text: '视觉风格分析', link: '/design/01-visual-style-analysis' },
+          { text: '设计系统建议', link: '/design/02-design-system-recommendations' },
+          { text: '问题与修复', link: '/design/03-issues-and-fixes' },
+          { text: '修改方案', link: '/design/04-modification-plan' },
+          { text: '品牌规范', link: '/design/brand' },
         ],
       },
       {

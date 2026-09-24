@@ -7,7 +7,7 @@
     "basedOn": [
       "01-visual-style-analysis.md",
       "04-modification-plan.md",
-      "V3 落地（main.css / docs/brand-guidelines.md / 组件改动）"
+      "V3 落地（main.css / brand.md / 组件改动）"
     ],
     "companionArtifact": "design-tokens.json（已存在，含完整令牌与 27 条 issues；本文件仅补充审查纠正结论，不重复令牌数据）"
   },
@@ -24,7 +24,7 @@
       "id": "D02",
       "candidateIssue": "旧审计文档行号 / 动效令牌缺失（原判 P2）",
       "verdict": "resolved",
-      "evidence": "已修正 01/04 中 ring-breathe/gradient-pan/aurora-drift/glass-card/tilt-spot 及 reduced-motion 区块的行号指针；docs/brand-guidelines.md 新增 §6 动效与装饰原则",
+      "evidence": "已修正 01/04 中 ring-breathe/gradient-pan/aurora-drift/glass-card/tilt-spot 及 reduced-motion 区块的行号指针；brand.md 新增 §6 动效与装饰原则",
       "action": "已完成",
       "priority": "P2"
     },
@@ -40,7 +40,7 @@
       "id": "D04",
       "candidateIssue": "推測标注缺失（原判 P3）",
       "verdict": "resolved",
-      "evidence": "docs/brand-guidelines.md §6.2（gradient-pan 触摸端不显示）与 §6.4（logo.svg 字体依赖）新增 2 处「推測」标注",
+      "evidence": "brand.md §6.2（gradient-pan 触摸端不显示）与 §6.4（logo.svg 字体依赖）新增 2 处「推測」标注",
       "action": "已完成",
       "priority": "P3"
     }
@@ -50,10 +50,10 @@
     "ssr": "home/posts/roadmap/trending/login 均 200（V3 已验证）",
     "lint": "0 error / 6 warning（既有，与本次无关）",
     "docChanges": [
-      "docs/brand-guidelines.md 新增 §6 动效与装饰原则（含 2 处「推測」）",
-      "design-audit/01-visual-style-analysis.md 行号指针更新至 V3 实际位置",
-      "design-audit/04-modification-plan.md 行号指针更新至 V3 实际位置",
-      "design-audit/review-audit.json 新增本审查纠正结论（不覆盖既有 design-tokens.json）"
+      "brand.md 新增 §6 动效与装饰原则（含 2 处「推測」）",
+      "01-visual-style-analysis.md 行号指针更新至 V3 实际位置",
+      "04-modification-plan.md 行号指针更新至 V3 实际位置",
+      "review-audit.json 新增本审查纠正结论（不覆盖既有 design-tokens.json）"
     ]
   }
 }

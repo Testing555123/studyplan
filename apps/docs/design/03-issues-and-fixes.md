@@ -287,7 +287,7 @@
 - **現象**：品牌識別由 `h-9 w-9 rounded-xl bg-primary text-white` 的方塊 + Sparkles 圖標構成（`AppHeader.vue`:91、`AppSidebar.vue`:43），無文字 logo、無 SVG 資產。
 - **證據**：`AppHeader.vue`:91、`AppSidebar.vue`:43
 - **影響**：品牌資產不可攜（頭像、OG 圖、favicon 都無法複用）；競爭同質化（Sparkles 是 AI 類產品的通用符號）。
-- **改法**：建議至少定義一枚 SVG logo 與一組 favicon/OG 圖，並寫入 `docs/brand-guidelines.md`。
+- **改法**：建議至少定義一枚 SVG logo 與一組 favicon/OG 圖，並寫入 `brand.md`。
 
 ---
 

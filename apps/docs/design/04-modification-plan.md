@@ -745,13 +745,13 @@ V1 輕量優化  ⊂  V2 中度重構  ⊂  V3 全面升級
 |---|---|
 | **問題** | 無 logo、無 favicon、無 OG 圖；品牌識別只有「青藍方塊 + Sparkles 圖標」，且 Sparkles 是 AI 類產品通用符號，識別度低 |
 | **目標** | 品牌可攜、可辨識 |
-| **修改方案** | SVG logo（含字標與單獨符號兩版）+ favicon（多尺寸）+ OG 圖（1200×630）；寫入 `docs/brand-guidelines.md`，定義：最小尺寸、安全留白、單色版本、禁用場景 |
+| **修改方案** | SVG logo（含字標與單獨符號兩版）+ favicon（多尺寸）+ OG 圖（1200×630）；寫入 `brand.md`，定義：最小尺寸、安全留白、單色版本、禁用場景 |
 | **執行難度** | 中（需設計資源） |
 | **影響範圍** | `app.vue`（head）、`AppHeader.vue`:91、`AppSidebar.vue`:43、`public/` |
 | **優先級** | P1 |
 | **風險** | 中：品牌識別改變是可見的對外變化，需決策者確認 |
 | **驗收標準** | logo 在 16px favicon 至 512px OG 圖全尺寸可辨識；有安全留白與單色版本規範；對照 brand checklist 的 Logo 5 項全通過 |
-| **目標檔案** | `public/`、`app.vue`、`AppHeader.vue`、`AppSidebar.vue`、新增 `docs/brand-guidelines.md` |
+| **目標檔案** | `public/`、`app.vue`、`AppHeader.vue`、`AppSidebar.vue`、新增 `brand.md` |
 
 #### M3-02｜裝飾層空間隔離
 | 欄位 | 內容 |
@@ -849,13 +849,13 @@ V1 輕量優化  ⊂  V2 中度重構  ⊂  V3 全面升級
 |---|---|
 | **問題** | 無語氣規範、無術語表、無大小寫規範（對照 brand checklist 的 Voice 3 項全空） |
 | **目標** | 文案一致 |
-| **修改方案** | 寫入 `docs/brand-guidelines.md`：語氣（技術、直接、不浮誇）、術語表（「帖子」而非「文章」？「路線」而非「Roadmap」？需決策）、大小寫（按鈕用動詞開頭）、CTA 一致性（「寫文章」「看熱門」等動詞結構統一） |
+| **修改方案** | 寫入 `brand.md`：語氣（技術、直接、不浮誇）、術語表（「帖子」而非「文章」？「路線」而非「Roadmap」？需決策）、大小寫（按鈕用動詞開頭）、CTA 一致性（「寫文章」「看熱門」等動詞結構統一） |
 | **執行難度** | 低（文件工作） |
 | **影響範圍** | 全站文案 |
 | **優先級** | P2 |
 | **風險** | 低 |
 | **驗收標準** | brand checklist 的 Tone / Language / Messaging 三組檢查項可執行；抽檢 10 處文案一致 |
-| **目標檔案** | 新增 `docs/brand-guidelines.md` |
+| **目標檔案** | 新增 `brand.md` |
 
 ### 6.5 具體參數建議（V3）
 
@@ -875,7 +875,7 @@ V1 輕量優化  ⊂  V2 中度重構  ⊂  V3 全面升級
 | 資訊層級 | 隱性（9 檔，5 檔未用） | 4 級顯性綁定表 |
 
 ### 6.6 影響範圍
-全部頁面 + 品牌對外形象 + 新增 `docs/brand-guidelines.md`。
+全部頁面 + 品牌對外形象 + 新增 `brand.md`。
 
 ### 6.7 風險
 | 風險 | 等級 | 緩解 |
@@ -894,7 +894,7 @@ V1 輕量優化  ⊂  V2 中度重構  ⊂  V3 全面升級
 - [ ] 側欄進度為真實值或已移除
 - [ ] 暗色下玻璃卡不過曝，兩種模式對比度各測一次
 - [ ] 4 級資訊層級表建立，抽檢 10 處文字符合
-- [ ] `docs/brand-guidelines.md` 存在，含 Logo/Colors/Typography/Imagery/Voice 五節
+- [ ] `brand.md` 存在，含 Logo/Colors/Typography/Imagery/Voice 五節
 - [ ] brand checklist 的 Visual Consistency 四組可執行
 
 ### 6.9 修改後預期效果
@@ -1019,7 +1019,7 @@ V1 輕量優化  ⊂  V2 中度重構  ⊂  V3 全面升級
 | 頁腳分隔符 | 字面量 `\|` | `border-l` 或 `aria-hidden` span |
 | Logo | 無（青藍方塊 + Sparkles） | SVG logo + favicon + OG |
 | 資訊層級 | 隱性（9 檔，5 檔未用） | **4 級顯性綁定表** |
-| 品牌指南 | 無 | `docs/brand-guidelines.md` |
+| 品牌指南 | 無 | `brand.md` |
 
 ---
 
@@ -1140,7 +1140,7 @@ V1 輕量優化  ⊂  V2 中度重構  ⊂  V3 全面升級
 - [ ] logo 有安全留白規範與單色版本
 - [ ] 內頁 infinite 動效數 = 0；首頁同頁 infinite ≤2 組
 - [ ] `ring-breathe` 若承載語義則有非動效替代
-- [ ] `docs/brand-guidelines.md` 含 Logo/Colors/Typography/Imagery/Voice 五節
+- [ ] `brand.md` 含 Logo/Colors/Typography/Imagery/Voice 五節
 - [ ] brand checklist 的 Visual Consistency 四組可執行
 - [ ] 4 級資訊層級表建立，抽檢 10 處文字符合
 
