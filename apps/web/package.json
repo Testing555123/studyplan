@@ -6,7 +6,7 @@
   "description": "学习社区前端（Nuxt 4 + Nuxt UI + Pinia）",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "nuxt build",
+    "build": "nuxt prepare && nuxt build",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "prepare:types": "nuxt prepare",

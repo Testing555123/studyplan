@@ -41,7 +41,7 @@ test.describe('SEO 基础设施', () => {
 
     // 封面必须是绝对地址 —— 相对路径的 og:image 在多数社交平台上不生效
     const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content')
-    expect(ogImage).toContain('/og-cover.png')
+    expect(ogImage).toContain('/og-cover.jpg')
     expect(ogImage).toMatch(/^https?:\/\//)
   })
 
