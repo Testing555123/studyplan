@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { AiModule } from '../ai/ai.module'
+import { SearchModule } from '../search/search.module'
 import { Post, PostSchema } from './schemas/post.schema'
 import { PostsController } from './posts.controller'
 import { PostsService } from './posts.service'
@@ -29,6 +30,11 @@ import { PostsService } from './posts.service'
      * 依赖方向是 posts → ai，单向，不会形成循环依赖。
      */
     AiModule,
+    /**
+     * 语义搜索追加：发帖/更新/删除后同步向量用的 EmbeddingService。
+     * 依赖方向仍是单向的 posts → search → ai，不引入 forwardRef。
+     */
+    SearchModule,
   ],
   controllers: [PostsController],
   providers: [PostsService],
