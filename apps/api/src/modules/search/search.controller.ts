@@ -1,13 +1,15 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
-import type { SearchStatus } from '@studyplan/shared'
+import type { AskSearchResponse, SearchStatus } from '@studyplan/shared'
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard'
 import { AiService } from '../ai/ai.service'
 import { NvNimClient } from '../ai/nv-nim.client'
 import { EmbeddingService } from './embedding.service'
 import { VectorStoreService } from './vector-store.service'
 import { SearchService } from './search.service'
 import { SemanticSearchDto } from './dto/semantic-search.dto'
+import { AskPostsDto } from './dto/ask-posts.dto'
 
 /** 语义搜索每次消耗一发 embedding 调用；比读接口严、比问答松 */
 const SEMANTIC_LIMIT_PER_MINUTE = 30
@@ -33,6 +35,17 @@ export class SearchController {
   })
   async semantic(@Body() dto: SemanticSearchDto) {
     return this.searchService.semanticSearch(dto.query)
+  }
+
+  @Post('ask')
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: ONE_MINUTE_MS } })
+  @ApiOperation({
+    summary: '问全书（需登录）',
+    description: '基于站内帖子的 RAG 问答。检索不到相关内容时直接返回 no-sources，不问模型。',
+  })
+  async ask(@Body() dto: AskPostsDto): Promise<AskSearchResponse> {
+    return this.searchService.askPosts(dto.question)
   }
 
   @Get('status')

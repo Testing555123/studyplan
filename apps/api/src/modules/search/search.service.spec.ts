@@ -26,6 +26,8 @@ function createService(options: {
     storeStub as never,
     postModelStub as never,
     clientStub as never,
+    // semanticSearch 不碰 AiService（askPosts 才用，在 ask-posts.spec 里测）
+    {} as never,
   )
   return { service, embeddingStub, storeStub, postModelStub }
 }
