@@ -39,10 +39,25 @@ const props = withDefaults(
   { colSpan: 1, rowSpan: 1, tone: 'default', as: 'div' },
 )
 
-/** 色调 → 表面样式。渐变卡用 brand→ai（青蓝→紫罗兰），与 Bento 范例的蓝→紫同语义 */
+/**
+ * 色调 → 表面样式。渐变卡用 brand→ai（青蓝→紫罗兰），与 Bento 范例的蓝→紫同语义
+ *
+ * ⚠️ 画布下沉之后，这里的「表面」统一指向 **bg-elevated（L1 承载面＝纯白）**，
+ *    不再写 bg-default —— 后者现在是 L0 画布灰，写上去会得到「灰卡」，
+ *    与"卡片凸起"的意图正好相反。
+ */
 const TONES: Record<BentoTone, string> = {
-  default: 'bg-default border-default',
-  muted: 'bg-muted border-default',
+  /** 标准承载面：纯白 + 边框，与灰色画布拉开第一层对比 */
+  default: 'bg-elevated border-default',
+  /*
+   * 安静版承载面。
+   *
+   * ⚠️ 刻意**不写** bg-muted：L2 的语义是「白卡**内部**的凹槽」，
+   *    而这是一张直接躺在画布上的卡 —— 用 L2 会和画布几乎同化、整张消失。
+   *    改为白面 + 无边框：对比仍来自「白 vs 画布灰」，但少了那道边框线，
+   *    比 default 卡更安静，保留了原本"次要卡"的层次意图。
+   */
+  muted: 'bg-elevated border-transparent',
   brand: 'border-brand-100 bg-brand-50 dark:border-brand-900 dark:bg-brand-950/40',
   ai: 'border-ai-100 bg-ai-50 dark:border-ai-900 dark:bg-ai-950/40',
   gradient: 'border-transparent bg-gradient-to-br from-brand-500 to-ai-500 text-white',
