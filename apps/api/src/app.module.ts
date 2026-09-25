@@ -13,6 +13,7 @@ import { HealthController } from './modules/health/health.controller'
 import { LikesModule } from './modules/likes/likes.module'
 import { PostsModule } from './modules/posts/posts.module'
 import { RoadmapModule } from './modules/roadmap/roadmap.module'
+import { SearchModule } from './modules/search/search.module'
 import { UsersModule } from './modules/users/users.module'
 
 /**
@@ -217,6 +218,11 @@ import { UsersModule } from './modules/users/users.module'
      * 只依赖 users 的 ObjectId 与全局 JWT 鉴权，与其它业务模块零交集。
      */
     RoadmapModule,
+    /**
+     * 语义搜索与问全书。单向依赖 ai（embedding/对话）与 posts 集合，
+     * PostsModule 依赖它做发帖后的向量同步（posts → search → ai）。
+     */
+    SearchModule,
   ],
   controllers: [HealthController],
 })
