@@ -12,6 +12,7 @@ import { GithubModule } from './modules/github/github.module'
 import { HealthController } from './modules/health/health.controller'
 import { LikesModule } from './modules/likes/likes.module'
 import { PostsModule } from './modules/posts/posts.module'
+import { RoadmapModule } from './modules/roadmap/roadmap.module'
 import { UsersModule } from './modules/users/users.module'
 
 /**
@@ -211,6 +212,11 @@ import { UsersModule } from './modules/users/users.module'
      * 都不会影响用户发帖、评论、登录中的任何一条路径。
      */
     DailyDigestModule,
+    /**
+     * 学习路线进度（云同步）。
+     * 只依赖 users 的 ObjectId 与全局 JWT 鉴权，与其它业务模块零交集。
+     */
+    RoadmapModule,
   ],
   controllers: [HealthController],
 })
