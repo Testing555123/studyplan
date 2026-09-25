@@ -29,6 +29,7 @@ const { progress } = useRoadmapProgress()
 const links = [
   { label: '首页', description: '学习概览', to: '/', icon: 'i-lucide-home' },
   { label: '帖子流', description: '监视最新讨论', to: '/posts', icon: 'i-lucide-message-square-text' },
+  { label: '智能搜索', description: '语义检索与问全书', to: '/search', icon: 'i-lucide-sparkles' },
   { label: '全栈学习路线', description: '从基础到上线', to: '/roadmap', icon: 'i-lucide-route' },
   { label: 'GitHub 热门', description: '探索开源项目', to: '/trending', icon: 'i-lucide-github' },
 ]
