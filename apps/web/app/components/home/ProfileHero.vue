@@ -79,12 +79,18 @@ function initials(name: string): string {
     <!-- README 盒：内嵌一层磨砂，与外卡形成"玻璃里还有一层玻璃"的层次 -->
     <!--
       README 盒改用 UCard：边框 / 底色 / 内距交给组件库的 variant 与 ui，
-      这里只保留两件组件不管的事 —— 磨砂背景与入场动画。
+      这里只保留两件组件不管的事 —— 内凹底色与入场动画。
+
+      ⚠️ root 显式指定 bg-muted（L2 凹槽灰）而不是沿用 soft 变体的
+         bg-elevated/50：这一层**嵌在白色资料卡内部**，
+         若也做成白，就和外卡糊成一团，"内嵌一层"的层次没了。
+         凹槽灰正好表达「README 是资料卡里的一块引述区」。
+         同时移除 backdrop-blur-sm —— 底色已不透明，模糊不但无效还白付渲染成本。
     -->
     <UCard
       variant="soft"
-      class="mt-6 animate-fade-up backdrop-blur-sm"
-      :ui="{ body: 'p-4 md:p-5' }"
+      class="mt-6 animate-fade-up"
+      :ui="{ root: 'bg-muted', body: 'p-4 md:p-5' }"
       style="animation-delay: 180ms"
     >
       <div class="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">

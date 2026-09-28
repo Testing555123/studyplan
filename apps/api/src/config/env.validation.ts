@@ -152,6 +152,15 @@ export class EnvironmentVariables {
   NVNIM_MODEL: string = 'openai/gpt-oss-20b'
 
   /**
+   * Embedding 模型名。**独立于 NVNIM_MODEL 单独可配**：
+   * 对话模型下线不该连累整个向量库重建，两者的生命周期完全不同。
+   * baai/bge-m3 为多语言模型（中英通吃），1024 维。
+   */
+  @IsOptional()
+  @IsString()
+  NVNIM_EMBED_MODEL: string = 'baai/bge-m3'
+
+  /**
    * AI 单次调用超时（毫秒）。
    *
    * 上限卡在 60 秒，是因为超时设置**必须小于**用户能忍受的等待极限 ——

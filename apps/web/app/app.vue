@@ -143,8 +143,13 @@ onMounted(async () => {
               class="absolute inset-0 bg-[var(--overlay-scrim)] backdrop-blur-sm"
               @click="mobileNavOpen = false"
             />
+            <!--
+              抽屉是「抬起」的浮层，不是画布的一部分：
+              它整块压在内容之上（还带 --elevation-drawer 投影），
+              所以走 bg-elevated（L1 承载面＝白），而不是画布灰。
+            -->
             <aside
-              class="absolute inset-y-0 left-0 w-[var(--layout-sidebar-expanded)] border-r border-default bg-default [box-shadow:var(--elevation-drawer)]"
+              class="absolute inset-y-0 left-0 w-[var(--layout-sidebar-expanded)] border-r border-default bg-elevated [box-shadow:var(--elevation-drawer)]"
             >
               <AppSidebar :open="true" closable @close="mobileNavOpen = false" />
             </aside>

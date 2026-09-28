@@ -5,6 +5,7 @@ import { POST_PAGE_SIZE } from '@studyplan/shared'
 import { PostsService } from './posts.service'
 import { Post } from './schemas/post.schema'
 import { AiService } from '../ai/ai.service'
+import { EmbeddingService } from '../search/embedding.service'
 import type { AuthenticatedUser } from '../../common/types/authenticated-user'
 import type { QueryPostsDto } from './dto/query-posts.dto'
 import type { UpdatePostDto } from './dto/update-post.dto'
@@ -52,11 +53,14 @@ describe('PostsService', () => {
   let service: PostsService
   let findQuery: ReturnType<typeof createQueryStub>
   let findByIdQuery: ReturnType<typeof createQueryStub>
+  let ai: { enabled: boolean; generatePostMeta: jest.Mock }
+  let embedding: { syncForPost: jest.Mock; removeForPost: jest.Mock }
   let model: {
     find: jest.Mock
     countDocuments: jest.Mock
     findById: jest.Mock
     create: jest.Mock
+    updateOne: jest.Mock
     findOneAndUpdate: jest.Mock
     findOneAndDelete: jest.Mock
     exists: jest.Mock
@@ -65,12 +69,19 @@ describe('PostsService', () => {
   beforeEach(async () => {
     findQuery = createQueryStub([baseDoc])
     findByIdQuery = createQueryStub(baseDoc)
+    ai = { enabled: false, generatePostMeta: jest.fn() }
+    embedding = {
+      syncForPost: jest.fn().mockResolvedValue(true),
+      removeForPost: jest.fn().mockResolvedValue(undefined),
+    }
 
     model = {
       find: jest.fn(() => findQuery),
       countDocuments: jest.fn(() => createQueryStub(1)),
       findById: jest.fn(() => findByIdQuery),
       create: jest.fn().mockResolvedValue({ ...baseDoc, toObject: () => baseDoc }),
+      // enrichWithAi 回填摘要时用 updateOne（链式替身，exec 返回acknowledged 即可）
+      updateOne: jest.fn(() => createQueryStub({ acknowledged: true })),
       findOneAndUpdate: jest.fn(() => createQueryStub(baseDoc)),
       findOneAndDelete: jest.fn(() => createQueryStub(baseDoc)),
       exists: jest.fn().mockResolvedValue({ _id: VALID_ID }),
@@ -94,7 +105,15 @@ describe('PostsService', () => {
          */
         {
           provide: AiService,
-          useValue: { enabled: false, generatePostMeta: jest.fn() },
+          useValue: ai,
+        },
+        /**
+         * 语义搜索追加：PostsService 现在还依赖 EmbeddingService（posts → search → ai 单向）。
+         * 同 AiService 一样用 useValue 注入替身，测试里不碰真模型与真库。
+         */
+        {
+          provide: EmbeddingService,
+          useValue: embedding,
         },
       ],
     }).compile()
@@ -178,6 +197,28 @@ describe('PostsService', () => {
         author: { id: 'u-1', username: '沈亦舟' },
       })
     })
+
+    it('摘要成功后顺带生成向量；embedding 抛错也不影响发帖结果（Review Focus #5）', async () => {
+      // 打开 AI 旁路：generatePostMeta 成功返回
+      ai.enabled = true
+      ai.generatePostMeta.mockResolvedValue({ summary: 's', tags: [] })
+      // 模拟"连永不抛的 syncForPost 都炸了"的极端情况
+      embedding.syncForPost.mockRejectedValue(new Error('boom'))
+
+      const result = await service.create(
+        { title: '新帖子标题', content: '一段足够长的正文内容。', tags: ['Vue'] },
+        actor,
+      )
+
+      // 旁路是 void 出去的，等它转完一圈
+      await new Promise((resolve) => setImmediate(resolve))
+
+      // 发帖主链路照常成功（create 替身返回的是 baseDoc，断 id 不断 title）
+      expect(result.id).toBe(VALID_ID)
+      expect(embedding.syncForPost).toHaveBeenCalledWith(
+        expect.objectContaining({ title: '新帖子标题', summary: 's' }),
+      )
+    })
   })
 
   describe('update', () => {
@@ -223,6 +264,12 @@ describe('PostsService', () => {
   })
 
   describe('remove', () => {
+    it('删帖时级联删除向量', async () => {
+      await service.remove(VALID_ID, actor)
+
+      expect(embedding.removeForPost).toHaveBeenCalledWith(VALID_ID)
+    })
+
     it('删除时同样把作者的归属写进查询条件', async () => {
       await service.remove(VALID_ID, actor)
 

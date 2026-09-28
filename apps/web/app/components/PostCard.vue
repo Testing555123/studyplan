@@ -16,11 +16,20 @@ import { GITHUB_SOURCE_TAG, type Post } from '@studyplan/shared'
 
 const props = defineProps<{
   post: Post
+  /** 相关度 0~1，只在 /search 页传；列表页不传则不渲染徒章 */
+  score?: number
 }>()
 
 const emit = defineEmits<{
   (event: 'toggle-like', postId: string): void
 }>()
+
+/** 相关度徒章文案：score 缺省或越界时不显示 */
+const scorePercent = computed(() =>
+  props.score === undefined
+    ? null
+    : `${Math.round(Math.max(0, Math.min(1, props.score)) * 100)}%`,
+)
 
 /** 点赞态由 store 统一管理，这里只读不写 */
 const postStore = usePostStore()
@@ -65,6 +74,9 @@ const isDailyPick = computed(() => props.post.tags.includes(GITHUB_SOURCE_TAG))
     </div>
 
     <!-- 标题：唯一可点链接，用 ::after 拉伸覆盖整卡；避免整卡 <a> 内再嵌套标签 <a> 的非法结构 -->
+    <div v-if="scorePercent" class="mb-2 flex items-center">
+      <UBadge color="primary" variant="subtle" size="xs">相关度 {{ scorePercent }}</UBadge>
+    </div>
     <h3 class="text-title leading-7 font-semibold tracking-tight">
       <NuxtLink
         :to="`/posts/${post.id}`"

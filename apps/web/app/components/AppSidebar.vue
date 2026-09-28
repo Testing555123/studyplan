@@ -29,6 +29,7 @@ const { progress } = useRoadmapProgress()
 const links = [
   { label: '首页', description: '学习概览', to: '/', icon: 'i-lucide-home' },
   { label: '帖子流', description: '监视最新讨论', to: '/posts', icon: 'i-lucide-message-square-text' },
+  { label: '智能搜索', description: '语义检索与问全书', to: '/search', icon: 'i-lucide-sparkles' },
   { label: '全栈学习路线', description: '从基础到上线', to: '/roadmap', icon: 'i-lucide-route' },
   { label: 'GitHub 热门', description: '探索开源项目', to: '/trending', icon: 'i-lucide-github' },
 ]
@@ -87,8 +88,19 @@ function isActive(to: string): boolean {
         >
           <span v-if="open" class="min-w-0 text-left">
             <span class="block text-body-sm font-medium">{{ link.label }}</span>
-            <!-- 原 opacity-70 会把 text-muted（4.80:1）压到达不到 4.5:1，去掉 -->
-            <span class="block truncate text-caption text-muted">{{ link.description }}</span>
+            <!--
+              sub-label 颜色必须分选中式讨论，不能一律写死 text-muted：
+              · 未选中（ghost）：text-muted 在画布上≈ 4.8:1，达标（旧版曾叠
+                opacity-70 把它压到 4.5 以下，所以这里不叠）。
+              · 选中（solid 主色底）：text-muted 不会随背景翻转，#a3adb9 压在
+                青色 #22d3ee 上只有 1.26:1、几乎看不见（用户反馈「看不清」）。
+                改为继承 UButton 的反色标题（与上行 label 同源）、只降不透明度，
+                两种主题下都能跟着主色底自动取到对比足够的深 / 浅字。
+            -->
+            <span
+              class="block truncate text-caption"
+              :class="isActive(link.to) ? 'opacity-80' : 'text-muted'"
+            >{{ link.description }}</span>
           </span>
         </UButton>
       </nav>
@@ -100,11 +112,19 @@ function isActive(to: string): boolean {
         螢幕 ≥640px 时 `sm:p-6` 仍会生效，卡片内容又会比导航项多 8px。
         所以两个断点都要指向同一个 gutter，否则「对齐」只在小萤幕成立。
       -->
+      <!--
+        root 显式指定 bg-elevated（L1 白）：soft 变体默认是 bg-elevated/50，
+        半透明白落在灰画布上会稀成一片浅雾，看不出这是一张卡。
+        侧栏容器本身已是画布灰，所以这里必须是一整块实心白才拉得开。
+      -->
       <UCard
         v-if="open"
         variant="soft"
         class="mt-auto"
-        :ui="{ body: 'p-[var(--layout-sidebar-gutter)] sm:p-[var(--layout-sidebar-gutter)]' }"
+        :ui="{
+          root: 'bg-elevated',
+          body: 'p-[var(--layout-sidebar-gutter)] sm:p-[var(--layout-sidebar-gutter)]',
+        }"
       >
         <div class="flex items-center gap-2 text-body-sm font-semibold text-highlighted">
           <UIcon name="i-lucide-book-open" class="size-[var(--icon-sm)] text-primary" />

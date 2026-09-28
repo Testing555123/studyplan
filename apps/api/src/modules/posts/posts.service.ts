@@ -5,6 +5,7 @@ import type { Post as PostContract, PostListResponse } from '@studyplan/shared'
 import type { AuthenticatedUser } from '../../common/types/authenticated-user'
 import { withTiming } from '../../common/utils/with-timing'
 import { AiService } from '../ai/ai.service'
+import { EmbeddingService } from '../search/embedding.service'
 import { Post } from './schemas/post.schema'
 import { PostLean, toPostContract } from './posts.mapper'
 import { CreatePostDto } from './dto/create-post.dto'
@@ -39,6 +40,11 @@ export class PostsService {
      * 这样两个模块之间不会形成循环依赖（详见 ai.module.ts 的注释）。
      */
     private readonly aiService: AiService,
+    /**
+     * 向量同步（语义搜索）。依赖方向 posts → search → ai 保持单向，
+     * 与 AiService 同款旁路纪律：它只锦上添花，绝不影响发帖/更新/删除本身。
+     */
+    private readonly embeddingService: EmbeddingService,
   ) {}
 
   /**
@@ -198,6 +204,15 @@ export class PostsService {
         .updateOne({ _id: postId }, { $set: { summary: meta.summary, aiTags: meta.tags } })
         .exec()
 
+      // 摘要成功后顺带生成向量。传的是手里已有的数据，不再回读数据库：
+      // 刚写入的 summary 就在 meta 里，回读反而可能读到副本延迟的旧数据。
+      await this.embeddingService.syncForPost({
+        id: postId,
+        title,
+        summary: meta.summary,
+        content,
+      })
+
       this.logger.log(`AI 元数据已回填：${postId}`)
     } catch (error) {
       // 这里只记日志、不抛出、不重试。
@@ -285,7 +300,27 @@ export class PostsService {
         : new NotFoundException(`找不到 id 为 ${id} 的帖子`)
     }
 
+    // 内容变了向量必须跟着变。只判断 title/content ——
+    // 改标签不影响语义文本，不该重烧一次 embedding。
+    if (patch.title !== undefined || patch.content !== undefined) {
+      const fresh = updated as unknown as PostLean
+      void this.resyncEmbedding(fresh)
+    }
+
     return toPostContract(updated as unknown as PostLean)
+  }
+
+  /** 更新后的向量重算。失败不重试：删掉旧向量，让回填脚本补新的 */
+  private async resyncEmbedding(doc: PostLean): Promise<void> {
+    const ok = await this.embeddingService.syncForPost({
+      id: String(doc._id),
+      title: doc.title,
+      summary: doc.summary ?? null,
+      content: doc.content,
+    })
+    if (!ok) {
+      await this.embeddingService.removeForPost(String(doc._id))
+    }
   }
 
   /** 删除帖子（只能删自己的；阶段 6 会在这里级联删除它的评论） */
@@ -304,6 +339,9 @@ export class PostsService {
         ? new ForbiddenException('只能删除自己发布的文章')
         : new NotFoundException(`找不到 id 为 ${id} 的帖子`)
     }
+
+    // 帖子没了向量也不能留（removeForPost 永不抛，直接 await 的是本地操作）
+    await this.embeddingService.removeForPost(id)
 
     this.logger.log(`帖子已删除：${id}（操作者 ${actor.username}）`)
   }

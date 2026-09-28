@@ -78,6 +78,19 @@ export class AiService {
   }
 
   /**
+   * 读答案缓存（供 search 模块的「问全书」复用同一份缓存设施）。
+   * 缓存键由调用方生成，这里只认 hash —— 两个功能的键空间靠调用方加前缀区分。
+   */
+  async getCachedAnswer(hash: string): Promise<{ answer: string; sources: string[] } | null> {
+    return this.readCache(hash)
+  }
+
+  /** 写答案缓存。失败静默（缓存只是优化，不该让已拿到的答案丢掉） */
+  async cacheAnswer(hash: string, answer: string, sources: string[]): Promise<void> {
+    return this.writeCache(hash, answer, sources)
+  }
+
+  /**
    * 生成摘要与推荐标签。
    *
    * @returns 清洗后的元数据；任何一步失败都返回 null

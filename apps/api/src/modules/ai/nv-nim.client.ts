@@ -40,6 +40,18 @@ const DEFAULT_MAX_TOKENS = 800
 /** 默认采样温度。0.4 偏向稳定，避免同一个问题每次答案差很远 */
 const DEFAULT_TEMPERATURE = 0.4
 
+/** NIM 的 embeddings 端点与 chat 同 baseURL */
+const EMBED_PATH = '/embeddings'
+
+/** embedding 是短请求，10 秒足够；不给 chat 级的 25 秒是因为回填脚本要连续跑几百次 */
+const EMBED_TIMEOUT_MS = 10_000
+
+/**
+ * 默认 embedding 模型。与 DEFAULT_MODEL 同款理由：NIM 的模型会下线，
+ * 模型名必须能被环境变量覆盖，写死的某一天会全线报错。
+ */
+const DEFAULT_EMBED_MODEL = 'baai/bge-m3'
+
 export interface ChatMessage {
   role: 'system' | 'user'
   content: string
@@ -83,6 +95,7 @@ export class NvNimClient {
 
   private readonly apiKey: string | null
   private readonly model: string
+  private readonly embedModel: string
   private readonly timeoutMs: number
 
   constructor(config: ConfigService) {
@@ -92,6 +105,7 @@ export class NvNimClient {
     const rawKey = config.get<string>('NVNIM_API_KEY')
     this.apiKey = rawKey && rawKey.trim() ? rawKey.trim() : null
     this.model = config.get<string>('NVNIM_MODEL')?.trim() || DEFAULT_MODEL
+    this.embedModel = config.get<string>('NVNIM_EMBED_MODEL')?.trim() || DEFAULT_EMBED_MODEL
 
     const rawTimeout = Number(config.get<string>('NVNIM_TIMEOUT_MS'))
     this.timeoutMs =
@@ -110,6 +124,11 @@ export class NvNimClient {
   /** 当前生效的模型名（供 /ai/status 展示，排查"到底用的哪个模型"很方便） */
   get currentModel(): string {
     return this.model
+  }
+
+  /** 当前生效的 embedding 模型名（供 /search/status 与混库检测使用） */
+  get currentEmbedModel(): string {
+    return this.embedModel
   }
 
   /**
@@ -197,6 +216,58 @@ export class NvNimClient {
   }
 
   /**
+   * 批量向量化。返回顺序与入参一致（上游按 index 标注，这里负责重排对齐）。
+   * 失败时抛出的消息与 chat() 同约定：可直接展示、不含密钥。
+   */
+  async embed(texts: string[]): Promise<number[][]> {
+    if (!this.apiKey) {
+      throw new Error('AI 功能未启用：服务端未配置 NVNIM_API_KEY')
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), EMBED_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(`${NVNIM_BASE_URL}${EMBED_PATH}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: this.embedModel,
+          input: texts,
+          encoding_format: 'float',
+        }),
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        throw new Error(await this.describeEmbedFailure(response))
+      }
+
+      const payload = (await response.json()) as {
+        data?: { index: number; embedding: number[] }[]
+      }
+      const rows = payload.data ?? []
+      if (rows.length !== texts.length) {
+        throw new Error(`AI 返回的向量数量与输入条数不一致（${rows.length}/${texts.length}）`)
+      }
+
+      return [...rows]
+        .sort((a, b) => a.index - b.index)
+        .map((row) => row.embedding)
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`embedding 请求超时（${EMBED_TIMEOUT_MS}ms）`)
+      }
+      throw error instanceof Error ? error : new Error(String(error))
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  /**
    * 把 HTTP 状态码翻译成人话。
    *
    * 注意：这里**只读取状态码**，不解析响应体里的敏感信息，
@@ -220,5 +291,13 @@ export class NvNimClient {
     }
 
     return `AI 服务返回 ${response.status} ${response.statusText}`
+  }
+
+  /** 与 describeFailure 同结构，唯一区别是提示换 NVNIM_EMBED_MODEL */
+  private async describeEmbedFailure(response: Response): Promise<string> {
+    if (response.status === 410 || response.status === 404) {
+      return `Embedding 模型「${this.embedModel}」已下线或不存在，请在环境变量 NVNIM_EMBED_MODEL 中更换`
+    }
+    return this.describeFailure(response)
   }
 }

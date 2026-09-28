@@ -18,5 +18,13 @@ module.exports = {
   clearMocks: true,
   moduleNameMapper: {
     '^@studyplan/shared$': '<rootDir>/../../packages/shared/src/index.ts',
+    /**
+     * shared 源码用的是 NodeNext 风格的相对导入（`./types/user.js`），
+     * 而源码目录里只有 `.ts` 文件 —— jest 的默认解析器不会把 `.js`
+     * 映射回 `.ts`，导致凡是运行时真实加载了 shared 的套件全部爆错
+     * （"Cannot find module './types/user.js'"）。这条把相对路径的
+     * `.js` 后缀剥掉，交给 moduleFileExtensions 去命中 `.ts`。
+     */
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
 }

@@ -109,7 +109,8 @@ onMounted(() => {
         详情页只有这一张卡，所以保留真正的毛玻璃（半透明 + 背景模糊）——
         列表页卡片多才刻意不做模糊（滚动时每帧重采样背景，代价太大）。
       -->
-      <BentoCard v-else-if="repo" class="bg-default/70 backdrop-blur-md sm:p-8">
+      <!-- 详情页主卡：底色必须是 bg-elevated（白），不能是画布灰 —— 否则整块内容区沉进背景 -->
+      <BentoCard v-else-if="repo" class="bg-elevated/80 backdrop-blur-md sm:p-8">
           <!-- 拥有者 -->
           <div class="flex items-center gap-2">
             <UAvatar :src="repo.ownerAvatarUrl" :alt="repo.ownerLogin" size="2xs" loading="lazy" />
