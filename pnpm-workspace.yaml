@@ -21,6 +21,8 @@ allowBuilds:
   '@parcel/watcher': true
   vue-demi: true
   '@scarf/scarf': false
+  onnxruntime-node: false
+  protobufjs: false
 
 minimumReleaseAgeExclude:
   - '@types/node@22.20.2'

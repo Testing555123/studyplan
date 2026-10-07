@@ -5,6 +5,9 @@ node_modules/
 dist/
 .nuxt/
 .output/
+# PoC 的非标准构建产物（.output.bak-* / .output.spike-*）与运行时数据不进版本库
+poc/p19-docs/.output.*/
+poc/p19-docs/.data/
 apps/docs/.vitepress/dist/
 apps/docs/.vitepress/cache/
 *.tsbuildinfo

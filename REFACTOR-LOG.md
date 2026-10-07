@@ -47,3 +47,4 @@ git push origin --delete refactor/payload-pg
 | 日期 | 内容 |
 | --- | --- |
 | 2026-10-07 | 分支创建，记录开工基线；本提交同时用于端到端验证 Squash 合并流程 |
+| 2026-10-08 | 批次 1② 偏差处置 + 1③ + 1④ 完成：`idType:'uuid'`/`tags` 改 json 并重建 `payload_dev` 复测通过；五个域（auth/users/posts/comments/likes）迁移为 Payload Local API 路由（`apps/api/src/routes/`）；R-B 两层静默失效已修；R-C 闸门落在 `routes/users.ts` + `test/contract.rc-gates.test.mjs`（2/2 全绿）；`packages/shared` 转 ESM（移除 nuxt.config CJS 兜底，Nuxt build + SSR 冒烟通过）。新陷阱实录：`payload.auth()` 必须传 Web `Headers` 实例；drizzle 不把 JS 数组绑成 PG 数组；Payload 唯一冲突有两种形态（ValidationError "Value must be unique" / 23505）。已知缺口：auth 的 refresh-cookie 轮换、AI 发帖增强留待批次 6 / 4 |

@@ -19,7 +19,7 @@
  * 但只有一个能插入成功。这是本项目在点赞那里就定下的规矩：
  * **能用唯一索引解决的并发，就不要用查询去判断。**
  */
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
 import { randomBytes } from 'crypto'
@@ -326,25 +326,46 @@ export class DailyDigestService {
       // ── 2. 删帖。走 `PostsService.remove` 而不是直接删 Model：
       //      它的权限条件内嵌在查询里（`'author.id': actor.id`），
       //      传机器人身份进去，就物理上不可能删掉任何真实用户的帖子 ──
+      // ── R-B 第一层（原 :332-337 的静默失效）：失败必须分层处置 ──
+      //   404（帖子已不在：人工删过，或上次撤到一半）= 幂等正常态，warn 即可；
+      //   403（机器人身份竟被拒）等其它错误 = 异常态，error + 告警文案，
+      //   并且【立即中止】—— 下面级联删互动的前提（帖子已删）并不成立。
       const bot = await this.ensureBotUser(settings.botUsername)
+      let postDeleted = false
       if (pick.postId) {
         try {
           await this.postsService.remove(pick.postId, bot)
+          postDeleted = true
         } catch (error) {
-          // 帖子已经不在（人工删过，或上一次撤到一半）不该让撤回失败
-          this.logger.warn(
-            `撤回时删帖未成功（${pick.postId}）：${error instanceof Error ? error.message : String(error)}`,
-          )
+          if (error instanceof NotFoundException) {
+            this.logger.warn(
+              `撤回时帖子已不存在（${pick.postId}），视为幂等成功`,
+            )
+          } else {
+            const reason = error instanceof Error ? error.message : String(error)
+            this.logger.error(
+              `撤回时删帖未成功（${pick.postId}），已中止级联清理：${reason} —— 请立即人工核查`,
+            )
+            return {
+              status: 'failed',
+              date: targetDate,
+              reason: `删帖未成功（${reason}），已中止级联清理以保全数据一致性`,
+            }
+          }
         }
       }
 
-      // ── 3. 级联删互动。帖子都没了，它的评论和点赞就只是孤儿数据 ──
-      const removed = pick.postId
-        ? {
-            comments: await this.commentsService.deleteByPost(pick.postId),
-            likes: await this.likesService.deleteByPost(pick.postId),
-          }
-        : { comments: 0, likes: 0 }
+      // ── 3. 级联删互动。R-B 第二层（原 :342-347 的静默失效）：
+      //      只在【删帖确实成功】后才允许级联删评论与点赞。
+      //      帖子还在（第 2 层因 404 之外的原因被中止时）就删互动，
+      //      会造出"帖子活着、评论没了"的半清理状态 —— 宁可名额被占，也不留脏数据 ──
+      const removed =
+        postDeleted && pick.postId
+          ? {
+              comments: await this.commentsService.deleteByPost(pick.postId),
+              likes: await this.likesService.deleteByPost(pick.postId),
+            }
+          : { comments: 0, likes: 0 }
 
       // ── 4. 释放当天名额，今天可以换一个项目重新发 ──
       await this.pickModel.deleteOne({ date: targetDate })

@@ -2,18 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    // 输出 CommonJS（本包 package.json 没有 "type":"module"，所以 NodeNext 仍会
-    // emit 成 CJS，后端 NestJS 的 require 照常工作）。
-    //
-    // 为什么用 NodeNext 而不是 Node / CommonJS？
-    //   因为只有 NodeNext 会**保留源码里写的 `.js` 后缀**：我们把 `export * from
-    //   './types/user.js'` 这样写，tsc 会原样 emit 成 `require("./types/user.js")`。
-    //   这对 CJS 运行时毫无影响（require 本来就要带后缀），但 Nuxt/Nitro 在 ESM 下
-    //   会把 CJS 的 require 改写成 `import * as user from '.../dist/types/user.js'`，
-    //   此时**后缀成了能不能被 Node 解析的关键**——没有 .js 就会抛
-    //   "Cannot find module .../dist/types/user ... Did you mean .../dist/types/user.js?"。
-    //   这就是之前 dev 跑不起来的根因。Node/CommonJS 模式会悄悄丢掉我们写的所有后缀，
-    //   所以必须上 NodeNext。
+    // 输出 ESM（2026-10-08 批次 1④：package.json 已加 "type":"module"，
+    // NodeNext 在 ESM 包里 emit `export` 语句；apps/api 也是 ESM，直接 import；
+    // Nuxt/Vite 原生吃 ESM，nuxt.config 里那个 optimizeDeps CJS 兜底已随之移除。
+    // NodeNext 同时保留源码里写的 `.js` 后缀，dist 内部相对导入在 Node 下可解析。）
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "declaration": true,

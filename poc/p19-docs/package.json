@@ -1,0 +1,28 @@
+{
+  "name": "p19-docs-sandbox",
+  "private": true,
+  "type": "module",
+  "description": "P19 沙盒：验证 Nuxt 4 + Nuxt Content 3 能否构建 30 篇中文文档到 /ebook 前缀",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "start": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "@nuxt/content": "3.16.1",
+    "better-sqlite3": "12.4.1",
+    "nuxt": "4.5.2",
+    "vue": "3.5.42"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "better-sqlite3"
+    ]
+  },
+  "dependencies": {
+    "@payloadcms/db-postgres": "3.90.2",
+    "graphql": "^16.14.2",
+    "payload": "3.90.2"
+  }
+}

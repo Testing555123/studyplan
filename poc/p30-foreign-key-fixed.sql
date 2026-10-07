@@ -41,6 +41,22 @@ INSERT INTO daily_picks_migrate (date, repo_id, post_id) VALUES
   ('2026-10-08', 222, '507f191e810c19729de860ea'),
   ('2026-10-09', 333, 'NOT_A_VALID_OID');
 
+-- ⚠️ 顺序修正（2026-10-07 复跑实测发现的原缺陷）：
+--   原脚本先做「映射写回」再做「非法值置 NULL」，而后者的判据是
+--   `post_id !~ '^[0-9a-f]{24}$'`——映射写回后该列已是 **36 字符带连字符的 UUID 字面量**，
+--   同样不匹配 24 位 hex，于是被无条件置 NULL。
+--   结果是【所有成功映射的 post_id 全被抹掉】，1b-2 的三行全为 NULL，
+--   连带使 1c 之后「ON DELETE SET NULL」的验证退化成假通过（本来就是 NULL）。
+--   这正是 R-B 要防的静默失效：不报错，但数据没了。
+--
+--   正确顺序：① 非法值 → NULL  ② 映射写回  ③ 映射为空（无对应帖子）→ NULL
+--   即「清理」必须先于「写入」，而不是相反。
+
+\echo '-- ① 非法值（非 24 位 hex）置 NULL —— 必须最先做'
+UPDATE daily_picks_migrate SET post_id = NULL
+WHERE post_id IS NOT NULL AND post_id !~ '^[0-9a-f]{24}$';
+
+\echo '-- ② 映射写回（DML，允许子查询）'
 UPDATE daily_picks_migrate d
 SET post_id = m.uuid_value
 FROM oid_uuid_map m
@@ -48,10 +64,7 @@ WHERE m.oid_string = d.post_id
   AND m.uuid_value IS NOT NULL
   AND d.post_id ~ '^[0-9a-f]{24}$';
 
-\echo '-- 非法值与无对应帖子的置 NULL（必须在类型转换之前）'
-UPDATE daily_picks_migrate SET post_id = NULL
-WHERE post_id IS NOT NULL AND post_id !~ '^[0-9a-f]{24}$';
-
+\echo '-- ③ 合法 hex 但映射为空（无对应帖子）→ NULL，不丢数据只断开引用'
 UPDATE daily_picks_migrate d SET post_id = NULL
 FROM oid_uuid_map m
 WHERE m.oid_string = d.post_id AND m.uuid_value IS NULL AND d.post_id IS NOT NULL;

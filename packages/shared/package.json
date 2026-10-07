@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "前后端共享的 TypeScript 类型与常量（单一事实来源）",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

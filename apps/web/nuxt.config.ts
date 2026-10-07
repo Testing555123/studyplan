@@ -154,32 +154,6 @@ export default defineNuxtConfig({
       // 允许通过任意域名访问开发服务器（容器 / 远程预览场景需要）
       allowedHosts: true,
     },
-
-    optimizeDeps: {
-      /**
-       * 强制预打包共享包。
-       *
-       * 为什么必须显式写这一行？
-       *   `@studyplan/shared` 是 pnpm workspace 链接包，Vite 默认**不预打包**
-       *   链接包 —— 它会走 `@fs` 把 dist 里的文件当源码直接喂给浏览器。
-       *   而共享包编译出来是 **CommonJS**（NestJS 必须跑 CJS，见
-       *   packages/shared/tsconfig.json），浏览器只认 ESM，
-       *   于是只能依赖 Vite 对 CJS 的"静态导出识别"来兜底。
-       *
-       *   这个兜底并不可靠：新增一个导出（avatarGradientClass）之后识别没跟上，
-       *   浏览器直接抛
-       *     "does not provide an export named 'avatarGradientClass'"
-       *   导致**整页客户端 JS 全部失效**（点按钮、切筛选全都没反应）。
-       *
-       *   ⚠️ 最阴险的地方在于：此时 **SSR 渲染的 HTML 看起来完全正常** ——
-       *   页面能看、数据也在，只有交互是死的。不打开控制台根本发现不了。
-       *   本项目就是这么踩到的，而且第一轮排查还被 Vite 缓存误导过。
-       *
-       * 交给预打包后，esbuild 会把 CJS 完整转换成 ESM，导出逐一对上，
-       * 从根上不再依赖那个静态识别。
-       */
-      include: ['@studyplan/shared'],
-    },
   },
 
   app: {

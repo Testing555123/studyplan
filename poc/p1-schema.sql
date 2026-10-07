@@ -25,6 +25,10 @@ CREATE TABLE users (
   email         text NOT NULL,
   username      text NOT NULL,
   password_hash text NOT NULL,
+  -- 🐞 补漏（2026-10-08 迁移实测发现）：原 DDL 漏了 bio。
+  --    Mongo 的 user.schema.ts:61-62 有 `@Prop({ type: String, default: null }) bio`，
+  --    而 gap-closing §2.12 的对照表没列它，导致迁移写入时报 42703（列不存在）。
+  bio           text,
   avatar_gradient smallint NOT NULL DEFAULT 0,
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
@@ -51,10 +55,14 @@ CREATE TABLE posts (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
+-- 原 Mongo 的 {createdAt:-1} 单字段排序索引
 CREATE INDEX posts_created_at ON posts (created_at DESC);
--- ⚠️ 硬约束 #4：数组等值必须用 GIN，不能用 B-tree 复合索引
+-- ⚠️ 硬约束 #4：原 Mongo 的 {tags:1, createdAt:-1} 复合索引不能照搬——
+--   PG 的 B-tree 复合索引对数组等值是「整行值比较」，会对数组行漏命中，
+--   因此拆为独立的 GIN(tags)；排序部分已由上面的 posts_created_at 承担，
+--   不再重复建一个 created_at 的 B-tree（此前脚本里曾误建 posts_created_at_btree，
+--   与 posts_created_at 完全重复，属写放大缺陷，已删除）。
 CREATE INDEX posts_tags_gin ON posts USING GIN (tags);
-CREATE INDEX posts_created_at_btree ON posts (created_at DESC);
 
 -- -----------------------------------------------------------------------------
 -- 3. comments（1 索引：postId_1 + createdAt_1 复合）
