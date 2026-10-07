@@ -134,7 +134,7 @@ R-A 的失败模式是**延迟尖峰**——属**性能问题**，**不触及 14
 | 6 | 缓存 | **lru-cache v11**（进程内）+ PG 落库 | **BlueOak-1.0.0** | 7 天答案缓存 · 键空间隔离 · 毫秒 TTL · 零部署 |
 | 7 | GitHub 客户端 | **Octokit** | MIT | ETag · 限流重试 · 分页 · `User-Agent` |
 | 8 | 可观测性 | **OpenTelemetry JS** + **Langfuse**（OTLP sink） | Apache-2.0 / MIT | trace 传播 · 命名 span（分段计时）· 采样分级 · LLM 追踪 · 评测集与门禁 |
-| 9 | AI 调用与 Agent | **Vercel AI SDK 6.x**（含 `ToolLoopAgent`） | Apache-2.0 | chat/embed · 结构化输出 · 工具循环 + 步数上限 · 流式 |
+| 9 | AI 调用与 Agent | **Vercel AI SDK 6.x**（含 `ToolLoopAgent`） | Apache-2.0 | chat · 结构化输出 · 工具循环 + 步数上限 · 流式（`embed` 待独立方案，见缺口 #5） |
 | 10 | Agent 对比实现 | **LangGraph.js**（可选项） | MIT | 图编排对照 · `RetryPolicy` 异常分类 |
 | 11 | 前端与文档 | **Nuxt 4** + **Nuxt UI 4** + **Nuxt Content 3** + **Meilisearch CE** | MIT / MIT（CE） | Vue/Vite/Nitro · **Reka UI + Tailwind + Lucide + ⌘K** · markdown/Shiki/SQLite/MDC · 文档检索 |
 
@@ -204,7 +204,7 @@ R-A 的失败模式是**延迟尖峰**——属**性能问题**，**不触及 14
 
 | 组 | 内容 | 环境依赖 | 工作量 |
 | --- | --- | --- | --- |
-| **① 立即做** | P2（`trust proxy` + curl）· **P3**（`afterOperation` 查文档）· P7（NIM 端点 20 行验证）· **P32**（cron 时区源码 grep） | 无（仅 P7 需 API key） | **3.5h** |
+| **① 立即做** | P2（`trust proxy` + curl）· **P3**（`afterOperation` 查文档）· P7（Zen/space-bunny-free 端点 chat 半 20 行验证）· **P32**（cron 时区源码 grep） | 无（仅 P7 需 `OPENCODE_API_KEY`） | **3.5h** |
 | **② 需先决策** | 建立 PG 实例 + 定部署区域 + 验证 R-A 缓解措施 | 需决策 | **0.5d** |
 | **③ 真阻塞** | **P1 + P30 + P31 + #4 合并为 schema 迁移验证包** | PG 实例 | **2d** |
 | **④ 真阻塞** | P19（31 篇文档迁移 + 实机构建） | 无 | **1d** |
@@ -635,13 +635,13 @@ flowchart TD
 
 | 候选 | 覆盖 | 缺口 | 判定 |
 | --- | --- | --- | --- |
-| **Vercel AI SDK 6.x（Apache-2.0，27.2k star）** | `chat` 替代 303 行裸 fetch；`embed` + `encoding_format` 按 index 对齐；`Output.object` 结构化输出替代手写 `extractJsonObject`；内置流式 | **强制 Node 22+**；NIM 端点是否被覆盖待 PoC | **✅ 选中** |
+| **Vercel AI SDK 6.x（Apache-2.0，27.2k star）** | `chat` 替代 303 行裸 fetch；`Output.object` 结构化输出替代手写 `extractJsonObject`；内置流式 | **强制 Node 22+**；Zen 端点覆盖待 P7 chat 半验证；⚠️ **Zen 无 embeddings 端点（2026-10-07 已核实：实时 `opencode models` 目录无 embed 模型、`opencode-ai` 包内 0 处 `embed` 引用）** → `embed` 半移出 P7，记为缺口 #5「embed 待独立方案」 | **✅ 选中**（AI 后端：OpenCode Zen / `space-bunny-free`） |
 | LangChain（JS） | 抽象更全 | 抽象层厚，替换不了任何本项目自研的降级/额度/缓存逻辑 | ❌ |
 | 裸 `fetch` 保留 | 零新增依赖 | 现状 303 行；无结构化输出、无工具调用、无流式 | ❌ |
 
 **理由**：Vercel AI SDK 是**纯库**（不绑定框架、不绑定部署），与 Nuxt + Node 部署形态完全兼容。Apache-2.0 无许可风险。相对 LangChain 的优势是薄——本项目不需要 chain abstraction，需要的是工具循环 + 流式 + 结构化输出的最小能力。
 
-**必须保留自研的部分**（SDK 不提供）：四档降级 reason（`not-configured` / `quota-exceeded` / `rate-limited` / `error`）、`describeFailure` 的 410/404 → 「模型已下线请改 `NVNIM_MODEL`」转译、每日额度（落库先读再增）、7 天答案缓存、代码索引构建与计分。
+**必须保留自研的部分**（SDK 不提供）：四档降级 reason（`not-configured` / `quota-exceeded` / `rate-limited` / `error`）、`describeFailure` 的 410/404 → 「模型已下线请改模型配置（如 OpenCode Zen 的 `opencode/space-bunny-free`）」转译、每日额度（落库先读再增）、7 天答案缓存、代码索引构建与计分。
 
 **代价**：`engines.node` 从 `>=20.19.0` 升至 `>=22`。`Dockerfile.vercel` 已是 `node:24-alpine`，故容器侧影响可控；需确认本地开发环境版本。
 
@@ -1340,7 +1340,7 @@ Agent 编排    Vercel AI SDK ToolLoopAgent（主）+ LangGraph.js（对比）+ 
 
 | 组 | 内容 | 环境依赖 | 工作量 | 阻塞性 |
 | --- | --- | --- | --- | --- |
-| **① 立即做** | P2（`trust proxy`）✅ · P3（`afterOperation`）✅ · P32（cron 时区）✅ · **P7（NIM 端点）❌ 阻塞** | 无（仅 P7 需 API key） | ~~3.5h~~ **剩 P7（1h）** | ✅ 三项已完成 · P7 待解锁 |
+| **① 立即做** | P2（`trust proxy`）✅ · P3（`afterOperation`）✅ · P32（cron 时区）✅ · **P7（Zen/space-bunny-free 端点）❌ 阻塞** | 无（仅 P7 需 `OPENCODE_API_KEY`） | ~~3.5h~~ **剩 P7（1h）** | ✅ 三项已完成 · P7 待解锁 |
 | **② 需先决策** | 建立 PG 实例 + 确定部署区域（T2 三级降级判定落在哪一层）+ 验证 R-A 缓解措施 | 需决策 | **0.5d** | 🔴 R-A 根因前置 |
 | **③ 真阻塞** | **P1 + P30 + P31 + 缺口 #4 合并为 schema 迁移验证包** | PG 实例 | **2d** | 🔴 **真阻塞（当前的主要阻塞）** |
 | **④ 真阻塞** | P19（31 篇文档迁移 + 实机构建） | 无 | **1d** | 🔴 **真阻塞（可与 ②③ 并行）** |
@@ -1361,7 +1361,7 @@ Agent 编排    Vercel AI SDK ToolLoopAgent（主）+ LangGraph.js（对比）+ 
 | **P4** | 唯一索引冲突能否被映射为「成功幂等 + 不重复计数」 | R4 | ③ | — | 并发 20 次点赞只产生 1 次计数递增 |
 | **P5** | access control 能否区分「存在但非本人 403」与「不存在 404」 | R5 | ③ | — | 越权更新返回 403 且响应体不含帖子内容；不存在的返回 404 |
 | **P6** | Nuxt 4 + Nuxt Content 3 构建含 31 篇文档的 `/docs` 前缀路由 | **R1** | ④ | 🔴 | **与 P19 内容重叠**（P6 是第一轮表述，P19 是第五轮细化） |
-| **P7** | Vercel AI SDK 直连 NIM 的 `https://integrate.api.nvidia.com/v1` | L8 | ① | ⚠️ 半 | `chat` + `embed` 均可用；嵌入结果按 `index` 对齐；条数不一致时抛错 |
+| **P7** | Vercel AI SDK 直连 OpenCode Zen 的 `https://opencode.ai/zen/v1`（`space-bunny-free`，OpenAI 兼容） | L8 | ① | ✅ chat 半（embed 移出） | **chat 半**：`space-bunny-free` 已在 Zen 实时目录确认存在（`opencode models`，2026-10-07），P7 仅需 `OPENCODE_API_KEY` + 项目 SDK 完成 20 行调用验证即视为通过；**embed 半移出 P7**：Zen 无 `/embeddings` 端点（已核实），嵌入按 `index` 对齐不再作为 P7 验收项，改为缺口 #5「embed 待独立方案」（需为 embed 单独选定 provider，待定） |
 | **P8** | `ToolLoopAgent` 步数上限能否精确映射到「8 轮」；工具错误文本是否回灌上下文 | `FR-AGENT-4/5` | — | — | 超限时不再发起新调用；工具错误进入下一轮 messages |
 | **P9** | LangGraph.js 的 recursion limit（supersteps）能否映射到同一轮次上限并产出等价答案 | `FR-AGENT-8` | — | — | 同一输入下两套实现产出等价最终答案 |
 | **P10** | Langfuse 自托管（Docker Compose）能否用独立凭据接入而不消耗生产每日额度 | `FR-AGENT-10` | ② | — | 评测运行不写 `ai_daily_usage`；两次运行结果可对比 |
@@ -1423,7 +1423,7 @@ Agent 编排    Vercel AI SDK ToolLoopAgent（主）+ LangGraph.js（对比）+ 
 | **P2** | ✅ **完成** | 答案 + 修正了一个「以为有、实际没有」的能力 |
 | **P3** | ✅ **完成** | 答案「会等待」，但**处置代码与答案无关**（验证了降级判断的正确性） |
 | **P32** | ✅ **完成** | 答案「不支持时区」，但**不影响 D12 选择** |
-| **P7** | ❌ **阻塞** | `NVNIM_API_KEY` **存在但为空串** + `ai` / `@ai-sdk/*` **未安装** |
+| **P7** | ❌ **阻塞** | `OPENCODE_API_KEY` **未配置/为空** + `ai` / `@ai-sdk/*` **未安装** |
 
 ---
 
@@ -1499,18 +1499,18 @@ Agent 编排    Vercel AI SDK ToolLoopAgent（主）+ LangGraph.js（对比）+ 
 >
 > **⚠️ 不影响 D12 选择**：Payload Jobs Queue 的价值在「顺序编排 + 从失败节点重试 + 主动中止」三点，cron 触发本来就不该由它负责。
 
-#### P7 · Vercel AI SDK 直连 NIM（❌ 被前置条件阻塞）
+#### P7 · Vercel AI SDK 直连 OpenCode Zen（❌ 被前置条件阻塞）
 
 | 前置条件 | 状态 |
 | --- | --- |
-| `NVNIM_API_KEY` | ⚠️ **键存在但值为空串**（现状代码逻辑视为「未配置」） |
+| `OPENCODE_API_KEY` | ⚠️ **未配置/为空**（OpenCode Zen 网关密钥，非 NIM key） |
 | `ai`（Vercel AI SDK） | ❌ **未安装** |
 | `@ai-sdk/*` | ❌ **未安装** |
-| 其余配置 | ✅ `NVNIM_MODEL=openai/gpt-oss-20b` · `NVNIM_TIMEOUT_MS=25000` · `NVNIM_DAILY_LIMIT=300` |
+| 目标模型 | `space-bunny-free`（OpenCode Zen 隐身限时免费模型，零留存、不用于训练）；端点 `https://opencode.ai/zen/v1/chat/completions`（OpenAI 兼容，配 `@ai-sdk/openai-compatible`）；SDK 内引用 `opencode/space-bunny-free` |
 
-**阻塞原因**：本项需要**真实调用** NIM 端点验证 `chat` + `embed` + 嵌入结果按 `index` 对齐，缺 API key 无法完成。**且 SDK 尚未安装。**
+**阻塞原因**：本项需**真实调用** OpenCode Zen 端点验证 `chat`（space-bunny-free）；缺 `OPENCODE_API_KEY` 无法完成，**且项目 SDK（`ai` / `@ai-sdk/*`）尚未安装**。**embed 半已确认移出 P7**：Zen 公开文档仅列 `/responses`、`/messages`、`/chat/completions`、`/models`、`/systemone` 端点，**无 `/embeddings`**，`space-bunny-free` 仅为文本生成模型；2026-10-07 进一步核实——实时 `opencode models` 目录无 embed 模型、`opencode-ai` 包内 0 处 `embed` 引用。故 `embed` 不纳入 P7 验收，改为**缺口 #5「embed 待独立方案」**：需为 embed 单独选定 provider（候选如 NIM 的 `NEMOTRON-3-EMBED-1B` 免费端点，或本地嵌入模型），不在 P7 范围内。
 
-**解锁需要**：① 提供有效的 `NVNIM_API_KEY` ② `pnpm add ai @ai-sdk/openai-compatible`（第三项缺口 #5「NIM 的 OpenAI 兼容端点是否被 `@ai-sdk/*` 覆盖」也随之一起解）。
+**解锁需要**：① 提供有效的 `OPENCODE_API_KEY` ② `pnpm add ai @ai-sdk/openai-compatible`。P7 **chat 半**验证即覆盖原「缺口 #5（OpenCode Zen 的 OpenAI 兼容端点是否被 `@ai-sdk/*` 覆盖）」；**embed 半已移出，缺口 #5 现改写为「embed 待独立方案」**（见上）。
 
 ### 9.6 第 ② ③ 组 PoC 执行记录（2026-10-07 · 与第 ① 组同日）
 

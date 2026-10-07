@@ -78,7 +78,7 @@
 | 6 | 缓存 | **lru-cache v11**（进程内）+ PG 落库 | **BlueOak-1.0.0** | 5.9k | 7 天答案缓存 · 键空间隔离（`namespace`）· 毫秒 TTL · 零部署 | `FR-AIQA-2`、`FR-ASK-3` | 手写 `posts|` 前缀隔离；**不引 Redis**（见 §2 #3） |
 | 7 | GitHub 客户端 | **Octokit** | MIT | 7.9k | ETag 条件请求 · 限流与重试（`plugin-throttling`）· 分页 · `User-Agent` 构造 | `FR-GH-1/2/5` | 自研 GitHub REST client 259 行 |
 | 8 | 可观测性 | **OpenTelemetry JS** + **Langfuse**（OTLP sink） | Apache-2.0 / MIT（`ee/` 除外） | 3.5k / 35.5k | OTel：W3C trace 传播 · 命名 span（分段计时）· 采样与分级 · Collector 路由<br>Langfuse：LLM 追踪 · dataset / LLM-as-a-Judge / 基准（自托管 v3.22.0+ 可作 OTLP 后端） | `FR-CORE-3/4`、`FR-AGENT-10`、`FR-AGENT-4/5/7` 的可观测部分 | 自研requestId 112 行 + 分段计时 169 行 + 自建评测门禁；**不用 Sentry**（见 §2 #9） |
-| 9 | AI 调用与 Agent | **Vercel AI SDK 6.x**（含 `ToolLoopAgent`） | Apache-2.0 | 27.2k | `chat` / `streamText` · `embed` · `Output.object` 结构化输出 · 工具声明与入参校验 · **`ToolLoopAgent` 工具调用循环 + 步数上限** · 流式 | `FR-AI-1/2/3`、`FR-AIQA-1`、`FR-GHINTRO-1`、`FR-DIGEST-3`、`FR-AGENT-1/2/6/7/9` | 裸 `fetch` LLM client 303 行 + 手写 `extractJsonObject` + 手写 ReAct 循环 |
+| 9 | AI 调用与 Agent | **Vercel AI SDK 6.x**（含 `ToolLoopAgent`） | Apache-2.0 | 27.2k | `chat` / `streamText` · `embed`（见缺口 #5「embed 待独立方案」） · `Output.object` 结构化输出 · 工具声明与入参校验 · **`ToolLoopAgent` 工具调用循环 + 步数上限** · 流式（AI 后端：OpenCode Zen / `space-bunny-free`，OpenAI 兼容；`chat` 半已确认） | `FR-AI-1/2/3`、`FR-AIQA-1`、`FR-GHINTRO-1`、`FR-DIGEST-3`、`FR-AGENT-1/2/6/7/9` | 裸 `fetch` LLM client 303 行 + 手写 `extractJsonObject` + 手写 ReAct 循环 |
 | 10 | Agent 对比实现 | **LangGraph.js**（可选项） | MIT | 3.3k | 图编排对照 · `RetryPolicy` 异常分类（`ConnectionError` 重试 / 5xx 重试 / 4xx 不重试） | `FR-AGENT-8` | —（批次 9 全部） |
 | 11 | 前端与文档 | **Nuxt 4** + **Nuxt UI 4** + **Nuxt Content 3** + **Meilisearch CE** | — / MIT / MIT（CE） | — / 3.7k | Nuxt 4：Vue 3.5 · Vite · Nitro · Vue Router · unhead（SEO）<br>Nuxt UI 4：Tailwind 4 · **Reka UI** · Lucide · 40+ 组件（含 `UCommandPalette` = ⌘K）· 仪表盘布局组件<br>Nuxt Content 3：markdown 渲染 · Shiki · SQLite · MDC · 类型化 collections<br>Meilisearch：文档站内检索（`FR-DOC-3`） | `FR-PAGE-*`、`FR-WEBINFRA-*`、`FR-HOME-*`、`FR-SEO-*`、`FR-ROADMAP-2/3/4`、`FR-PROGRESS-1/2/4`、`FR-DOC-1..6` | VitePress 独立站 31 篇（`FR-DOC-1` 不可违反项要求弃用） |
 
@@ -484,7 +484,7 @@
 | **P1** | Payload 定义 14 个集合，验证 14 个唯一索引与 4 个复合索引语义等价 | 数据模型 |
 | **P2** | `trust proxy` 配置点与限流取客户端 IP 的时序 | 不可违反项；基线明确「退化成全站共用一个桶」的症状 |
 | **P3** | `afterOperation` 是否等待钩子 Promise | 不可违反项 3（核心链路等待中不得含旁路调用） |
-| **P7** | Vercel AI SDK 直连 NIM 的 `https://integrate.api.nvidia.com/v1` | L8落地可行性 |
+| **P7** | Vercel AI SDK 直连 OpenCode Zen 的 `https://opencode.ai/zen/v1`（`space-bunny-free`，OpenAI 兼容） | L8 落地可行性（chat 半；embed 移出见缺口 #5） |
 | **P19** | Nuxt 4 + Nuxt Content 3 实机构建 31 篇文档 | `FR-DOC-1` 的端到端确认（P20 已证明「支持」，P19 证明「31 篇 + 5 组导航 + 旧链接重定向」这条链无意外） |
 | **P30** | `daily_picks.postId` 的 UUID 改写 | **R-B** |
 | **P31** | `select: false` 密码哈希保护在 Drizzle 下的重建 | **R-C** |

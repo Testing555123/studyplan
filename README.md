@@ -34,17 +34,19 @@
 | 部署 | Vercel 容器镜像 | — | 见「部署」章节 |
 | 文档 | VitePress | 1.6.4 | 与 Vite 同源，边写边发布电子书 |
 | 测试 | Jest（后端）+ Playwright（E2E） | 30.5.1 / 1.63.0 | 先保证业务核心，再补端到端 |
-| AI | NVIDIA NIM（OpenAI 兼容） | — | 发帖摘要 + AI 学习助手，见下方说明 |
+| AI | OpenCode Zen（space-bunny-free，OpenAI 兼容） | — | 发帖摘要 + AI 学习助手，见下方说明 |
 | 热门项目 | GitHub Search API + MongoDB 缓存 | — | 后端代理，浏览器不直连 GitHub |
 | 面试题库 | MongoDB 集合 `interview_questions` + REST | — | 路线页「面试怎么考」：读接口公开，写接口需登录；未灌种子时前端降级 |
 
   **关于 AI**：项目原本用 LangChain 三件套调用智谱 GLM，后为压缩技术栈把那三个
-  依赖连同 `zod` 一起移除（净删 54 个包）。现在改用 **NVIDIA NIM** ——
-  它是 OpenAI 兼容接口，用 Node 内置 `fetch` 直接调用即可，**零新增依赖**。
-  未配置 `NVNIM_API_KEY` 时自动降级为「AI 未启用」，应用其余部分完全正常。
- 
-  ⚠️ **模型会下线**：实测有模型返回 `410 Gone`，所以模型名由 `NVNIM_MODEL`
-  配置而非写死。可用清单：`GET https://integrate.api.nvidia.com/v1/models`
+  依赖连同 `zod` 一起移除（净删 54 个包）。现选定 **Vercel AI SDK 6.x** 作 AI 调用层，
+  后端由 **OpenCode Zen** 提供（`space-bunny-free`，OpenAI 兼容、隐身限时免费、零留存）。
+  未配置 `OPENCODE_API_KEY` 时自动降级为「AI 未启用」，应用其余部分完全正常。
+  
+  ⚠️ **模型会下线**：实测有模型返回 `410 Gone`，所以模型名由配置而非写死。
+  Zen 模型清单：`GET https://opencode.ai/zen/v1/models`（需 `OPENCODE_API_KEY`）。
+  ⚠️ **embed 待独立方案**：Zen 公开端点未含 `/embeddings`，且 2026-10-07 已核实——实时 `opencode models` 目录无 embed 模型、`opencode-ai` 包内 0 处 `embed` 引用——故 `embed` 半不在 P7 范围，需单独选定 embeddings provider（记为缺口 #5，候选如 NIM `NEMOTRON-3-EMBED-1B`，待定）。
+  （现状代码仍为 `nv-nim.client.ts` 裸 fetch 调 NIM，待迁移至 Vercel AI SDK + Zen。）
 
 ---
 
@@ -107,7 +109,7 @@
 
 | 组 | 内容 | 工作量 |
 | --- | --- | --- |
-| **① 立即做** | P2（`trust proxy` + curl）· P3（`afterOperation` 查文档）· P7（NIM 端点 20 行验证）· P32（cron 时区源码 grep） | **3.5h** |
+| **① 立即做** | P2（`trust proxy` + curl）· P3（`afterOperation` 查文档）· P7（Zen/space-bunny-free 端点 20 行验证）· P32（cron 时区源码 grep） | **3.5h** |
 | **② 需先决策** | 建 PG 实例 + 定部署区域 + 验证 R-A 缓解措施 | **0.5d** |
 | **③ 真阻塞** | **P1 + P30 + P31 + 缺口 #4 合并为 schema 迁移验证包**（共用同一 PG 实例） | **2d** |
 | **④ 真阻塞** | P19（31 篇文档迁移 + 实机构建） | **1d** |
@@ -269,7 +271,7 @@ Copy-Item .env.example apps/api/.env
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-  `AI`（`NVNIM_*`）与 `GitHub`（`GITHUB_TOKEN`）相关变量**全部可留空**——未配 Key 时
+  `AI`（`OPENCODE_API_KEY`）与 `GitHub`（`GITHUB_TOKEN`）相关变量**全部可留空**——未配 Key 时
   AI 自动降级为「未启用」，应用其余部分完全正常。当前仓库里的 `apps/api/.env`
   已按此填好，可直接用于本地 Docker。
 
@@ -325,8 +327,8 @@ docker compose up --build -d api     # 只重建后端
 docker compose up --build -d web     # 只重建前端
 ```
 
-  ⚠️ **待办：应用 AI 状态修复**。源码已修好「空 `NVNIM_API_KEY` 被误报为已启用」的问题
-  （`apps/api/src/modules/ai/nv-nim.client.ts`），但**运行中的 api 镜像还没包含它**——
+  ⚠️ **待办：应用 AI 状态修复 + 后端迁移**。源码已修好「空 `NVNIM_API_KEY` 被误报为已启用」的问题
+  （`apps/api/src/modules/ai/nv-nim.client.ts`，现状仍为 NIM 客户端；L8 已决定切到 OpenCode Zen，待迁移至 Vercel AI SDK + Zen），但**运行中的 api 镜像还没包含它**——
   因为构建需从 Docker Hub 拉取 `node:24-alpine` 基础镜像，而当时本机网络不通、镜像未缓存。
   待网络恢复后，跑下面任一命令即可重建并生效：
   ```bash
@@ -434,8 +436,8 @@ $env:E2E_PROXY='http://127.0.0.1:7897'
 
 AI 是**增强功能**：不配 Key 也能正常部署与运行，只是 AI 入口显示"未启用"。要启用只需在平台配一个环境变量：
 
-1. 面板 `Project → Settings → Environment Variables` 新增 `NVNIM_API_KEY`，Environment 勾 **Production**，Type 选 **Secret**，值填你本地 `apps/api/.env` 里那一串（`nvapi-` 开头）；
-   - 可选：`NVNIM_MODEL=openai/gpt-oss-20b`（不填则用代码默认值）；
+1. 面板 `Project → Settings → Environment Variables` 新增 `OPENCODE_API_KEY`，Environment 勾 **Production**，Type 选 **Secret**，值填你的 OpenCode Zen 网关密钥；
+   - 可选：`OPENCODE_MODEL=opencode/space-bunny-free`（不填则用代码默认值）；
 2. **重新部署**：`Deployments → 最新一条 → ⋯ → Redeploy`（环境变量是运行时注入，**改完不自动生效**）；
 3. 打开线上站点 → 右下角 AI → 应显示"今日剩余 300"，并能提问。
 

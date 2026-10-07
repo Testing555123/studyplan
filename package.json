@@ -5,7 +5,7 @@
   "description": "学习/技术分享社区 —— 从零到上线的全栈教学项目（Nuxt 4 + NestJS 11 + MongoDB Atlas）",
   "packageManager": "pnpm@11.20.0",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "pnpm run build:shared && pnpm -r --parallel dev",
@@ -18,7 +18,11 @@
     "build": "pnpm run build:shared && pnpm -r build",
     "typecheck": "pnpm run build:shared && pnpm -r typecheck",
     "test": "pnpm -r test",
+    "backfill:embeddings": "node apps/api/scripts/backfill-embeddings.mjs",
     "bench:vercel": "node scripts/bench-vercel.mjs",
+    "materials:resolve": "node scripts/scan-learning-materials.mjs resolve",
+    "materials:scan": "node scripts/scan-learning-materials.mjs scan",
+    "materials:build": "node scripts/scan-learning-materials.mjs build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

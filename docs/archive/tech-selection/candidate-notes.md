@@ -567,7 +567,7 @@
 | 2 | **Nuxt 4 兼容性** | Nuxt Content 3 | ⏳ **仍是阻塞项**。官方安装页未列 Nuxt 最低版本。**建议改查 `@nuxt/content` 的 `peerDependencies`（比查文档更确定）** → PoC P20 |
 | 3 | Atlas Vector Search 在免费集群的当前可用性 | MongoDB Atlas | ➖ **第二轮已不需要**（换 Postgres + pgvector） |
 | 4 | Local API 是否绕过访问控制 / 事务一致性 | Payload | ⏳ 仍待核实 → PoC |
-| 5 | NIM 的 OpenAI 兼容端点是否被 `@ai-sdk/*` 覆盖 | Vercel AI SDK | ⏳ 仍待核实 → PoC P7 |
+| 5 | OpenCode Zen 的 OpenAI 兼容端点是否被 `@ai-sdk/*` 覆盖（L8 后端已由 NIM 切到 Zen） | Vercel AI SDK | ⏳ 仍待核实 → PoC P7 |
 | 6 | Langfuse `ee/` 目录许可与所需功能归属 | Langfuse | ⏳ 仍待核实 → PoC P18 |
 | 7 | Directus MSCL 具体条款 | Directus | ➖ 已否决，仅留档 |
 | 8 | Better Auth 的 Nuxt 适配 / refresh 轮换 / Drizzle adapter | Better Auth | ✅ **已不影响主方案**（D1=A裁定采用 Payload auth，Better Auth 连带移出） |
