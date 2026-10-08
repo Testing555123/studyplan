@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config'
+import { NotFoundException } from '@nestjs/common'
 import { CONTENT_MAX_LENGTH, GITHUB_SOURCE_TAG, type GithubRepo } from '@studyplan/shared'
 import type { NvNimClient } from '../ai/nv-nim.client'
 import type { CommentsService } from '../comments/comments.service'
@@ -713,7 +714,8 @@ describe('DailyDigestService', () => {
 
     it('帖子已经不在时仍然完成撤回（否则名额永远释放不出来）', async () => {
       const { service, model, posts } = createService({ existing: PUBLISHED_PICK })
-      posts.remove.mockRejectedValueOnce(new Error('找不到该帖子'))
+      // R-B 第一层的判据是**异常类型**而不是文案：404 才等于幂等正常态
+      posts.remove.mockRejectedValueOnce(new NotFoundException('找不到该帖子'))
 
       const result = await service.runRevoke()
 

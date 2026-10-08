@@ -21,6 +21,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
+    // jest 需要把 ESM-only 的三方包（@octokit/rest v22）也交给 ts-jest 转译成 CJS。
+    // include 里只有 src/**/*.ts，所以这一项不会影响 tsc 的产物与类型检查范围。
+    "allowJs": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,

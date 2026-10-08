@@ -1,15 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { Octokit } from '@octokit/rest'
 import type { GithubRepo } from '@studyplan/shared'
 
 /**
- * GitHub Search API 的响应里我们真正用到的字段。
+ * `toRepo` 的输入形状：只声明用到的字段，而不是给整个响应写一份完整类型
+ * —— 这一点与替换前同理，也和 `GithubRepo` 契约只保留必需字段是同一个道理。
  *
- * 只声明用到的字段，而不是给整个响应写一份完整类型 ——
- * 完整响应有近百个字段，写全了既没人看，又要随 API 版本更新。
- * 这与 `GithubRepo` 契约只保留必需字段是同一个道理。
+ * 为什么要自己写窄类型、而不是直接用 Octokit 的响应类型：
+ * 搜索结果与单仓库结果这两个端点在若干字段的可选性上并不一致
+ * （例如 `has_downloads` 一边是 `boolean`、一边是 `boolean | undefined`），
+ * 直接拿其中一个的类型当参数，另一个就接不进来。
+ * 而我们真正读的只有下面这十几个字段，它们在两个响应里形状相同。
  */
-interface GithubSearchItem {
+interface RepoSource {
   id: number
   full_name: string
   name: string
@@ -18,7 +22,7 @@ interface GithubSearchItem {
   homepage: string | null
   description: string | null
   language: string | null
-  topics?: string[]
+  topics?: string[] | null
   stargazers_count: number
   forks_count: number
   open_issues_count: number
@@ -45,29 +49,49 @@ const REQUEST_TIMEOUT_MS = 10_000
 /**
  * GitHub API 客户端。
  *
- * 这个类是**唯一**知道"GitHub 长什么样"的地方：
- * 拼查询串、设请求头、处理超时、把非 2xx 转译成可诊断的错误。
- * Service 层完全不需要知道这些细节 —— 它只管"给我数据"或"抛错"。
+ * 这个类是**唯一**知道"GitHub 长什么样"的地方。替换成 Octokit 之后，
+ * 它负责的部分缩小到三件 SDK 不管的事：
+ *   1. 查询怎么拼（刻意不带 language 限定符，见 `searchTopNewRepos`）；
+ *   2. 原始字段 → 我们的契约 `GithubRepo` 的映射；
+ *   3. 哪些失败抛错、哪些失败返回 null（这是本项目的降级语义，不是 GitHub 的）。
  *
- * 这个边界很重要：如果有一天换成 GitLab 或镜像站，
- * 只需要改这一个文件，Service 与 Controller 一行都不用动。
+ * 而 `User-Agent`、认证头、状态码到错误对象的转译、分页与响应类型，
+ * 全部交回给 SDK —— 那 259 行手写 fetch 里有相当一部分是在重造这些。
+ *
+ * 这个边界同样重要：如果有一天换成镜像站，只需要改这一个文件，
+ * Service 与 Controller 一行都不用动。
  */
 @Injectable()
 export class GithubClient {
   private readonly logger = new Logger(GithubClient.name)
 
-  private readonly token: string | null
+  private readonly octokit: Octokit
 
   constructor(config: ConfigService) {
-    this.token = config.get<string>('GITHUB_TOKEN') ?? null
+    const token = config.get<string>('GITHUB_TOKEN') ?? null
 
-    if (!this.token) {
+    if (!token) {
       /**
        * 没有 Token 也能用，只是限流从 30 次/分钟降到 10 次/分钟。
        * 所以这里是 warn 而不是 error —— 功能是完整的，只是额度小。
        */
       this.logger.warn('未配置 GITHUB_TOKEN，将以未认证模式访问 GitHub（限流 10 次/分钟）')
     }
+
+    /**
+     * `auth` 只在有 Token 时传，不能传 `null` / 空串：
+     * Octokit 会把它当成一个真实凭据去签请求头，于是每个请求都带一个
+     * `Authorization: Bearer ` 空值，GitHub 直接 401 —— 比不配 Token 更糟。
+     *
+     * 这里**没有**挂 retry / throttling 插件：那会改变"一次请求就是一次请求"的
+     * 现有语义（重试会吃掉 `GITHUB_INTRO_TIME_BUDGET_MS` 的时间预算）。
+     * 选型文档把「限流重试」列为 Octokit 的能力，但要等 P26（未认证配额下的实测）
+     * 有结论再开，不能顺手加上就当已通过。
+     */
+    this.octokit = new Octokit({
+      ...(token ? { auth: token } : {}),
+      userAgent: 'studyplan-app',
+    })
   }
 
   /**
@@ -86,18 +110,25 @@ export class GithubClient {
      * 语言筛选改在服务端从结果里过滤，代价是精度略微下降
      * （某个语言的第 101 名会漏掉），换来的是配额安全 —— 这笔交易划算。
      */
-    const query = `created:>=${since}`
-    const url =
-      'https://api.github.com/search/repositories' +
-      `?q=${encodeURIComponent(query)}` +
-      '&sort=stars&order=desc' +
-      `&per_page=${GITHUB_SEARCH_PER_PAGE}`
+    try {
+      const { data } = await this.withTimeout((options) =>
+        this.octokit.search.repos({
+          q: `created:>=${since}`,
+          sort: 'stars',
+          order: 'desc',
+          per_page: GITHUB_SEARCH_PER_PAGE,
+          // Octokit v22 的端点方法只收一个参数：`request` 这个键会被 endpoint
+          // 合并逻辑单独摘出来当请求选项，不会当成查询串发给 GitHub
+          ...options,
+        }),
+      )
 
-    const response = await this.request(url)
-    const payload = (await response.json()) as { items?: GithubSearchItem[] }
-    const items = Array.isArray(payload.items) ? payload.items : []
-
-    return items.map((item) => this.toRepo(item))
+      // items 缺失按空数组处理：调用方的降级链要的是"没有数据"，不是"未知形状的响应"
+      const items = Array.isArray(data.items) ? data.items : []
+      return items.map((item) => this.toRepo(item))
+    } catch (error) {
+      throw this.translate(error)
+    }
   }
 
   /**
@@ -110,21 +141,16 @@ export class GithubClient {
    *   与 `fetchReadme` 同理：**可选能力用 null 表达失败。**
    */
   async fetchRepo(fullName: string): Promise<GithubRepo | null> {
-    const [owner, repo] = fullName.split('/')
-    if (!owner || !repo) return null
-
-    const url =
-      'https://api.github.com/repos/' +
-      `${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+    const target = this.splitFullName(fullName)
+    if (target === null) return null
 
     try {
-      const response = await this.request(url)
-      const item = (await response.json()) as GithubSearchItem
-      return this.toRepo(item)
-    } catch (error) {
-      this.logger.debug(
-        `抓取仓库详情失败（${fullName}）：${error instanceof Error ? error.message : String(error)}`,
+      const { data } = await this.withTimeout((options) =>
+        this.octokit.repos.get({ ...target, ...options }),
       )
+      return this.toRepo(data)
+    } catch (error) {
+      this.logger.debug(`抓取仓库详情失败（${fullName}）：${this.messageOf(error)}`)
       return null
     }
   }
@@ -138,28 +164,23 @@ export class GithubClient {
    *   所以这里吞掉所有异常（404 没有 README、超时、限流…），交给调用方降级。
    */
   async fetchReadme(fullName: string): Promise<string | null> {
-    const [owner, repo] = fullName.split('/')
-    if (!owner || !repo) return null
-
-    const url =
-      'https://api.github.com/repos/' +
-      `${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/readme`
+    const target = this.splitFullName(fullName)
+    if (target === null) return null
 
     try {
-      const response = await this.request(url)
-      const payload = (await response.json()) as { content?: string; encoding?: string }
+      const { data } = await this.withTimeout((options) =>
+        this.octokit.repos.getReadme({ ...target, ...options }),
+      )
 
       // 只认 base64。GitHub 现在只回这一种，但显式判断能避免哪天换了编码后静默产出乱码
-      if (!payload.content || payload.encoding !== 'base64') return null
+      if (!data.content || data.encoding !== 'base64') return null
 
-      const raw = Buffer.from(payload.content, 'base64').toString('utf8')
+      const raw = Buffer.from(data.content, 'base64').toString('utf8')
       const cleaned = this.cleanReadme(raw)
 
       return cleaned.length > 0 ? cleaned : null
     } catch (error) {
-      this.logger.debug(
-        `抓取 README 失败（${fullName}）：${error instanceof Error ? error.message : String(error)}，将退回官方描述`,
-      )
+      this.logger.debug(`抓取 README 失败（${fullName}）：${this.messageOf(error)}，将退回官方描述`)
       return null
     }
   }
@@ -169,7 +190,7 @@ export class GithubClient {
    *
    * 每一步都有明确目的：
    *   - 去代码块：安装命令对"这项目解决什么问题"帮助很小，但非常占 token；
-   *   - 去图片、去链接 URL 只留文字：徽章（stars / build passing）占篇幅却无信息量；
+   *   - 去图片、去链接 URL 只留文字：徽章（stars / build status）占篇幅却无信息量；
    *   - 去 HTML 标签：不少 README 用 `<div align="center">` 做排版；
    *   - 压掉连续空行：Markdown 的空行对模型没有意义。
    */
@@ -188,7 +209,7 @@ export class GithubClient {
   }
 
   /** 把 GitHub 的原始字段映射成我们的契约 */
-  private toRepo(item: GithubSearchItem): GithubRepo {
+  private toRepo(item: RepoSource): GithubRepo {
     return {
       id: item.id,
       fullName: item.full_name,
@@ -208,52 +229,66 @@ export class GithubClient {
     }
   }
 
+  /** `owner/repo` 拆不成两段时返回 null —— 一次请求都不该发出去 */
+  private splitFullName(fullName: string): { owner: string; repo: string } | null {
+    const [owner, repo] = fullName.split('/')
+    if (!owner || !repo) return null
+    return { owner, repo }
+  }
+
   /**
-   * 发起请求。
+   * 每次请求自带超时。
    *
-   * 三个细节都来自真实的踩坑经验：
+   * `AbortController` 仍然由我们掌管：Octokit 不替你决定"等多久"，
+   * 但认这个 signal —— 到点就中断，不会让一个卡住的上游把请求一直挂到
+   * 平台的执行时长上限（本项目 300 秒）。
    *
-   * 1. **必须带 `User-Agent`** —— GitHub 对没有它的请求直接返回 403。
-   *    这条不是建议，是硬性要求。
-   *
-   * 2. **`AbortController` 做超时** —— `fetch` 本身没有超时概念，
-   *    不主动中断的话，一个卡住的上游会让请求一直挂着，
-   *    直到平台的执行时长上限（本项目是 300 秒）才被杀掉。
-   *
-   * 3. **错误信息里带上状态码**，并且 403 单独提示"可能是限流"。
-   *    "请求失败"这种错误信息等于没说，排错时只会让人原地打转。
+   * 用"包住请求"而不是"返回一份配置对象"，是为了让 `clearTimeout` 落在
+   * `finally` 里：成功路径也要清。只 `unref()` 不清的话，每个请求都会在
+   * 事件循环里留一个 10 秒的悬空定时器和它拽着的 controller。
    */
-  private async request(url: string): Promise<Response> {
+  private async withTimeout<T>(
+    run: (options: { request: { signal: AbortSignal } }) => Promise<T>,
+  ): Promise<T> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
     try {
-      const headers: Record<string, string> = {
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'studyplan-app',
-      }
-      // Token 可选：有就带上，把限流从 10 次/分钟提到 30 次/分钟
-      if (this.token) headers.Authorization = `Bearer ${this.token}`
-
-      const response = await fetch(url, { headers, signal: controller.signal })
-
-      if (!response.ok) {
-        const hint = response.status === 403 ? '（很可能是触发了 Search API 限流）' : ''
-        throw new Error(`GitHub 返回 ${response.status} ${response.statusText}${hint}`)
-      }
-
-      return response
-    } catch (error) {
-      // abort 是自己触发的，转成一句能看懂的话
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`GitHub 请求超时（${REQUEST_TIMEOUT_MS}ms）`)
-      }
-      // 其余错误（DNS、连接重置…）把原因带上去，但**不要打完整响应体**
-      throw error instanceof Error ? error : new Error(String(error))
+      return await run({ request: { signal: controller.signal } })
     } finally {
-      // 无论成功失败都要清掉定时器，否则进程里会残留
       clearTimeout(timer)
     }
+  }
+
+  /**
+   * 把 Octokit 的错误转成我们能诊断的东西。
+   *
+   * 三条都来自真实踩坑，一条都不能省：
+   *   1. abort 是自己触发的，SDK 给的是 `AbortError`，要说成"超时（10000ms）"；
+   *   2. **403 单独提示限流** —— Search API 未认证只有 10 次/分钟，
+   *      不提示的话排错的人会以为是权限问题往 Token 上找原因；
+   *   3. 状态码必须出现在文案里，"请求失败"等于没说。
+   */
+  private translate(error: unknown): Error {
+    if (error instanceof Error && error.name === 'AbortError') {
+      return new Error(`GitHub 请求超时（${REQUEST_TIMEOUT_MS}ms）`)
+    }
+
+    const status = (error as { status?: number })?.status
+    const message = this.messageOf(error)
+
+    if (typeof status === 'number') {
+      const hint = status === 403 ? '（很可能是触发了 Search API 限流）' : ''
+      return new Error(`GitHub 返回 ${status} ${message}${hint}`)
+    }
+
+    // 其余错误（DNS、连接重置…）把原因带上去，但**不要打完整响应体**
+    return error instanceof Error ? error : new Error(message)
+  }
+
+  private messageOf(error: unknown): string {
+    if (!(error instanceof Error)) return String(error)
+    const status = (error as { status?: number }).status
+    return typeof status === 'number' ? `${status} ${error.message}` : error.message
   }
 }

@@ -145,11 +145,78 @@
 
 ---
 
+## ✅ 批次 2 完成（2026-10-08）
+
+**范围**：Zod 4 替 class-validator · lru-cache 替手写缓存 · Octokit 替 259 行 GitHub client（栈项 ④⑥⑦）。
+**验证**：`apps/api` 全量 jest **12 suites / 169 tests 全绿**，`tsc --noEmit` 无报错，ESLint 无 error。
+**验收边界**：本机无 docker、无 PG（5432/5433 均无监听），`node --test test/contract.rc-gates.test.mjs`
+需要 :3200 上跑着的 Payload 服务，**本轮没跑**。批次 2 不触碰 Payload 路由，因此不算验收缺口，
+但合入 main 前应在有容器的环境复跑一次。
+
+### 2-1｜Zod 4（`apps/api/src/config/env.validation.ts`）
+
+- 新增 `env.validation.spec.ts`，**15 条行为测试**。方法是先对**旧的 class-validator 实现**跑一遍：
+  14 条直接通过（它们就是「保留语义」的证据），只有 1 条失败 ——
+  「两个 JWT 密钥必须不同」这条规则在批次 2 之前**只写在注释和 `.env.example` 里，从来没有落成代码**。
+  跨字段规则用 `.refine()` 补上，相同密钥现在直接启动失败。
+- 错误文案形状保持 `【字段】原因、原因`，多个字段同时非法时**全部列出**；
+  `config.get('PORT')` 仍然是 number，调用点一行没改（Nest `validate` 的签名没动）。
+- 顺带消掉一个隐藏依赖：class-transformer 需要 `reflect-metadata`，纯单测里少 import 一次就
+  `Reflect.getMetadata is not a function` —— 这正是这个文件此前**测不了**的直接原因。
+- 口径未变：`DAILY_DIGEST_PUBLISH_HOUR=0`、`MIN_STARS=0`、`LANGUAGES=''` 仍是有效值。
+  `config-values.ts` 的三个 reader 原样保留（它们读的是已校验过的值，不属于本批的替换范围）。
+
+### 2-2｜lru-cache v11（`apps/api/src/modules/ai/ai.service.ts`）
+
+- 答案缓存改成**两层**：进程内 lru-cache（`max: 200` + 毫秒 `ttl`）做热层，落库表继续当跨实例那层。
+  新增 6 条测试：二次提问不打库、热层命中不耗额度、命中仍要落库、7 天后回源、
+  换问题不串味、换项目上下文不共用条目。
+- ⚠️ **选型文档有一处记错**：`coverage-matrix.md` 与 `final-stack.md` 写的「lru-cache `namespace` 选项」
+  **v11 里不存在**（11.5.2 实测无该项）。键空间隔离改为用「一个键空间一个实例」表达 ——
+  现在只有问答这一个空间；站内检索回来时再开第二个实例。
+- `ttl` 显式指定 `perf: { now: () => Date.now() }`，两个理由：
+  ① 与落库层的「读取时判新旧」用同一个钟，不然「7 天」有两套各算各的；
+  ② lru-cache 在**模块加载时**就抓住了 `performance` 的引用，而 `jest.useFakeTimers()` 换掉的是
+  **全局** `performance`，那个旧引用纹丝不动 —— 于是「推进 70 天」的 TTL 测试会**永不失效**，
+  看着像覆盖了，其实什么都没测到。
+- **没有违反缺口 #3**：库里不加 TTL、不加 `pg_cron`，仍然「查询时手动判过期」。
+
+### 2-3｜Octokit（`apps/api/src/modules/github/github.client.ts`，259 → 294 行）
+
+- 归零的是**手写 HTTP 层**：自己拼 URL、自己设 `Accept` / `X-GitHub-Api-Version` / `User-Agent`、
+  自己判 `response.ok`。留下的是本项目独有的三件事：查询串规则（刻意不带 `language:`）、
+  snake_case → 契约映射、**哪些失败返回 null**（可选能力）而哪些往上抛。
+- 新增 `github.client.spec.ts`，**20 条测试** —— 这个类此前**零测试**。
+  替身只打在 `@octokit/rest` 这一个符号上，其余全走真代码；并有一条断言
+  `globalThis.fetch` **一次都不许被调用**，哪天有人把裸 fetch 加回来就红。
+- 编译器抓出一个真差异：**Octokit v22 的 `search.repos` 具名参数是 `q`，不是旧文档里的 `query`**。
+  手拼 URL 的旧写法不会报这个错，因为它根本不用具名参数 —— 这类差异正是替换的价值所在。
+- 刻意**没挂** retry / throttling 插件：重试会吃掉 `GITHUB_INTRO_TIME_BUDGET_MS` 的时间预算，
+  而选型文档给 Octokit 的能力清单里「限流重试」对应的 PoC **P26 仍未实测**。
+  要开就等 P26 有结论，不能顺手加上当作已通过。
+
+### 顺手修掉的批次 1 遗留（全是 CJS→ESM 的后坐力，此前无人发现）
+
+| # | 问题 | 处置 |
+| --- | --- | --- |
+| 1 | `apps/api/jest.config.js` 是 CJS 语法，而包已经是 `"type": "module"` → jest 根本起不来，**整套后端单测自批次 1 之后一次都没跑过** | 改名 `jest.config.cjs`（`git mv`） |
+| 2 | `packages/shared` 转 ESM 后源码里写 `./types/user.js`，jest 的解析器不会把 `.js` 退回 `.ts` → 8 个 suite 报 `Cannot find module` | `moduleNameMapper` 加一条剥后缀的映射 |
+| 3 | 上面两条把第三件事盖住了：`daily-digest` 撤回用例把「帖子已不在」的桩写成普通 `Error`，而 R-B 第一层认的是 `NotFoundException` | 用例改抛 `NotFoundException`（**改测试不改实现**，实现是对的、注释也早就写清了） |
+| 4 | `@octokit/rest` v22 整条依赖链 ESM-only，jest 的 CJS 侧载不动 | `transformIgnorePatterns: []`，全部交给 ts-jest 转译。实测代价：全套 67 秒（原本约 55 秒）。按包名开白名单能压到约 60 秒，但 Octokit 每升一次版就可能冒出新的 ESM-only 依赖，不值得背这笔维护债 |
+| 5 | 要转译 node_modules 里的 ESM 依赖，ts-jest 需要 `allowJs` | `apps/api/tsconfig.json` 加 `allowJs: true`；`include` 仍只有 `src/**/*.ts`，产物与类型检查范围不变 |
+
+### 🔴 本轮新发现的风险（不属于批次 2，但要记账）
+
+`.github/workflows/ci.yml` 在**本分支**被提交 `d8ac2e1`（一次 docs 提交）删除，而 `origin/main` 上仍然存在。
+看起来是误删。合入 main 之前要先定：**恢复 CI**，还是本来就打算换掉流水线。
+
+---
+
 ## 批次 2–11 规划
 
 | 批次 | 内容 | 栈项 | 前置 | 验收要点 | 回退 |
 | --- | --- | --- | --- | --- | --- |
-| **2** | Zod 4 替 class-validator（557 行 env 校验）；lru-cache 替手写缓存；Octokit 替 259 行 GitHub client | ④⑥⑦ | 1③ | `env.validation` 的「0 为有效值」「两密钥相同则启动失败」语义保留 | 保留旧校验并行一版 |
+| ~~**2**~~ ✅ | **（2026-10-08 完成，见上节）** Zod 4 替 class-validator（557 行 env 校验）；lru-cache 替手写缓存；Octokit 替 259 行 GitHub client | ④⑥⑦ | 1③ | 两条语义都已落成代码并有测试 | — |
 | **3** | OTel 替 requestId 112 行 + 分段计时 169 行；Langfuse 作 OTLP sink（**不引 Collector**） | ⑧ | 2 | span 属性不含 body/header/Cookie/token（不可违反项 8） | 保留自研 requestId |
 | **4** | Vercel AI SDK 替裸 fetch 303 行；pgvector 替 140 行内存点积；**本地 embed** | ②⑨ | 1② | 见下方「批次 4 硬约束」 | 外部 provider 回退 |
 | **5** | Payload Jobs Queue 承接 daily-digest 执行侧；九步流程 + 撤回四步 | ③ | 4 | **P32**：cron 只执行不触发，时区换算留应用层（Vercel Cron 仍为触发源） | 回退 BullMQ（栈项 11→12） |

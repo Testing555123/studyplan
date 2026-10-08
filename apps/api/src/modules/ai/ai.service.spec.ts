@@ -52,7 +52,9 @@ function createCodeIndexStub(): CodeIndexService {
  */
 function createUsageModelStub(used: number) {
   return {
-    findOne: jest.fn().mockReturnValue({ lean: () => Promise.resolve({ date: '2026-01-01', count: used }) }),
+    findOne: jest
+      .fn()
+      .mockReturnValue({ lean: () => Promise.resolve({ date: '2026-01-01', count: used }) }),
     updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
   }
 }
@@ -63,7 +65,9 @@ function createCacheModelStub(hit: { answer: string; sources: string[] } | null)
     findOne: jest.fn().mockReturnValue({
       lean: () =>
         Promise.resolve(
-          hit === null ? null : { hash: 'x', answer: hit.answer, sources: hit.sources, createdAt: new Date() },
+          hit === null
+            ? null
+            : { hash: 'x', answer: hit.answer, sources: hit.sources, createdAt: new Date() },
         ),
     }),
     updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
@@ -110,9 +114,7 @@ describe('AiService', () => {
     it('generatePostMeta 返回 null（发帖链路不受影响）', async () => {
       const { service } = createService({ enabled: false })
 
-      await expect(
-        service.generatePostMeta({ title: '标题', content: '正文' }),
-      ).resolves.toBeNull()
+      await expect(service.generatePostMeta({ title: '标题', content: '正文' })).resolves.toBeNull()
     })
 
     it('构造时不会因为缺 Key 而抛错（AI 是增强功能，不是核心依赖）', () => {
@@ -176,6 +178,84 @@ describe('AiService', () => {
     })
   })
 
+  describe('进程内热层（批次 2：lru-cache 替手写缓存）', () => {
+    /** 7 天 + 1 毫秒，越过 ANSWER_CACHE_TTL_MS */
+    const TTL_PLUS_ONE_MS = 7 * 24 * 60 * 60 * 1000 + 1
+
+    it('同一个问题第二次提问不再查缓存表', async () => {
+      const { service, cache, client } = createService({ enabled: true, cacheHit: null })
+
+      await service.answerQuestion({ question: '什么是 SSR' })
+      const second = await service.answerQuestion({ question: '什么是 SSR' })
+
+      expect(client.chat).toHaveBeenCalledTimes(1)
+      // 第一次读了库（未命中），第二次必须由进程内热层直接接住
+      expect(cache.findOne).toHaveBeenCalledTimes(1)
+      expect(second.cached).toBe(true)
+      expect(second.answer).toBe('这是模型给出的回答')
+    })
+
+    it('热层命中同样不消耗额度', async () => {
+      const { service, usage } = createService({ enabled: true, cacheHit: null })
+
+      await service.answerQuestion({ question: '什么是 SSR' })
+      await service.answerQuestion({ question: '什么是 SSR' })
+
+      // 只有第一次真实调用模型时计一次数
+      expect(usage.updateOne).toHaveBeenCalledTimes(1)
+    })
+
+    it('热层命中时仍然把答案落库（落库才是跨实例的那一层）', async () => {
+      const { service, cache } = createService({ enabled: true, cacheHit: null })
+
+      await service.answerQuestion({ question: '什么是 SSR' })
+
+      expect(cache.updateOne).toHaveBeenCalledTimes(1)
+    })
+
+    it('超过 7 天后回源重取（进程内条目不能永生）', async () => {
+      jest.useFakeTimers()
+      try {
+        const { service, client } = createService({ enabled: true, cacheHit: null })
+
+        await service.answerQuestion({ question: '什么是 SSR' })
+        jest.advanceTimersByTime(TTL_PLUS_ONE_MS)
+        await service.answerQuestion({ question: '什么是 SSR' })
+
+        expect(client.chat).toHaveBeenCalledTimes(2)
+      } finally {
+        jest.useRealTimers()
+      }
+    })
+
+    it('换个问题不会串到上一个答案（键空间按问题指纹隔离）', async () => {
+      const { service, client } = createService({ enabled: true, cacheHit: null })
+
+      await service.answerQuestion({ question: '什么是 SSR' })
+      await service.answerQuestion({ question: '什么是客户端渲染' })
+
+      expect(client.chat).toHaveBeenCalledTimes(2)
+    })
+
+    it('同一问题但不同项目上下文，不共用同一条缓存', async () => {
+      const { service, client } = createService({ enabled: true, cacheHit: null })
+
+      await service.answerQuestion({ question: '值得学吗' })
+      await service.answerQuestion({
+        question: '值得学吗',
+        context: {
+          type: 'repo',
+          fullName: 'nestjs/nest',
+          description: '一个 Node 框架',
+          language: 'TypeScript',
+          htmlUrl: 'https://github.com/nestjs/nest',
+        },
+      })
+
+      expect(client.chat).toHaveBeenCalledTimes(2)
+    })
+  })
+
   describe('上游失败时', () => {
     it('被收敛成 reason=error，不抛异常', async () => {
       const { service } = createService({
@@ -220,9 +300,7 @@ describe('AiService', () => {
         chat: () => Promise.resolve('抱歉，我无法完成这个任务'),
       })
 
-      await expect(
-        service.generatePostMeta({ title: '标题', content: '正文' }),
-      ).resolves.toBeNull()
+      await expect(service.generatePostMeta({ title: '标题', content: '正文' })).resolves.toBeNull()
     })
   })
 

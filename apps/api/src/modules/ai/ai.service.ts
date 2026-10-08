@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { InjectModel } from '@nestjs/mongoose'
 import { createHash } from 'node:crypto'
 import { Model } from 'mongoose'
+import { LRUCache } from 'lru-cache'
 import type { AiPostMeta, AiStatus, AskAiResponse, RepoQuestionContext } from '@studyplan/shared'
 import { AiAnswerCache } from './schemas/ai-usage.schema'
 import { AiDailyUsage } from './schemas/ai-usage.schema'
@@ -16,8 +17,26 @@ import { sanitizePostMeta } from './utils/post-meta.sanitizer'
 /** 每日真实调用上限的默认值（命中缓存的不计） */
 const DEFAULT_DAILY_LIMIT = 300
 
-/** 答案缓存保留时长（毫秒）。7 天足够长，又不会让内容永远陈旧 */
+/**
+ * 答案缓存保留时长（毫秒）。7 天足够长，又不会让内容永远陈旧。
+ *
+ * 同一个值同时喂给落库层的"读取时判过期"和进程内热层的 `ttl` ——
+ * 两层的有效期必须是一个事实来源，否则会出现"库里还没过期、热层已经没了"
+ * 这种解释不清的裂缝。
+ */
 const ANSWER_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * 进程内热层的条目上限。
+ *
+ * 200 条 × 单条答案约 1KB，最坏也就 200KB 量级，对 serverless 的内存预算无关紧要。
+ * 设上限而不是无限增长，是因为问答的键是问题指纹，**天然不封顶** ——
+ * 没有 `max` 的 Map 就是一个缓慢泄漏。
+ */
+const HOT_CACHE_MAX_ENTRIES = 200
+
+/** 热层与落库层共用的值形状 */
+type CachedAnswer = { answer: string; sources: string[] }
 
 /**
  * AI 服务：对外提供两类能力 ——
@@ -40,6 +59,20 @@ export class AiService {
 
   private readonly limitPerDay: number
 
+  /**
+   * 答案缓存的进程内热层。
+   *
+   * ── 为什么有了落库还要它 ──
+   * 落库层解决的是**跨实例、跨重启**的可见性（Vercel 会缩容到零、也会横向扩缩，
+   * 只靠内存缓存等于没有缓存）；热层解决的是**同一个实例里的重复问题**——
+   * 一次命中就省掉一次数据库往返，也省掉一次"读出来再算一遍年龄"。
+   * 两层的分工不同，不是二选一。
+   *
+   * `ttl` 由 lru-cache 负责，所以这里不再手写 `Date.now() - createdAt` 的判据
+   * （落库层那一条仍然保留：库里的行不会被后台物理清理，读的时候必须自己判新旧）。
+   */
+  private readonly hotAnswers: LRUCache<string, CachedAnswer>
+
   constructor(
     private readonly client: NvNimClient,
     private readonly codeIndex: CodeIndexService,
@@ -52,6 +85,22 @@ export class AiService {
     const rawLimit = Number(config.get<string>('NVNIM_DAILY_LIMIT'))
     this.limitPerDay =
       Number.isFinite(rawLimit) && rawLimit > 0 ? Math.floor(rawLimit) : DEFAULT_DAILY_LIMIT
+
+    this.hotAnswers = new LRUCache<string, CachedAnswer>({
+      max: HOT_CACHE_MAX_ENTRIES,
+      ttl: ANSWER_CACHE_TTL_MS,
+      /**
+       * ⚠️ 显式把时钟定成 `Date.now`，不要用 lru-cache 默认的 `performance.now`。
+       *
+       * 两个理由，第二个是硬教训：
+       *   1. 落库层的"读取时判过期"用的是 `Date.now() - createdAt`。两层不同钟，
+       *      "7 天"就有了两个各算各的版本，排查时说不清是谁先过期；
+       *   2. `performance` 是在 lru-cache 模块加载时被捕获的引用，测试里
+       *      `jest.useFakeTimers()` 换掉的是**全局** performance，那个旧引用纹丝不动 ——
+       *      于是"推进 70 天"这种测试会安静地永不失效，看上去像实现了、其实没测到。
+       */
+      perf: { now: () => Date.now() },
+    })
   }
 
   /** AI 功能是否可用。调用方据此决定要不要发起调用 */
@@ -137,7 +186,13 @@ export class AiService {
     const emptySources: string[] = []
 
     if (!this.client.enabled) {
-      return { answer: null, reason: 'not-configured', sources: emptySources, cached: false, remainingToday: 0 }
+      return {
+        answer: null,
+        reason: 'not-configured',
+        sources: emptySources,
+        cached: false,
+        remainingToday: 0,
+      }
     }
 
     const hash = hashQuestion(input.question, input.context)
@@ -268,10 +323,11 @@ export class AiService {
     return { allowed: true, remaining: Math.max(0, this.limitPerDay - used - 1) }
   }
 
-  /** 读缓存；过期或不存在都返回 null */
-  private async readCache(
-    hash: string,
-  ): Promise<{ answer: string; sources: string[] } | null> {
+  /** 读缓存；热层优先，过期或不存在都返回 null */
+  private async readCache(hash: string): Promise<CachedAnswer | null> {
+    const hot = this.hotAnswers.get(hash)
+    if (hot !== undefined) return hot
+
     try {
       const doc = await this.cacheModel.findOne({ hash }).lean()
       if (!doc) return null
@@ -279,7 +335,10 @@ export class AiService {
       const age = Date.now() - new Date(doc.createdAt).getTime()
       if (age > ANSWER_CACHE_TTL_MS) return null
 
-      return { answer: doc.answer, sources: doc.sources }
+      const value: CachedAnswer = { answer: doc.answer, sources: doc.sources }
+      // 回填热层：让同实例的下一次同样的问题不再打库
+      this.hotAnswers.set(hash, value)
+      return value
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error)
       this.logger.warn(`读取 AI 答案缓存失败（按未命中处理）：${reason}`)
@@ -288,6 +347,8 @@ export class AiService {
   }
 
   private async writeCache(hash: string, answer: string, sources: string[]): Promise<void> {
+    this.hotAnswers.set(hash, { answer, sources })
+
     try {
       await this.cacheModel.updateOne(
         { hash },
