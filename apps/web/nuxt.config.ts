@@ -25,8 +25,9 @@ export default defineNuxtConfig({
    */
 
   // 模块是 Nuxt 的扩展机制：
-  //   @nuxt/ui   —— 组件库 + Tailwind CSS 4（自动注入样式与组件）
-  //   @pinia/nuxt —— 状态管理
+  //   @nuxt/ui     —— 组件库 + Tailwind CSS 4（自动注入样式与组件）
+  //   @pinia/nuxt  —— 状态管理
+  //   @nuxt/content —— 电子书正文（见下方 modules 的说明与 content.config.ts）
   /**
    * 模块列表。
    *
@@ -34,8 +35,47 @@ export default defineNuxtConfig({
    * 那两个效果是全站唯一需要「连续计算」的地方，改版后所有动效都能用
    * CSS transition / animation 表达，为一个已经没有消费者的库
    * 继续承担依赖体积与模块启动成本并不划算。
+   *
+   * `@nuxt/content` 是批次 10 加进来的：电子书 30 篇从 `apps/docs`（VitePress
+   * 独立站）迁到本应用的 `/ebook` 前缀。触发原因是不可违反项 `FR-DOC-1`
+   * ——「文档由主站构建产出，不再由独立文档站产出」，准出条件是
+   * 「构建链不再产出独立文档站」。配置见 `content.config.ts`，
+   * 路由见 `app/pages/ebook/`（Content 3 不会自动为 `type: 'page'` 生成路由）。
    */
-  modules: ['@nuxt/ui', '@pinia/nuxt'],
+  modules: ['@nuxt/ui', '@pinia/nuxt', '@nuxt/content'],
+
+  /**
+   * 旧电子书路径 → 新路径的重定向：**这一轮刻意不启用**。
+   *
+   * ── 为什么现在不开 ──
+   * 这是顺序敏感项 7 / 不可违反项 14 担心的那件事：301 一旦生效，
+   * 而内容迁移还没验证过，旧链接会被重定向到一批可能 404 的新路径上，
+   * 而且 301 是**浏览器缓存级**的错误 —— 用户此后每次访问都直接跳 404，
+   * 回滚都回不来（清缓存才算完）。所以发布必须分两次：
+   *   第一次：内容与 `/ebook` 路由上线（就是本次改动），跑通 poc/p10-verify.mjs；
+   *   第二次：确认 29 篇全部可达，再取消下面这段注释。
+   *
+   * ── 启用时的两个实测坑（P19 沙盒验证）──
+   * 1. 简写 `{ redirect: '/x' }` 发的是 **307**，不是 301；要 301 必须显式写
+   *    `statusCode: 301`。307 会被搜索引擎当成临时跳转，旧权重不迁移，
+   *    等于白做一次跳转。
+   * 2. 规则只覆盖**旧站**路径形状（`/guide/**` 等），绝不能把 `/ebook/**`
+   *    自己也写进重定向表，否则新路径指向新路径，形成自环、全部 404。
+   *
+   * 启用方式：整段取消注释。`**` 是 nitro 的通配，会把后缀原样带到目标。
+   * 四条通配即可覆盖 29 篇（`/guide` 8 篇 + `/stages` 8 + `/exercises` 8 + `/design` 5）；
+   * 不再单列 `/guide/roadmap` 这种精确规则 —— 同一条路径同时命中精确与通配时，
+   * nitro 按声明顺序取第一条，多留一条就是给自己埋顺序坑。
+   *
+   * ⚠️ 这四条通配会占住 `/guide` `/stages` `/exercises` `/design` 四个一级路径。
+   *    将来主站若想在根级别新增同名页面，必须先确认不被这里的重定向吃掉。
+   */
+  // routeRules: {
+  //   '/guide/**': { redirect: { to: '/ebook/guide/**', statusCode: 301 } },
+  //   '/stages/**': { redirect: { to: '/ebook/stages/**', statusCode: 301 } },
+  //   '/exercises/**': { redirect: { to: '/ebook/exercises/**', statusCode: 301 } },
+  //   '/design/**': { redirect: { to: '/ebook/design/**', statusCode: 301 } },
+  // },
 
   // 全局样式入口
   css: ['~/assets/css/main.css'],
@@ -128,18 +168,22 @@ export default defineNuxtConfig({
         `v${pkg.version} · ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC`,
 
       /**
-       * 电子书（VitePress）的地址。
+       * 这里**曾经**有一个 `docsUrl`（默认 `http://localhost:3002`，生产由
+       * Dockerfile.vercel 注入 `/ebook/`），指向 VitePress 独立站。
+       * 批次 10 把它删掉了：电子书现在是本应用 `/ebook` 下的路由
+       * （`app/pages/ebook/` + `content/`），"文档站地址"这个概念不再存在 ——
+       * 留着一个能指向别处的配置项，只会诱使后来人把链接指回另一个站点。
        *
-       * 为什么不能写死 `/ebook/`：那是**生产环境**才成立的路径——
-       * 由 `docker/vercel/entrypoint.mjs` 直接读盘返回静态产物，
-       * 而 Nuxt 里**根本没有 `/ebook` 这个页面**（pages 下没有对应文件）。
-       * 本地点它会走到 Nuxt 路由 → 404。
-       *
-       * 本地默认值 `http://localhost:3002` 是 `apps/docs` 的 VitePress
-       * dev / preview 端口（见 `apps/docs/package.json`），先跑
-       * `pnpm dev:docs` 才能打开。生产由 Dockerfile.vercel 注入 `/ebook/`。
+       * ⚠️ **线上还看不见这次迁移**，原因在本应用之外（本轮不许动部署文件）：
+       *    `docker/vercel/entrypoint.mjs` 会先把 `/ebook/**` 拦下来，
+       *    用磁盘上的 VitePress 产物直接返回（`Dockerfile.vercel` 第 112 行
+       *    仍在 `pnpm --filter @studyplan/docs build`）。也就是说生产环境的
+       *    `/ebook` 目前**由入口脚本代管，轮不到 Nuxt**。
+       *    删除顺序因此是固定的（顺序敏感项 7）：先等 `node poc/p10-verify.mjs
+       *    --runtime` 全绿，再在同一次发布里删掉 `apps/docs`、Dockerfile 的
+       *    docs 构建层与 entrypoint 的 EBOOK 静态分支，并清掉
+       *    `ARG/ENV NUXT_PUBLIC_DOCS_URL`。反过来先删部署侧，线上 /ebook 立刻 404。
        */
-      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'http://localhost:3002',
     },
   },
 

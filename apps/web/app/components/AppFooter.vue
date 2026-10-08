@@ -8,14 +8,14 @@
  *   L4 链接 / 版权说明        —— 正文级，最弱
  * 通过「分组 + 分级」让一屏页脚一眼可读，而不是一串平铺链接。
  *
- * 链接只用已存在的真实路由（/、/posts、/roadmap、/trending、/ebook/），
+ * 链接只用已存在的真实路由（/、/posts、/roadmap、/trending、/ebook），
  * 不造会 404 的假链接。外壳用 `UFooter`（自带边框与内边距）。
  */
 const year = new Date().getFullYear()
 
 // 构建版本号（版本号 + UTC 构建时间戳），用于一眼判断站点是否重建更新过。
 // 来自 nuxt.config.ts 的 runtimeConfig.public，为构建期常量。
-const { public: { appVersion, docsUrl } } = useRuntimeConfig()
+const { public: { appVersion } } = useRuntimeConfig()
 </script>
 
 <template>
@@ -59,7 +59,8 @@ const { public: { appVersion, docsUrl } } = useRuntimeConfig()
                 </ULink>
               </li>
               <li>
-                <ULink :to="docsUrl" target="_blank" class="text-muted transition-colors hover:text-primary">
+                <!-- 电子书已并入主站 /ebook（批次 10），站内链接不再开新标签 -->
+                <ULink to="/ebook" class="text-muted transition-colors hover:text-primary">
                   配套电子书
                 </ULink>
               </li>

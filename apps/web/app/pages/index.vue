@@ -20,7 +20,7 @@ useSeoMeta({
   description: '一个边做边学的全栈项目：分享你的学习笔记与技术心得。',
 })
 
-const { public: { docsUrl, appVersion } } = useRuntimeConfig()
+const { public: { appVersion } } = useRuntimeConfig()
 
 /** 项目仓库（沿用原 GithubCtaSection 的网址） */
 const githubUrl = 'https://github.com/dongdong'
@@ -171,13 +171,15 @@ const metrics = computed(() => [
           </ul>
         </BentoCard>
 
-        <!-- 中卡 2×1：电子书（走 docsUrl，本地 :3002 / 生产 /ebook） -->
-        <BentoCard :to="docsUrl" target="_blank" tone="brand" :col-span="2">
+        <!-- 中卡 2×1：电子书（批次 10 起是本应用 /ebook 下的路由，不再是独立文档站） -->
+        <BentoCard to="/ebook" tone="brand" :col-span="2">
           <div class="flex items-start justify-between gap-4">
             <span class="bento-icon size-10 bg-brand-200 text-brand-800 dark:bg-brand-800/50 dark:text-brand-200 group-hover:bg-brand-600 group-hover:text-white">
               <UIcon name="i-lucide-book-open" class="size-5" aria-hidden="true" />
             </span>
-            <UIcon name="i-lucide-external-link" class="size-5 text-brand-600 transition-all duration-200 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
+            <!-- 站内跳转用 arrow-up-right；external-link 是"要离开本站"的信号，
+                 对内链是误导（其余内链卡片同一约定） -->
+            <UIcon name="i-lucide-arrow-up-right" class="size-5 text-brand-600 transition-all duration-200 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
           </div>
           <h3 class="mt-4 text-lg font-semibold text-highlighted">配套电子书</h3>
           <p class="mt-1.5 text-sm leading-relaxed text-toned">
