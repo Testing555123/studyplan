@@ -10,13 +10,7 @@ import {
   TITLE_MAX_LENGTH,
   TITLE_MIN_LENGTH,
 } from '@studyplan/shared'
-import {
-  UUID_RE,
-  currentUser,
-  fail,
-  ok,
-  toPostContract,
-} from './context.js'
+import { UUID_RE, currentUser, fail, ok, toPostContract } from './context.js'
 import { rateLimit } from '../middleware/rate-limit.js'
 
 /**
@@ -36,13 +30,21 @@ const PAGE_DEFAULT = 1
 const PAGE_SIZE_DEFAULT = 20
 const PAGE_SIZE_MAX = 100
 
-const createPostSchema = z.object({
-  title: z.string().trim().min(TITLE_MIN_LENGTH).max(TITLE_MAX_LENGTH),
-  content: z.string().min(CONTENT_MIN_LENGTH).max(CONTENT_MAX_LENGTH),
-  tags: z.array(z.enum(POST_TAGS)).min(1).max(MAX_TAGS_PER_POST),
-})
+/**
+ * 请求体一律 .strict()（批次 6「多传 authorId 返回 400」）。
+ * 默认行为是**静默丢弃**未知字段：客户端以为自己传了 authorId 就能代发，
+ * 服务端却一声不响地按令牌里的身份发帖 —— 201 成功但其实什么都没发生，
+ * 这种 bug 前端永远查不出来。宁可 400 让它看得见。
+ */
+export const createPostSchema = z
+  .object({
+    title: z.string().trim().min(TITLE_MIN_LENGTH).max(TITLE_MAX_LENGTH),
+    content: z.string().min(CONTENT_MIN_LENGTH).max(CONTENT_MAX_LENGTH),
+    tags: z.array(z.enum(POST_TAGS)).min(1).max(MAX_TAGS_PER_POST),
+  })
+  .strict()
 
-const updatePostSchema = z
+export const updatePostSchema = z
   .object({
     title: z.string().trim().min(TITLE_MIN_LENGTH).max(TITLE_MAX_LENGTH).optional(),
     content: z.string().min(CONTENT_MIN_LENGTH).max(CONTENT_MAX_LENGTH).optional(),
@@ -57,10 +59,7 @@ const updatePostSchema = z
  * 走 jsonb_array_elements_text 展开后等值匹配，未来的 GIN(tags) 索引
  * 也可以换成 `tags @> '["x"]'` 的形式，两种写法都能吃到索引。
  */
-async function findPostIdsByTags(
-  payload: Payload,
-  tagList: string[],
-): Promise<string[]> {
+async function findPostIdsByTags(payload: Payload, tagList: string[]): Promise<string[]> {
   // ⚠️ drizzle 不会把 JS 数组绑定成 PG 数组（报 malformed array literal），
   //    所以逐标签生成标量参数，用 OR 连接（OR 语义 = 旧 Mongo 的 $in）。
   const conds = tagList.map((t) => sql`t.value::text = ${t}`)
@@ -170,7 +169,10 @@ export function registerPostRoutes(app: Express, payload: Payload) {
       })
       ok(res, toPostContract(doc as unknown as Record<string, unknown>), 201)
     } catch (err: unknown) {
-      fail(res, 400, 'create_failed', (err as Error)?.message)
+      // 上游原文只进日志（批次 6「响应体无堆栈」）：Payload/Drizzle 抛的 message 里
+      // 常有 SQL 片段、绝对路径甚至半截堆栈，原样透传等于把内部实现交给客户端。
+      console.error('[posts] create failed:', err)
+      fail(res, 400, 'create_failed', '发布失败，请稍后重试')
     }
   })
 

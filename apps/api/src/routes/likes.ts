@@ -20,6 +20,10 @@ import {
  * 「不能重复点赞」下沉到数据库的复合唯一索引 (post, user)（对应 Mongo 11000
  * → PG 23505）：插入撞唯一索引 = 用户想要的状态已达成，返回 200 成功且
  * 不重复加计数 —— 快速连点不会把计数点出天际。
+ *
+ * 批次 6 的 `.strict()` 在本域没有落点：赞/取消的语义全在路径与令牌里，
+ * **请求体压根不被读取**，所以「未知字段被静默丢弃」的风险等价地由「不读 body」挡住
+ * —— body 里的 user / postId 既不参与鉴权也不参与写库（likes.spec.ts 钉住这条）。
  */
 
 export function registerLikeRoutes(app: Express, payload: Payload) {

@@ -17,18 +17,25 @@ import { rateLimit } from '../middleware/rate-limit.js'
  *     refresh 操作，refresh 语义留到批次 6（错误包络）一并定夺，
  *     本批次不再自研 JWT 刷新（违反"不自研认证"纪律）。
  *   - 登录失败统一 401：刻意不区分「邮箱不存在」与「密码错误」—— 防账号枚举。
+ *   - 请求体 .strict()（批次 6）：默认行为是静默丢弃未知字段，而注册是全站唯一的
+ *     建用户入口，body 里多出的 role / provider 被丢掉后仍回 201，
+ *     客户端会以为自己已经提权 —— 必须 400 让它看得见。
  */
 
-const registerSchema = z.object({
-  email: z.string().trim().toLowerCase().email('email 格式不合法'),
-  username: z.string().trim().min(2, 'username 至少 2 个字符').max(30, 'username 至多 30 个字符'),
-  password: z.string().min(8, 'password 至少 8 个字符').max(72, 'password 至多 72 个字符'),
-})
+export const registerSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email('email 格式不合法'),
+    username: z.string().trim().min(2, 'username 至少 2 个字符').max(30, 'username 至多 30 个字符'),
+    password: z.string().min(8, 'password 至少 8 个字符').max(72, 'password 至多 72 个字符'),
+  })
+  .strict()
 
-const loginSchema = z.object({
-  email: z.string().trim().toLowerCase(),
-  password: z.string().min(1),
-})
+export const loginSchema = z
+  .object({
+    email: z.string().trim().toLowerCase(),
+    password: z.string().min(1),
+  })
+  .strict()
 
 export function registerAuthRoutes(app: Express, payload: Payload) {
   app.post('/api/auth/register', rateLimit('register'), async (req: Request, res: Response) => {
@@ -56,20 +63,35 @@ export function registerAuthRoutes(app: Express, payload: Payload) {
       const field = uniqueFieldOf(err)
       if (field) {
         // 数据库层的技术错误翻译成用户能懂的业务错误（旧实现为 409 Conflict）
-        return fail(res, 409, 'conflict', field === 'email' ? '这个邮箱已经被注册了，换一个或直接登录' : '这个用户名已被占用')
+        return fail(
+          res,
+          409,
+          'conflict',
+          field === 'email' ? '这个邮箱已经被注册了，换一个或直接登录' : '这个用户名已被占用',
+        )
       }
-      fail(res, 400, 'register_failed', (err as Error)?.message)
+      // 明细只进日志（批次 6「响应体无堆栈」）：唯一冲突之外的上游错误原文常带
+      // SQL、绝对路径甚至堆栈，透传给客户端等于暴露内部实现。
+      console.error('[auth] register failed:', err)
+      fail(res, 400, 'register_failed', '注册失败，请稍后重试')
     }
   })
 
   app.post('/api/auth/login', rateLimit('login'), async (req: Request, res: Response) => {
     const parsed = loginSchema.safeParse(req.body)
     if (!parsed.success) {
-      return fail(res, 401, 'invalid_credentials')
+      // 未知字段属于「客户端拼错了 body」：还没碰数据库、也与凭据无关，给 400 才诊断得出来；
+      // 其余（缺字段 / 空值）继续统一 401，不区分邮箱是否存在。
+      return parsed.error.issues.some((issue) => issue.code === 'unrecognized_keys')
+        ? fail(res, 400, 'validation_failed', parsed.error.issues[0]?.message)
+        : fail(res, 401, 'invalid_credentials')
     }
     try {
       const login = await payload.login({ collection: 'users', data: parsed.data })
-      ok(res, { user: toPublicUser(login.user as unknown as Record<string, unknown>), token: login.token })
+      ok(res, {
+        user: toPublicUser(login.user as unknown as Record<string, unknown>),
+        token: login.token,
+      })
     } catch {
       fail(res, 401, 'invalid_credentials')
     }

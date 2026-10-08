@@ -25,9 +25,20 @@ import {
  *   - 删除：只能删自己的，「不存在 404」与「不是你的 403」区分；删成功才减计数。
  */
 
-const createCommentSchema = z.object({
-  content: z.string().trim().min(1, '评论不能为空').max(COMMENT_MAX_LENGTH, `评论至多 ${COMMENT_MAX_LENGTH} 字`),
-})
+/**
+ * 请求体 .strict()（批次 6「多传字段返回 400」）：`post` 和 `authorId` 都是路由
+ * 自己从路径与令牌注入的，body 里出现同名字段必须报错。默认行为是静默丢弃 ——
+ * 前端会以为自己评论到了另一篇帖子上，这种 bug 只看响应码是查不出来的。
+ */
+export const createCommentSchema = z
+  .object({
+    content: z
+      .string()
+      .trim()
+      .min(1, '评论不能为空')
+      .max(COMMENT_MAX_LENGTH, `评论至多 ${COMMENT_MAX_LENGTH} 字`),
+  })
+  .strict()
 
 export function registerCommentRoutes(app: Express, payload: Payload) {
   // GET /api/posts/:postId/comments
