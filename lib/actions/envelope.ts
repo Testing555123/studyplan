@@ -6,15 +6,18 @@ import { createRequestId } from '@app/shared'
  * HTTP 响应包络（T6）。Route Handler 统一经此返回，确保 ErrorBody/SuccessBody 形状唯一、requestId 入体。
  */
 export function successEnvelope<T>(data: T, requestId?: string) {
-  return NextResponse.json(toSuccessBody(data, requestId), { status: 200 })
+  const body = toSuccessBody(data, requestId)
+  return NextResponse.json(body, { status: 200, headers: { 'X-Request-Id': body.requestId } })
 }
 
 export function errorEnvelope(
   input: { statusCode: number; code: string; message: string; details?: string[] },
   requestId?: string,
 ) {
-  return NextResponse.json(toErrorBody({ ...input, requestId }), {
+  const body = toErrorBody({ ...input, requestId })
+  return NextResponse.json(body, {
     status: input.statusCode,
+    headers: { 'X-Request-Id': body.requestId },
   })
 }
 

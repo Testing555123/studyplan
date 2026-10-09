@@ -39,6 +39,25 @@ describe('HTTP envelope (T6: requestId 真进响应体)', () => {
     expect(res.status).toBe(429)
     expect(json.requestId).toMatch(UUID_RE)
   })
+
+  it('successEnvelope 响应头 X-Request-Id 与响应体一致', async () => {
+    const res = successEnvelope({ hello: 'world' })
+    const json = await res.json()
+    expect(res.headers.get('x-request-id')).toBe(json.requestId)
+  })
+
+  it('errorEnvelope 响应头 X-Request-Id 与响应体一致', async () => {
+    const res = errorEnvelope({ statusCode: 429, code: 'RATE_LIMITED', message: 'slow' })
+    const json = await res.json()
+    expect(res.headers.get('x-request-id')).toBe(json.requestId)
+  })
+
+  it('传入的 requestId 被沿用：请求头与响应体贯通', async () => {
+    const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+    const res = successEnvelope({ a: 1 }, id)
+    expect(res.headers.get('x-request-id')).toBe(id)
+    expect((await res.json()).requestId).toBe(id)
+  })
 })
 
 describe('actionClient strict (V1: 非法字段 400)', () => {
