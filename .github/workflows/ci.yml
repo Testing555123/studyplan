@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    name: typecheck / build / test / migration
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: studyplan
+          POSTGRES_USER: studyplan
+          POSTGRES_PASSWORD: studyplan
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U studyplan -d studyplan"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: postgres://studyplan:studyplan@localhost:5432/studyplan
+      BETTER_AUTH_SECRET: ci-only-secret-value-for-tests
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Migration verify
+        run: pnpm db:verify
+
+      - name: Unit / contract tests
+        run: pnpm test
+
+  smoke:
+    name: container smoke
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f Dockerfile.vercel -t studyplan:ci .
+
+      - name: Boot container and hit endpoints
+        run: |
+          docker run -d --name studyplan-ci -p 8080:80 studyplan:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/api/health > /dev/null; then break; fi
+            sleep 2
+          done
+          curl -fsS http://localhost:8080/api/health
+          curl -fsS http://localhost:8080/
+          docker logs studyplan-ci
+          docker rm -f studyplan-ci

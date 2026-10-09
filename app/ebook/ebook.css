@@ -1,0 +1,117 @@
+/* 电子书正文排版（T4）。使用设计 token 实现明/暗自适应（变量随 .dark 自动切换）。 */
+.ebook-prose {
+  color: var(--foreground);
+  line-height: 1.75;
+  font-size: 1rem;
+  word-break: break-word;
+}
+
+.ebook-prose h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.ebook-prose h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 2.5rem 0 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.ebook-prose h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 1.8rem 0 0.75rem;
+}
+
+.ebook-prose p {
+  margin: 1rem 0;
+}
+
+.ebook-prose ul,
+.ebook-prose ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.ebook-prose li {
+  margin: 0.4rem 0;
+}
+
+.ebook-prose ul {
+  list-style: disc;
+}
+
+.ebook-prose ol {
+  list-style: decimal;
+}
+
+.ebook-prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ebook-prose strong {
+  font-weight: 600;
+}
+
+.ebook-prose code {
+  background: var(--muted);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.3rem;
+  font-size: 0.875em;
+  font-family: var(--font-mono, monospace);
+}
+
+.ebook-prose pre {
+  background: var(--muted);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  border: 1px solid var(--border);
+}
+
+.ebook-prose pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.ebook-prose blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+  margin: 1.25rem 0;
+}
+
+.ebook-prose img {
+  border-radius: 0.75rem;
+  margin: 1.5rem 0;
+  max-width: 100%;
+}
+
+.ebook-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.9rem;
+}
+
+.ebook-prose th,
+.ebook-prose td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.ebook-prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
