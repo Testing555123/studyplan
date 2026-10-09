@@ -9,7 +9,7 @@ import { parsedEnv } from '@app/shared/env'
  * better-auth 实例（T3）。
  * - 邮箱+密码注册/登录/刷新/登出由 better-auth 处理。
  * - 会话是唯一身份来源（V1）：受保护路由一律经 requireSession() 取身份，绝不读请求体 authorId/role。
- * - nextCookies() 插件（v1.7）：在响应中正确下发会话 Cookie，无需单独的 middleware。
+ * - nextCookies() 插件（v1.7）：在响应中正确下发会话 Cookie；middleware.ts 仅做 Cookie 级轻量守卫，不参与签发。
  * - secret 缺失时 better-auth 在开发态自签（生产必须配置 BETTER_AUTH_SECRET）。
  */
 export const auth = betterAuth({
