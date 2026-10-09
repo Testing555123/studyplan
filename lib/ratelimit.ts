@@ -14,19 +14,24 @@ export interface RateLimitTier {
   windowSeconds: number
 }
 
+/**
+ * 12 档位常量（SPEC §8.2）。键名与 limit 均为继承值，实现时不得改动。
+ * 第一批实际生效：GLOBAL_DEFAULT / AUTH_REGISTER / AUTH_LOGIN / AUTH_REFRESH
+ * （D16 后无发帖与 AI 模块，其余档位随第二批或恢复启用）。
+ */
 export const RATE_LIMIT_TIERS = {
   GLOBAL_DEFAULT: { limit: 30, windowSeconds: 60 },
-  AUTH_SIGNUP: { limit: 5, windowSeconds: 60 },
+  AUTH_REGISTER: { limit: 5, windowSeconds: 60 },
   AUTH_LOGIN: { limit: 10, windowSeconds: 60 },
-  AUTH_REFRESH: { limit: 30, windowSeconds: 60 },
-  SEARCH: { limit: 30, windowSeconds: 60 },
-  AI_CHAT: { limit: 6, windowSeconds: 60 },
-  AI_EMBEDDING: { limit: 10, windowSeconds: 60 },
-  EBOOK_READ: { limit: 60, windowSeconds: 60 },
-  COMMENT_POST: { limit: 10, windowSeconds: 60 },
-  UPLOAD: { limit: 5, windowSeconds: 60 },
-  HEALTH: { limit: 60, windowSeconds: 60 },
-  ADMIN: { limit: 120, windowSeconds: 60 },
+  AUTH_REFRESH: { limit: 60, windowSeconds: 60 },
+  CREATE_POST: { limit: 10, windowSeconds: 60 },
+  AI_ASK: { limit: 10, windowSeconds: 60 },
+  AGENT_ASK: { limit: 10, windowSeconds: 60 },
+  SEMANTIC_SEARCH: { limit: 30, windowSeconds: 60 },
+  ASK_BOOK: { limit: 10, windowSeconds: 60 },
+  REPO_INTROS: { limit: 10, windowSeconds: 60 },
+  DIGEST_READ: { limit: 20, windowSeconds: 60 },
+  DIGEST_GENERATE: { limit: 10, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitTier>
 
 export type RateLimitTierName = keyof typeof RATE_LIMIT_TIERS
