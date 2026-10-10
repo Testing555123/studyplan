@@ -237,3 +237,24 @@
 社区内容不重要，所以原来要求评论进自有 PG、计数强一致、SSR 渲染、绑 better-auth 的硬约束不再适用。放松后 Giscus（GitHub Discussions 托管、SaaS 零进程）的缺点都不再是问题，反而比独立评论服务更契合单容器。主帖 `posts` 与点赞 `likes` 没有承载价值，一并移除，评论挂在电子书/页面下。RAG 仍只检索电子书。
 
 若以后社区变重要，重启自研 `posts`/`comments`/`likes`，或整体换 Discourse。
+
+---
+
+## D17 · Agent loop 采用 LangGraph `createReactAgent`，不用 Mastra（2026-10-10）
+
+T13 落地时的实测数据（npm registry 当日核实）：
+
+| 候选 | 结论 | 依据 |
+| --- | --- | --- |
+| **LangGraph.js `createReactAgent`**（`@langchain/langgraph@1.4.21`，MIT） | **采用** | 现成 ReAct 图状态机；4.4MB/632 文件（+ `@langchain/core` 7.6MB peer）；为将来分支/持久化/人工介入留空间 |
+| Mastra（`@mastra/core@1.75.0`，Apache-2.0） | 排除 | **72.6MB / 3378 文件**，内含 hono、ws、posthog-node、A2A SDK，与单容器 `output:'standalone'` 的镜像体积和冷启动冲突 |
+| Vercel AI SDK `ToolLoopAgent` | 未选（备选） | 零新增依赖且官方推荐，但同源绑定 AI SDK，难以为将来的图状态机/持久化需求留结构 |
+
+配套裁定：
+
+1. **tools 尽量现成**：网络搜索直接用 `@langchain/tavily`（`TavilySearch`，MIT，0.58MB），未配 `TAVILY_API_KEY` 则不注册（§6.4 降级）；唯一自研 tool 是 `searchEbook`（数据在本地 pgvector，无现成实现可查），用 `@langchain/core` 的 `tool()` 抽象做薄封装。
+2. **MCP 默认不启用**：`@langchain/mcp-adapters`（2.0.1，MIT，1.1MB）仅预留加载函数——stdio MCP 需常驻子进程（违反单容器单进程），HTTP MCP 依赖外部服务。
+3. **数据不出网**：`@langchain/core` 依赖 `langsmith`，初始化时显式置 `LANGCHAIN_TRACING_V2=false` / `LANGCHAIN_CALLBACKS_BACKGROUND=false`，避免任何内容被上报。
+4. 模型侧用 `@langchain/openai` 的 `ChatOpenAI`（`configuration.baseURL` 指向 OpenAI 兼容端点），与 T10 的托管端点共用 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL`。
+5. 拒答原则（§8.5）与额度判定（§8.4）留在自研层：agent 的 system prompt 注入拒答指令，`/api/ai/ask` 在路由层扣额度，框架只负责循环与 tool 调度。
+
