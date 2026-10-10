@@ -15,6 +15,20 @@
       "when": 1791536943743,
       "tag": "0001_optimal_namor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791566144031,
+      "tag": "0002_cooing_sally_floyd",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791566505419,
+      "tag": "0003_absurd_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

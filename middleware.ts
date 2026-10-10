@@ -9,6 +9,8 @@ import { getSessionCookie } from 'better-auth/cookies'
  *   不得引入 env 校验（DATABASE_URL 缺失时抛错）与 pg 依赖。
  */
 const PROTECTED_PREFIXES = ['/api/ai', '/dashboard']
+/** 只读公开端点：状态查询不需要登录（T11 / SPEC §8.4 未配 Key 也要能读到 enabled:false）。 */
+const PUBLIC_EXACT = ['/api/ai/status']
 
 /** 与 createRequestId() 同语义（crypto.randomUUID），此处避免引入 env 校验副作用。 */
 function newRequestId(): string {
@@ -17,7 +19,9 @@ function newRequestId(): string {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const needsSession = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  const needsSession =
+    !PUBLIC_EXACT.includes(pathname) &&
+    PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 
   if (needsSession && !getSessionCookie(req)) {
     const requestId = newRequestId()
