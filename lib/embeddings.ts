@@ -11,10 +11,49 @@
  * Qwen3-Embedding 是 Decoder-only 因果 LM，取**最后一个 token** 的隐状态作为句向量，
  * 因此必须 left padding（否则末 token 会是 pad，向量失真）。pooling 固定 'last_token'。
  */
-import { pipeline, type FeatureExtractionPipeline } from '@huggingface/transformers'
+import { existsSync } from 'node:fs'
+import { pipeline, env, type FeatureExtractionPipeline } from '@huggingface/transformers'
+
+/**
+ * 模型缓存/离线加载配置（方案 B，详见 docs/DECISIONS.md D18）。
+ *  - MODEL_CACHE_DIR：权重落地目录，必须与预下载脚本（scripts/download-models.mjs）一致；
+ *    默认 `.model-cache`（已在 .gitignore 忽略），避开会被 pnpm 清空的 node_modules 缓存。
+ *  - LOCAL_MODELS_ONLY=1/true：禁止运行时联网，缺失即抛可行动错误（提示先 pnpm models:download）。
+ *    env.cacheDir 在导入后立即设置，且 allowRemoteModels 仅在离线模式置 false。
+ */
+const MODEL_CACHE_DIR = process.env.MODEL_CACHE_DIR ?? '.model-cache'
+const LOCAL_MODELS_ONLY =
+  process.env.LOCAL_MODELS_ONLY === '1' || process.env.LOCAL_MODELS_ONLY === 'true'
+env.cacheDir = MODEL_CACHE_DIR
+if (LOCAL_MODELS_ONLY) env.allowRemoteModels = false
 
 const EMBED_MODEL = process.env.EMBED_MODEL ?? 'onnx-community/Qwen3-Embedding-0.6B-ONNX'
 const EMBED_DTYPE = (process.env.EMBED_DTYPE ?? 'q8') as 'q8' | 'fp16' | 'fp32' | 'int8'
+
+/**
+ * 解析模型标识：若 EMBED_MODEL 在磁盘存在则作为本地路径直载并强制离线；
+ * 否则作为 HuggingFace repo id，离线模式下同样强制 local_files_only。
+ */
+function resolveModelSpec(repoOrDefault: string): { model: string; loadOpts: { local_files_only?: boolean } } {
+  if (existsSync(repoOrDefault)) {
+    return { model: repoOrDefault, loadOpts: { local_files_only: true } }
+  }
+  return { model: repoOrDefault, loadOpts: LOCAL_MODELS_ONLY ? { local_files_only: true } : {} }
+}
+
+/** 加载失败统一包装为可行动错误（指向 pnpm models:download），保留 V5 降级契约。 */
+class ModelLoadError extends Error {
+  constructor(kind: string, model: string, cause: unknown) {
+    const detail = cause instanceof Error ? cause.message : String(cause)
+    super(
+      `本地模型加载失败（${kind}，模型 ${model}）：${detail}\n` +
+        `若权重未下载或离线模式缺失，请先执行：pnpm models:download` +
+        `（受限网络可设 HF_ENDPOINT=https://hf-mirror.com）。`,
+    )
+    this.name = 'ModelLoadError'
+    this.cause = cause
+  }
+}
 
 /** 固定输出维度，与 Drizzle schema 的 vector(1024) 一一对应。 */
 export const EMBED_DIMENSION = 1024
@@ -30,15 +69,22 @@ let extractorPromise: Promise<FeatureExtractionPipeline> | null = null
 
 function getExtractor(): Promise<FeatureExtractionPipeline> {
   if (!extractorPromise) {
-    extractorPromise = pipeline('feature-extraction', EMBED_MODEL, { dtype: EMBED_DTYPE }).then(
-      (extractor) => {
+    extractorPromise = (async () => {
+      const spec = resolveModelSpec(EMBED_MODEL)
+      try {
+        const extractor = await pipeline('feature-extraction', spec.model, {
+          dtype: EMBED_DTYPE,
+          ...spec.loadOpts,
+        })
         // Qwen3-Embedding 需 left padding，才能正确取到序列末 token 的隐状态。
         if (extractor.tokenizer && 'padding_side' in extractor.tokenizer) {
           extractor.tokenizer.padding_side = 'left'
         }
         return extractor
-      },
-    )
+      } catch (error) {
+        throw new ModelLoadError('Qwen3-Embedding', spec.model, error)
+      }
+    })()
   }
   return extractorPromise
 }

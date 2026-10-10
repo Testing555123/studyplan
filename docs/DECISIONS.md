@@ -258,3 +258,38 @@ T13 落地时的实测数据（npm registry 当日核实）：
 4. 模型侧用 `@langchain/openai` 的 `ChatOpenAI`（`configuration.baseURL` 指向 OpenAI 兼容端点），与 T10 的托管端点共用 `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL`。
 5. 拒答原则（§8.5）与额度判定（§8.4）留在自研层：agent 的 system prompt 注入拒答指令，`/api/ai/ask` 在路由层扣额度，框架只负责循环与 tool 调度。
 
+---
+
+## D18 · 本地模型离线预下载（方案 B，2026-10-10）
+
+**问题**：`onnx-community/Qwen3-Embedding-0.6B-ONNX` 与 `Qwen3-Reranker-0.6B-ONNX` 由 transformers.js 运行时从 HuggingFace Hub 拉取，在受限网络（huggingface.co 不可达/超时）下下载失败，导致后台 job（embed-backfill / spike-embed）无法启动。
+
+**决策**：采用**方案 B——一次性预下载 + 离线加载**。
+
+- **预下载**：新增 `scripts/download-models.mjs`（`pnpm models:download`），在导入 transformers 前设 `HF_ENDPOINT`（默认 `https://hf-mirror.com`）走镜像，并把 `env.cacheDir` 指向 `MODEL_CACHE_DIR`（默认 `.model-cache`，已 gitignore）。脚本复用 transformers.js 自身的 `pipeline` / `AutoModelForCausalLM`，触发与运行时**完全一致**的文件解析与下载路径，确保离线可被精确命中（避免手动 snapshot 抓错文件名/变体的风险）。下载 q8 权重，与运行时 dtype 对齐。
+- **离线加载**：运行时 `lib/embeddings.ts` / `lib/rerank.ts` 在模块加载时设 `env.cacheDir = MODEL_CACHE_DIR`；`LOCAL_MODELS_ONLY=1` 置 `env.allowRemoteModels=false` 并向下传递 `local_files_only:true`，彻底断网。若 `EMBED_MODEL`/`RERANK_MODEL` 在磁盘存在则作为本地路径直载。加载失败包装为可行动错误（提示先 `pnpm models:download`），保留 V5 降级契约不变。
+
+**理由**：根因不确定（可能是墙/代理/慢），最稳的是让运行时完全不碰网络。镜像仅用于「一次性下载」阶段，线上离线运行不受镜像抖动影响；契合 D9 备注「缓存目录不能放 node_modules（pnpm 会清）、Docker 须拷进镜像层」。
+
+**代价**：本地/CI 需先跑一次下载；`MODEL_CACHE_DIR` 与运行时必须一致（已在 `.env.example` 固化默认 `.model-cache`），否则离线命中失败。
+
+**回退**：`LOCAL_MODELS_ONLY=false`（默认）下运行时仍允许联网，等价于原行为；仍失败再走 V5 降级（LLM + 网络搜索）。
+
+### 模型预下载与排障操作指引
+
+1. **本地/构建期预下载**（联网机器或镜像可达环境）：
+   ```bash
+   HF_ENDPOINT=https://hf-mirror.com pnpm models:download
+   # 或自定义缓存目录：MODEL_CACHE_DIR=/data/models pnpm models:download
+   ```
+   成功后 `.model-cache/` 固化两模型权重（约 600MB q8）。
+
+2. **容器/部署**：把 `.model-cache/` 挂载为卷，或在 Dockerfile 构建阶段 `RUN pnpm models:download` 后拷进镜像层（注意 D9 备注：勿放 node_modules）。
+
+3. **离线运行**：设 `LOCAL_MODELS_ONLY=1`，后台 job 启动即从本地加载，无下载耗时、无网络依赖。
+
+4. **常见报错**：
+   - `本地模型加载失败 … 若权重未下载 … 请先执行 pnpm models:download` → 缓存缺失，先跑下载脚本（确认 `MODEL_CACHE_DIR` 与运行时一致）。
+   - 下载阶段超时/连接被拒 → 检查 `HF_ENDPOINT` 镜像可达性，或换官方源（清空 `HF_ENDPOINT`）。
+   - 维度非 1024 / yes/no 解析失败 → 权重不完整，删 `.model-cache` 重下。
+
