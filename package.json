@@ -24,7 +24,9 @@
     "db:reconcile": "node scripts/reconcile-counters.mjs",
     "embed:backfill": "node scripts/embed-backfill.mjs",
     "spike:embed": "node scripts/spike-embed.mjs",
-    "models:download": "node scripts/download-models.mjs"
+    "models:download": "node scripts/download-models.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:container": "node scripts/smoke-container.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.67",

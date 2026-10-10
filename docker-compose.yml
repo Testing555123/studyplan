@@ -1,9 +1,10 @@
-# 本地开发编排：只需要 PostgreSQL 16 + pgvector。
-# 目标态数据库是 PG，不再有 MongoDB（见 docs/DECISIONS.md）。
+# 本地编排：PostgreSQL 16 + pgvector（数据）+ StudyPlan 应用（容器）。
+# 单容器单进程铁律：app 容器只跑 node server.js，PG 是独立服务，二者不混。
 #
-#  启动： docker compose up -d
-#  停止： docker compose down          （保留数据卷）
-#         docker compose down -v       （连数据卷一起删）
+#  启动： docker compose up -d            （构建并启动 app + postgres）
+#  停止： docker compose down             （保留数据卷）
+#         docker compose down -v          （连数据卷一起删）
+#  冒烟： BASE_URL=http://localhost:3000 node scripts/smoke-container.mjs
 
 services:
   postgres:
@@ -28,5 +29,30 @@ services:
       retries: 10
       start_period: 10s
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: studyplan-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # 容器内通过服务名 postgres 访问；宿主调试可用 5433 端口（见上）。
+      DATABASE_URL: postgresql://studyplan:studyplan@postgres:5432/studyplan
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-secret-change-me}
+      BETTER_AUTH_URL: http://localhost:3000
+      NODE_ENV: production
+      # 方案B：权重落 .model-cache，由下方卷挂载注入（避免 pnpm 清空 .cache 丢失）。
+      LOCAL_MODELS_ONLY: "1"
+      MODEL_CACHE_DIR: /app/.model-cache
+    volumes:
+      # 本地模型权重持久化（构建期未预下载时为空，运行期由 pnpm models:download 或挂载填充）。
+      - model-cache:/app/.model-cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data:
+  model-cache:
