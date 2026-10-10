@@ -20,3 +20,14 @@ allowBuilds:
   protobufjs: true
 minimumReleaseAgeExclude:
   - drizzle-orm@0.45.4
+  - '@ai-sdk/gateway@4.0.110'
+  - '@ai-sdk/provider-utils@5.0.58'
+  - '@ai-sdk/provider@4.0.26'
+  - '@assistant-ui/core@0.3.25'
+  - '@assistant-ui/react@0.15.26'
+  - '@assistant-ui/store@0.3.18'
+  - '@assistant-ui/tap@0.9.22'
+  - ai@7.0.137
+  - assistant-cloud@0.2.6
+  - assistant-stream@0.3.49
+  - '@ai-sdk/openai-compatible@3.0.67'
