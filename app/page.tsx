@@ -12,6 +12,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 
+// 首页依赖会话（getSession），不可静态预渲染：强制动态，避免构建期触达数据库。
+export const dynamic = 'force-dynamic'
+
 const FEATURES = [
   {
     icon: '🧭',

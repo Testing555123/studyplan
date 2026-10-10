@@ -24,7 +24,8 @@ export const actionClient = createSafeActionClient({
  * 鉴权动作客户端（T6）。复用 T3 的 requireSession 作为唯一身份来源；
  * 未登录抛出 AuthRequiredError（401）。业务不得自行从输入读取身份字段。
  */
-export const authedActionClient = actionClient.use(async () => {
+export const authedActionClient = actionClient.use(async ({ ctx, next }) => {
+  // V1：唯一身份来源。调用 next({ ctx }) 把会话并入 ctx，供下游 action 经 ctx.session 读取。
   const session = await requireSession()
-  return { success: true, data: { session } }
+  return next({ ctx: { ...ctx, session } })
 })
