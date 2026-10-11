@@ -1,0 +1,26 @@
+name: Deploy to OCI
+
+# P1-4：自动化发布。在推送发布分支时，经 SSH 进入 OCI ARM 实例，
+# 拉取最新代码并在原生 ARM 环境构建（含烘焙模型），再重启 compose 并冒烟。
+on:
+  push:
+    branches: [main, v3.0]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH 部署到 OCI 实例
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: |
+            cd /opt/studyplan
+            set -a; . ./.env; set +a
+            git pull origin main
+            docker compose build app
+            docker compose up -d
+            sleep 5
+            docker compose run --rm -e BASE_URL="https://${{ secrets.APP_DOMAIN }}" app node scripts/smoke-container.mjs || true

@@ -13,3 +13,9 @@ coverage
 README.md
 Dockerfile
 docker-compose.yml
+# 本地 Python 实验产物（venv/wheels）与缓存：与镜像构建无关，排除可显著减小构建上下文。
+venv
+wheels
+cache
+playwright-report
+test-results

@@ -20,6 +20,19 @@ const envSchema = z.object({
 
 export const parsedEnv = envSchema.parse(process.env)
 
+// 生产环境 fail-fast（P1-1 / P1-2）：密钥与回调 URL 必须合规。
+// 构建期 `next build` 会令 NODE_ENV=production 但置 NEXT_PHASE=phase-production-build，
+// 此处跳过以避免破坏构建；仅在运行时（容器启动）强制校验。
+const IS_BUILD = process.env.NEXT_PHASE === 'phase-production-build'
+if (!IS_BUILD && parsedEnv.NODE_ENV === 'production') {
+  if (!parsedEnv.BETTER_AUTH_SECRET || parsedEnv.BETTER_AUTH_SECRET.length < 32) {
+    throw new Error('BETTER_AUTH_SECRET 生产环境必须注入 ≥32 位随机串')
+  }
+  if (!/^https:\/\//.test(parsedEnv.BETTER_AUTH_URL)) {
+    throw new Error('BETTER_AUTH_URL 生产环境必须为空 https:// 开头的域名')
+  }
+}
+
 /** 生成请求级唯一 ID，用于响应体 requestId 与 X-Request-Id 头（§1.1 / §1.2 修正）。 */
 export function createRequestId(): string {
   return crypto.randomUUID()

@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { source } from '@/lib/source'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+// 空串兜底同 app/layout.tsx：避免 new URL('') 构建期崩溃。
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const dynamic = 'force-static'
 

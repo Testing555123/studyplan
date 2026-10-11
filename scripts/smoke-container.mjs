@@ -5,8 +5,11 @@
  *
  * 用法（容器内或 CI 对容器地址）：
  *   BASE_URL=http://localhost:3000 node scripts/smoke-container.mjs
+ *   APP_PORT=7860 node scripts/smoke-container.mjs   # HF Spaces 形态（容器监听 7860）
  */
-process.env.BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000'
+// 端口可参数化：默认 3000（本地 compose），Space 形态为 7860（亦可直接传 BASE_URL 覆盖）。
+const APP_PORT = process.env.APP_PORT ?? process.env.PORT ?? '3000'
+process.env.BASE_URL = process.env.BASE_URL ?? `http://localhost:${APP_PORT}`
 process.env.SMOKE_RETRIES = process.env.SMOKE_RETRIES ?? '60'
 process.env.SMOKE_DELAY_MS = process.env.SMOKE_DELAY_MS ?? '3000'
 

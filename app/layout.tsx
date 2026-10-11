@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './providers'
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+// 用 || 而非 ??：构建/运行环境可能把该变量置为空串，空串会让 new URL() 抛 ERR_INVALID_URL。
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

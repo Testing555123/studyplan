@@ -26,7 +26,8 @@
     "spike:embed": "node scripts/spike-embed.mjs",
     "models:download": "node scripts/download-models.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "smoke:container": "node scripts/smoke-container.mjs"
+    "smoke:container": "node scripts/smoke-container.mjs",
+    "verify:space": "sh scripts/verify-space.sh"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.67",

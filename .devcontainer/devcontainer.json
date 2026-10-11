@@ -7,15 +7,30 @@
       "version": "22"
     }
   },
-  "forwardPorts": [3000, 80, 443],
-  "postCreateCommand": "corepack enable && pnpm install --frozen-lockfile",
+  // 端口 7860：space 形态单容器（RUNTIME_FLAVOR=space）对外端口；公开可见便于演示。
+  // 端口 3000：本地开发模式（pnpm dev）。
+  "forwardPorts": [7860, 3000],
+  "portsAttributes": {
+    "7860": {
+      "label": "StudyPlan (space 容器)",
+      "visibility": "public",
+      "onAutoForward": "openBrowser"
+    },
+    "3000": {
+      "label": "StudyPlan (dev)"
+    }
+  },
   "customizations": {
     "codespaces": {
       "ports": {
-        "3000": {
+        "7860": {
           "visibility": "public"
         }
       }
     }
-  }
+  },
+  // 创建时：装依赖（本地开发用）+ 构建/启动 space 容器（构建走 Docker 层缓存，重复执行很快）。
+  "postCreateCommand": "corepack enable && pnpm install --frozen-lockfile && sh scripts/codespaces-space-run.sh",
+  // 每次启动/重启 Codespace：幂等拉起容器并健康检查。
+  "postStartCommand": "sh scripts/codespaces-space-run.sh"
 }

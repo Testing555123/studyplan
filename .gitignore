@@ -8,6 +8,12 @@ coverage/
 .env.local
 .env*.local
 
+# Codespaces 演示部署：自动生成的 BETTER_AUTH_SECRET（见 scripts/codespaces-space-run.sh）
+.codespaces-secret
+
+# CodeBuddy IDE 数据（本地计划文档等，不入库）
+.codebuddy/
+
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -22,6 +28,10 @@ test-results/
 
 # 本地嵌入模型缓存（体积大，且不入库）
 .model-cache/
+# 本地部署：宿主预下载的模型权重（卷挂载进容器，体积大）
+model-cache/
+# 本地工具链缓存（venv/pip 元数据等，不入库）
+cache/
 
 next-env.d.ts
 tsconfig.tsbuildinfo

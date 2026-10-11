@@ -18,7 +18,8 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 // 1) 镜像：受限网络（huggingface.co 不可达）时走镜像；可设空串强制直连官方源。
-const HF_ENDPOINT = process.env.HF_ENDPOINT ?? 'https://hf-mirror.com'
+//    注意：CI/构建期可能以空串传入该变量，必须显式回退，避免拼出 '/' 这类非法基址。
+const HF_ENDPOINT = (process.env.HF_ENDPOINT ?? 'https://hf-mirror.com').trim()
 if (HF_ENDPOINT) {
   process.env.HF_ENDPOINT = HF_ENDPOINT
 }
@@ -32,6 +33,13 @@ if (!existsSync(cacheDir)) {
 
 // 3) 在导入 transformers 之前设置 cacheDir（env 是单例，早设早生效）。
 const { env } = await import('@huggingface/transformers')
+// transformers.js 4.x 用 env.remoteHost 控制下载基址（并不读取 HF_ENDPOINT 属性），需带结尾斜杠。
+// 空串表示不指定镜像 → 直连官方源。
+env.remoteHost = HF_ENDPOINT
+  ? HF_ENDPOINT.endsWith('/')
+    ? HF_ENDPOINT
+    : HF_ENDPOINT + '/'
+  : 'https://huggingface.co/'
 env.cacheDir = cacheDir
 // 下载阶段允许远程（=true）；仅离线加载时运行时才会置 false。
 env.allowRemoteModels = true
