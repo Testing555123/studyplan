@@ -7,11 +7,27 @@ import { AI_MODEL, embedQueryRemote, getChatModel, isRerankConfigured } from './
 export const CONTEXT_MAX_CHARS = 6000
 
 /**
+ * 检索质量闸门阈值（本批功能）：top1 相似度低于该值视为「资料不足」，
+ * chat 模式转投 agent loop（站内检索 + Tavily 网搜兜底）。env 直读（T0 契约冻结）。
+ */
+export const RAG_FALLBACK_SCORE = Number(process.env.RAG_FALLBACK_SCORE ?? '0.35')
+
+/**
  * SPEC §8.5 拒答指令：**无条件注入**（检索为空也不短路返回，照常调模型）。
  * 资料里没有的内容必须说「资料中没有提到」，绝不编造来源。
  */
 export const REFUSAL_INSTRUCTION =
   '只能依据下面给出的资料作答。资料里没有的内容，直接说明「资料中没有提到」，绝不猜测或编造。回答如引用资料，必须给出确实看到的来源路径。'
+
+/**
+ * 段落编排指令（本批功能）：结构化输出要求，纯 prompt 层。
+ */
+export const ANSWER_STRUCTURE_INSTRUCTION = [
+  '回答编排要求：',
+  '1. 结论先行：第一句话直接回答问题本身。',
+  '2. 分点展开：内容较多时用编号分点，每个要点末尾标注依据的资料编号，如 [1]。',
+  '3. 结尾单列一行「来源」，列出引用到的资料路径。',
+].join('\n')
 
 export interface RetrieveResult {
   answer: string
@@ -40,14 +56,33 @@ export function buildContextBlock(sources: SimilarChunk[], maxChars = CONTEXT_MA
   return block.length > maxChars ? block.slice(0, maxChars) : block
 }
 
-/** 系统提示：拒答指令无条件注入 + 上下文块（可为空）。 */
+/** 系统提示：拒答指令 + 段落编排（均无条件注入）+ 上下文块（可为空）。 */
 export function buildSystemPrompt(contextBlock: string): string {
   const context = contextBlock.trim()
   return [
     REFUSAL_INSTRUCTION,
     '',
+    ANSWER_STRUCTURE_INSTRUCTION,
+    '',
     context ? `资料如下：\n\n${context}` : '本次没有检索到任何资料。',
   ].join('\n')
+}
+
+export interface RetrievalAssessment {
+  sufficient: boolean
+  topScore: number | null
+}
+
+/**
+ * 检索质量闸门（本批功能，纯函数便于单测）：
+ * searchSimilar 结果按相似度降序，top1 低于阈值或为空 → chat 模式应转投 agent 兜底。
+ */
+export function assessRetrieval(
+  sources: SimilarChunk[],
+  threshold: number = RAG_FALLBACK_SCORE,
+): RetrievalAssessment {
+  const topScore = sources.length > 0 ? sources[0].score : null
+  return { sufficient: topScore !== null && topScore >= threshold, topScore }
 }
 
 interface Prepared {
@@ -58,7 +93,9 @@ interface Prepared {
   model: ReturnType<typeof getChatModel>
 }
 
-/** 检索 + 提示构建（不生成）。 */
+export type { Prepared }
+
+/** 检索 + 提示构建（不生成）。导出供 ask 路由先做质量闸门再决定生成路径。 */
 async function prepare(query: string, options: RetrieveOptions): Promise<Prepared> {
   const topK = options.topK ?? 8
   const modelName = options.model ?? AI_MODEL ?? null
@@ -89,6 +126,14 @@ async function prepare(query: string, options: RetrieveOptions): Promise<Prepare
     modelName,
     model: getChatModel(options.model),
   }
+}
+
+/** 检索 + 提示构建（不生成）。导出供 ask 路由先做质量闸门再决定生成路径。 */
+export async function prepareRag(
+  query: string,
+  options: RetrieveOptions = {},
+): Promise<Prepared> {
+  return prepare(query, options)
 }
 
 /**
@@ -133,12 +178,13 @@ export interface StreamedAnswer extends Omit<RetrieveResult, 'answer'> {
   textStream: AsyncIterable<string>
 }
 
-/** 流式版本：供 /api/ai/ask 的 SSE 逐块下发（T11 消费）。 */
+/** 流式版本：供 /api/ai/ask 的 SSE 逐块下发（T11 消费）。可传入已 prepare 的结果复用检索。 */
 export async function retrieveAndAnswerStream(
   query: string,
   options: RetrieveOptions = {},
+  preparedArg?: Prepared,
 ): Promise<StreamedAnswer> {
-  const prepared = await prepare(query, options)
+  const prepared = preparedArg ?? (await prepare(query, options))
   if (!prepared.model) {
     logger.warn({ code: 'RAG_LLM_UNAVAILABLE' })
     return {

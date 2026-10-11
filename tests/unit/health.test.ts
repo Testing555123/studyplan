@@ -12,7 +12,8 @@ describe('checkHealth (T7)', () => {
   })
 
   it('DB 可达时返回 ok / 200 / database:connected', async () => {
-    execute.mockResolvedValue({ rows: [{ '?column?': 1 }] })
+    // P0-2 双层校验：连通探测之外还要确认迁移已落地（rowCount > 0），两处都要给到。
+    execute.mockResolvedValue({ rows: [{ '?column?': 1 }], rowCount: 1 })
     const { status, httpStatus } = await checkHealth()
     expect(status.database).toBe('connected')
     expect(status.status).toBe('ok')

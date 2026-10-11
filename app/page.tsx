@@ -19,7 +19,7 @@ const FEATURES = [
   {
     icon: '🧭',
     title: '结构化学习路线',
-    desc: '从工程地基到上线运维，按阶段拆解的学习路线，每一步都有可执行的任务与清单。',
+    desc: 'roadmap.sh 官方全栈路线图内嵌展示，配合本站 8 阶段电子书逐个击破。',
   },
   {
     icon: '✍️',
@@ -28,8 +28,13 @@ const FEATURES = [
   },
   {
     icon: '🔍',
-    title: '全文搜索',
-    desc: '所有电子书内容可全文检索，快速定位需要的知识点与示例代码。',
+    title: '⌘K 全站搜索',
+    desc: '按 ⌘/Ctrl+K 唤起命令面板：页面直达 + 电子书内容语义检索。',
+  },
+  {
+    icon: '🔥',
+    title: 'GitHub 热门',
+    desc: '每日更新的高分新项目，附模板导读与相关课程阶段标注。',
   },
 ]
 
@@ -94,7 +99,7 @@ export default async function Home() {
 
         {/* 特性卡片 */}
         <section className="mx-auto max-w-6xl px-4 py-16">
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => (
               <Card
                 key={f.title}

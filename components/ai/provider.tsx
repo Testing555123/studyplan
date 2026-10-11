@@ -55,9 +55,16 @@ async function* streamAsk(question: string, signal: AbortSignal) {
     const complete = buffer.slice(0, tail)
     buffer = buffer.slice(tail + 2)
 
+    let webFallbackNotified = false
+    let webFallback = false
+
     for (const event of parseSse(complete)) {
       if (event.event === 'meta') {
-        const meta = JSON.parse(event.data) as { enabled?: boolean; reason?: string }
+        const meta = JSON.parse(event.data) as {
+          enabled?: boolean
+          reason?: string
+          fallback?: string | null
+        }
         if (meta.enabled === false) {
           yield {
             content: [
@@ -69,6 +76,7 @@ async function* streamAsk(question: string, signal: AbortSignal) {
           }
           return
         }
+        webFallback = meta.fallback === 'web-search'
         continue
       }
       if (event.event === 'error') {
@@ -78,7 +86,18 @@ async function* streamAsk(question: string, signal: AbortSignal) {
       }
       if (event.event === 'delta') {
         const delta = JSON.parse(event.data) as { text?: string }
-        if (delta.text) yield { content: [{ type: 'text' as const, text: delta.text }] }
+        if (delta.text) {
+          // 网搜兜底徽标：首条 delta 前插入一次标记行（回答顶部轻量提示）。
+          if (webFallback && !webFallbackNotified) {
+            webFallbackNotified = true
+            yield {
+              content: [
+                { type: 'text' as const, text: '🌐 _站内资料不足，已联网补充作答_\n\n' },
+              ],
+            }
+          }
+          yield { content: [{ type: 'text' as const, text: delta.text }] }
+        }
       }
     }
   }

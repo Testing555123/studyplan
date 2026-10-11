@@ -60,9 +60,11 @@ export async function runSmoke(options = {}) {
   const home = await checkReachable('/', c)
   const ebook = await checkReachable('/ebook', c)
   const ai = await checkReachable('/ai', c)
-  const result = { health, home, ebook, ai }
+  const roadmap = await checkReachable('/roadmap', c)
+  const trending = await checkReachable('/trending', c)
+  const result = { health, home, ebook, ai, roadmap, trending }
   console.log(
-    `[smoke] health=${health.status}/${health.database} home=${home} ebook=${ebook} ai=${ai} @ ${c.baseUrl}`,
+    `[smoke] health=${health.status}/${health.database} home=${home} ebook=${ebook} ai=${ai} roadmap=${roadmap} trending=${trending} @ ${c.baseUrl}`,
   )
   return result
 }

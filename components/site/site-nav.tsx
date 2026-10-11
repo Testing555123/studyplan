@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore, useState } from 'react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { authClient } from '@/lib/auth/client'
+import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { CommandPalette, openCommandPalette } from '@/components/search/command-palette'
 
 export interface NavSessionUser {
   name: string
@@ -29,14 +31,18 @@ export interface NavSessionUser {
  */
 export function SiteNav({ session }: { session: { user: NavSessionUser } | null }) {
   const { resolvedTheme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
+  // 客户端挂载标记：用 useSyncExternalStore 判定，避免在 effect 内同步 setState
+  // （会触发 react-hooks/set-state-in-effect，且会造成级联渲染）。
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
-
-  useEffect(() => setMounted(true), [])
 
   async function login(e: React.FormEvent) {
     e.preventDefault()
@@ -69,10 +75,27 @@ export function SiteNav({ session }: { session: { user: NavSessionUser } | null 
             <Link href="/ebook" className="transition-colors hover:text-foreground">
               电子书
             </Link>
+            <Link href="/roadmap" className="transition-colors hover:text-foreground">
+              学习路线
+            </Link>
+            <Link href="/trending" className="transition-colors hover:text-foreground">
+              GitHub 热门
+            </Link>
           </nav>
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="搜索"
+            className="hidden gap-1.5 text-muted-foreground sm:inline-flex"
+            onClick={openCommandPalette}
+          >
+            <Search className="size-4" />
+            <span className="text-xs">搜索</span>
+            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">⌘K</kbd>
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -139,6 +162,7 @@ export function SiteNav({ session }: { session: { user: NavSessionUser } | null 
           )}
         </div>
       </div>
+      <CommandPalette />
     </header>
   )
 }

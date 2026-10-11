@@ -59,12 +59,10 @@ export function redact<T>(value: T, seen = new WeakSet<object>()): T {
 export function createFallbackLogger(): AppLogger {
   const emit = (level: string, obj?: unknown, msg?: string) => {
     const tag = `[logger-fallback:${level}]`
-    // 仅 logger.ts 文件豁免 no-console（eslint.config.mjs）。
+    // no-console 对本文件的豁免写在 eslint.config.mjs（files: ['lib/logger.ts']）。
     if (msg) {
-      // eslint-disable-next-line no-console
       console[level === 'error' ? 'error' : level === 'debug' ? 'debug' : 'info'](tag, obj ?? '', msg)
     } else {
-      // eslint-disable-next-line no-console
       console[level === 'error' ? 'error' : level === 'debug' ? 'debug' : 'info'](tag, obj ?? '')
     }
   }

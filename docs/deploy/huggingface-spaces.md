@@ -147,7 +147,11 @@ pinned: false
 | `BACKUP_INTERVAL_MIN` | ➖ | 备份间隔分钟，默认 30 |
 | `BACKUP_KEEP` | ➖ | 保留历史份数，默认 24 |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | ➖ | 未配则 AI 能力降级 |
+| `AI_EMBED_MODEL` / `AI_RERANK_MODEL` | ➖ | 未配则 ⌘K 语义检索分组不显示（仅页面导航） |
 | `TAVILY_API_KEY` | ➖ | 未配则不注册搜索 tool |
+| `GITHUB_TOKEN` | ➖ | `/trending` 每日热门数据；未配则页面显示配置提示空态（fine-grained PAT 即可） |
+| `GITHUB_TRENDING_PER_PAGE` | ➖ | 每日抓取条数，默认 30 |
+| `RAG_FALLBACK_SCORE` | ➖ | RAG 质量闸门阈值，默认 0.35（低于则转网搜兜底） |
 
 其余（`DATABASE_URL`、`PORT=7860`、`PGDATA`、`LOCAL_MODELS_ONLY=1`、`MODEL_CACHE_DIR`）已烘焙进镜像，无需注入。
 

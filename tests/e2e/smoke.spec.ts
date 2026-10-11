@@ -21,6 +21,18 @@ test('AI 助手页面可达', async ({ page }) => {
   expect(res?.status()).toBeLessThan(400)
 })
 
+test('GitHub 热门页面可达', async ({ page }) => {
+  const res = await page.goto('/trending')
+  expect(res?.status()).toBeLessThan(400)
+  await expect(page.locator('body')).toBeVisible()
+})
+
+test('学习路线页面可达', async ({ page }) => {
+  const res = await page.goto('/roadmap')
+  expect(res?.status()).toBeLessThan(400)
+  await expect(page.locator('body')).toBeVisible()
+})
+
 test('/api/health 返回约定的 status/database 形态', async ({ request }) => {
   const res = await request.get('/api/health')
   expect([200, 503]).toContain(res.status())

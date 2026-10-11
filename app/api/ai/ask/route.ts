@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { AI_MODEL, isAiConfigured } from '@/lib/rag/remote'
-import { retrieveAndAnswerStream } from '@/lib/rag/orchestrate'
+import { retrieveAndAnswerStream, prepareRag, assessRetrieval } from '@/lib/rag/orchestrate'
 import { runAgentLoop } from '@/lib/agent/loop'
 import { buildCacheKey, getAnswerCached, putAnswerCache } from '@/lib/ai/cache'
 import { consumeQuota } from '@/lib/ai/quota'
@@ -108,9 +108,73 @@ async function handle(req: Request): Promise<Response> {
           return
         }
 
-        const result = await retrieveAndAnswerStream(question)
+        // chat 分支：先检索，再做质量闸门——资料不足时转投 agent loop（Tavily 网搜兜底）。
+        const prepared = await prepareRag(question)
+
+        if (!prepared.model) {
+          // LLM 不可用：保持原语义（空流 + not-configured 提示），agent 同样依赖 LLM，不做兜底。
+          const result = await retrieveAndAnswerStream(question, {}, prepared)
+          send('meta', {
+            cached: false,
+            fallback: null,
+            model: result.model,
+            degraded: result.degraded,
+            degradedReason: result.degradedReason,
+            retrieved: result.retrieved,
+            remainingToday: quota.remaining,
+            requestId,
+          })
+          // 空流分支（LLM 不可用）：仅透传 delta，不写缓存。
+          for await (const chunk of result.textStream) {
+            if (!chunk) continue
+            send('delta', { text: chunk })
+          }
+          const sources = result.sources.map((source) => ({
+            slug: source.slug,
+            title: source.title,
+            chunkIndex: source.chunkIndex,
+          }))
+          send('done', { sources, cached: false, degraded: result.degraded, fallback: null })
+          controller.close()
+          return
+        }
+
+        const gate = assessRetrieval(prepared.sources)
+
+        if (!gate.sufficient) {
+          // 兜底：LangGraph ReAct loop（站内检索 + Tavily 网搜；未配 Key 仅站内，安全降级）。
+          logger.warn({ code: 'RAG_GATE_FALLBACK', topScore: gate.topScore, requestId })
+          const agentResult = await runAgentLoop({ question })
+          send('meta', {
+            cached: false,
+            fallback: 'web-search',
+            model,
+            degraded: agentResult.degraded,
+            reason: agentResult.reason,
+            toolsUsed: agentResult.toolsUsed,
+            remainingToday: quota.remaining,
+            requestId,
+          })
+          send('delta', { text: agentResult.answer })
+          send('done', {
+            sources: [],
+            steps: agentResult.steps,
+            cached: false,
+            degraded: agentResult.degraded,
+            fallback: 'web-search',
+          })
+          if (agentResult.answer) {
+            // 兜底产物缓存键加 :web 后缀，与站内 RAG 答案区分。
+            await putAnswerCache({ key: `${cacheKey}:web`, model, question, answer: agentResult.answer, sources: [] })
+          }
+          controller.close()
+          return
+        }
+
+        const result = await retrieveAndAnswerStream(question, {}, prepared)
         send('meta', {
           cached: false,
+          fallback: null,
           model: result.model,
           degraded: result.degraded,
           degradedReason: result.degradedReason,
@@ -131,7 +195,7 @@ async function handle(req: Request): Promise<Response> {
           title: source.title,
           chunkIndex: source.chunkIndex,
         }))
-        send('done', { sources, cached: false, degraded: result.degraded })
+        send('done', { sources, cached: false, degraded: result.degraded, fallback: null })
 
         if (answer) {
           await putAnswerCache({ key: cacheKey, model, question, answer, sources })

@@ -1,6 +1,5 @@
 import { createSafeActionClient } from 'next-safe-action'
 import { requireSession, AuthRequiredError } from '@/lib/auth/session'
-import { toErrorBody } from './error'
 import { ZodError } from 'zod'
 
 /**
