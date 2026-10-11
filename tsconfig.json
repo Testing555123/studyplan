@@ -42,9 +42,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "apps",
-    "poc",
-    "deploy"
+    "node_modules"
   ]
 }
