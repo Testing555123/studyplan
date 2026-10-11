@@ -1,67 +1,37 @@
-# ---------- 依赖 ----------
 node_modules/
-
-# ---------- 构建产物 ----------
-dist/
-.nuxt/
-.output/
-apps/docs/.vitepress/dist/
-apps/docs/.vitepress/cache/
-*.tsbuildinfo
-
-# ---------- 测试与缓存 ----------
+.next/
+out/
+build/
 coverage/
-.cache/
-.eslintcache
 
-# Playwright 的产物：失败截图、trace 压缩包、HTML 报告。
-# 它们体积大、每次运行都变，属于"本地产物"而非"项目资产"。
-# trace 是排查偶发失败的利器，但需要时现场生成即可，不必进版本库。
-apps/web/test-results/
-apps/web/playwright-report/
-apps/web/.auth/
-
-# ---------- 日志 ----------
-*.log
-npm-debug.log*
-pnpm-debug.log*
-
-# ---------- 环境变量（关键！密钥绝不能进 Git）----------
 .env
-.env.*
-!.env.example
+.env.local
+.env*.local
 
-# ---------- Vercel CLI ----------
-# `vercel link` 会生成此目录；其中可能包含从平台拉取下来的真实密钥
-# （例如 .env.production.local），因此必须忽略
-.vercel
+# Codespaces 演示部署：自动生成的 BETTER_AUTH_SECRET（见 scripts/codespaces-space-run.sh）
+.codespaces-secret
 
-# ---------- 数据库快照 ----------
-# deploy/snapshot.mjs 默认把 dump 写到 .snapshots/，
-# 里面有真实用户数据（含密码哈希），绝不能进版本库
-**/.snapshots
-
-# ---------- 编辑器 / 系统 ----------
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-
-# AI 助手的本机集成状态（部署记录、沙箱信息）。
-# 它记录的是"这台机器做过什么"，不是"这个项目是什么" —— 换台机器就失效，
-# 所以不该进版本库。
+# CodeBuddy IDE 数据（本地计划文档等，不入库）
 .codebuddy/
 
-# ---------- v0 原型参考导出（临时参考物，非项目资产）----------
-tasko-modern-task-management-dashboard/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# ---------- 本地临时产物 ----------
-# 排查问题时经常会现写一次性脚本、或给配置文件留个备份（*.bak）。
-# 它们同样回答不了"这个项目是什么"。
-#
-# 本项目的约定是：临时脚本放系统临时目录、用完即删，这条规则只是兜底 ——
-# 免得哪天忘了删，顺手 `git add .` 就把它们带进版本库。
-tmp-*.mjs
-*.bak
+.DS_Store
+*.pem
+.vercel
+playwright-report/
+test-results/
+
+# 本地嵌入模型缓存（体积大，且不入库）
+.model-cache/
+# 本地部署：宿主预下载的模型权重（卷挂载进容器，体积大）
+model-cache/
+# 本地工具链缓存（venv/pip 元数据等，不入库）
+cache/
+
+next-env.d.ts
+tsconfig.tsbuildinfo

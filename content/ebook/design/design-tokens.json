@@ -1,0 +1,367 @@
+{
+  "$schema": "studyplan-design-audit/v1",
+  "meta": {
+    "project": "studyplan",
+    "scope": "全站設計系統（main.css @theme + app.config.ts + 殼層組件）",
+    "stack": {
+      "framework": "Nuxt 4.5",
+      "ui": "Vue 3.5",
+      "componentLibrary": "Nuxt UI v4.11",
+      "css": "Tailwind CSS 4.3 (CSS-first)",
+      "icons": "lucide-vue-next + @iconify-json/lucide",
+      "motion": "motion-v 2.4",
+      "state": "Pinia"
+    },
+    "auditDate": "2026-09-22",
+    "benchmark": ["Notion", "Linear"],
+    "contrastMethod": "WCAG 2.1 relative luminance (sRGB linearization + ITU-R BT.709), ratio = (L1+0.05)/(L2+0.05), reference background #FFFFFF",
+    "confidence": {
+      "brandPalette": "confirmed",
+      "aiPalette": "confirmed",
+      "semanticNuxtUIColors": "inferred (node_modules 未安裝，未能實測 --ui-* 綁定)"
+    }
+  },
+
+  "styleJudgement": {
+    "primaryStyle": "Corporate Clean（企業級潔淨）",
+    "secondaryStyle": "Glassmorphism（玻璃擬態，表層裝飾，命中度中等）",
+    "adjacentTrends": ["Apple Style（氣質相近，非刻意模仿）", "AI-Native UI（局部：紫羅蘭語義色 + Sparkles + 懸浮 AI 助手）"],
+    "keywordGroups": {
+      "skeleton": ["語義化", "中性", "克制", "高密度", "工具感", "網格化"],
+      "identity": ["科技青藍", "冷暖對比", "單一強調色"],
+      "decoration": ["玻璃", "光暈", "漸變流動", "懸浮", "呼吸", "傾斜高光"],
+      "neutral": ["暖灰", "低飽和", "護眼"]
+    },
+    "visualEmotion": "理性、輕盈、略帶未來感的技術友善",
+    "brandTemperament": "個人開發者的技術品牌 / 獨立開發者作品集（推測：技術博主 / 教程作者人格）",
+    "audiencePerception": {
+      "前端初學者或轉職者": "親和、不嚇人、有跟著學的引導感",
+      "在職前端工程師": "熟悉順手；裝飾動效可能被認為不夠幹練",
+      "招聘方或潛在客戶": "完成度不錯，但假資料與單薄頁腳削弱專業信任"
+    },
+    "designTrendsRejected": {
+      "Neumorphism": "無內凹擬態",
+      "Brutalism": "無粗黑邊／raw 感",
+      "Y2K": "無",
+      "Cyberpunk": "無霓虹／掃描線",
+      "Material Design": "無 ripple／海拔色階",
+      "Bento Grid": "首頁 2×2 分區接近但不具 Bento 的不規則與密集感"
+    },
+    "completenessScore": {
+      "overall": 6.0,
+      "max": 10,
+      "dimensions": [
+        { "dimension": "令牌化程度", "score": 7, "note": "顏色與字號已令牌化；shadow/spacing/z-index/duration/border/opacity 六類無令牌" },
+        { "dimension": "色彩紀律", "score": 8, "note": "色值單一來源，app.config.ts 只做別名映射" },
+        { "dimension": "排版系統", "score": 5, "note": "9 檔字號非模數化，含 2 個分數像素，無 line-height/letter-spacing/font-weight 配對" },
+        { "dimension": "Elevation 體系", "score": 3, "note": "僅 Tailwind 默認 sm/md/xl 裸用 + 1 處自訂，無語義層級" },
+        { "dimension": "裝飾克制度", "score": 5, "note": "5 組裝飾動效，與 Notion/Linear 的克制哲學相悖" },
+        { "dimension": "資訊密度", "score": 6, "note": "正文 13.5px 偏小且行高未配套；側欄進度為假資料" },
+        { "dimension": "鍵盤與無障礙", "score": 6, "note": "焦點環對比度不足；⌘K 未綁 Ctrl+K；reduced-motion 處理完整" },
+        { "dimension": "一致性", "score": 6, "note": "2 枚死令牌、AI 助手不用 ai 色板、同圖標兩種引入、5 種硬編碼字號" }
+      ],
+      "verdict": "架構是對的，細節是半成品"
+    }
+  },
+
+  "colors": {
+    "brand": {
+      "role": "全站強調色：實底按鈕、連結、選中態、焦點環",
+      "source": "Tailwind cyan 標準色階（對齊 v0 原型 primary #06b6d4）",
+      "declaration": "apps/web/app/assets/css/main.css:48-58",
+      "alias": "app.config.ts:23 → primary: 'brand'",
+      "shadeCount": 11,
+      "enforcedComplete": true,
+      "enforcedBy": "@theme static（main.css:41），註解 L30-39 記錄踩坑：普通 @theme 只輸出 8 階，導致 --ui-color-primary-950 取空兜底",
+      "scale": [
+        { "token": "--color-brand-50",  "hex": "#ecfeff", "rgb": [236, 254, 255], "hsl": [183, 100, 96], "contrastOnWhite": 1.04, "role": "極淺青底，hover 底色／淺色標籤底" },
+        { "token": "--color-brand-100", "hex": "#cffafe", "rgb": [207, 250, 254], "hsl": [185, 96, 90],  "contrastOnWhite": 1.12, "role": "淺色選中態底" },
+        { "token": "--color-brand-200", "hex": "#a5f3fc", "rgb": [165, 243, 252], "hsl": [186, 93, 82],  "contrastOnWhite": 1.25, "role": "分隔／淺邊框（低對比，僅裝飾）" },
+        { "token": "--color-brand-300", "hex": "#67e8f9", "rgb": [103, 232, 249], "hsl": [187, 92, 69],  "contrastOnWhite": 1.45, "role": "裝飾漸變起點" },
+        { "token": "--color-brand-400", "hex": "#22d3ee", "rgb": [34, 211, 238],  "hsl": [188, 86, 53],  "contrastOnWhite": 1.81, "role": "裝飾邊框（main.css:211 border-primary-400）、頭像漸變起點" },
+        { "token": "--color-brand-500", "hex": "#06b6d4", "rgb": [6, 182, 212],    "hsl": [189, 94, 43],  "contrastOnWhite": 2.43, "aaNormalText": false, "aaLargeText": false, "aaNonText": false, "role": "全站強調色主值（實底按鈕、連結、選中態、焦點環 main.css:127）" },
+        { "token": "--color-brand-600", "hex": "#0891b2", "rgb": [8, 145, 178],    "hsl": [192, 91, 36],  "contrastOnWhite": 3.68, "aaNormalText": false, "aaLargeText": true, "aaNonText": true, "role": "hover 加深態、頭像漸變終點" },
+        { "token": "--color-brand-700", "hex": "#0e7490", "rgb": [14, 116, 144],   "hsl": [193, 82, 31],  "contrastOnWhite": 5.36, "aaNormalText": true, "role": "唯一滿足 AA 正常文字的青藍（目前未被用作文字色）" },
+        { "token": "--color-brand-800", "hex": "#155e75", "rgb": [21, 94, 117],    "hsl": [194, 70, 27],  "contrastOnWhite": 7.27, "aaNormalText": true, "role": "深態文字（未使用）" },
+        { "token": "--color-brand-900", "hex": "#164e63", "rgb": [22, 78, 99],     "hsl": [196, 64, 24],  "role": "暗色模式文字候選（未使用）" },
+        { "token": "--color-brand-950", "hex": "#083344", "rgb": [8, 51, 68],      "hsl": [197, 79, 15],  "role": "暗色模式極深底（未使用）" }
+      ]
+    },
+    "ai": {
+      "role": "AI 相關元素語義色，與主色形成冷暖對比",
+      "source": "低飽和紫羅蘭（Tailwind violet 取樣）",
+      "declaration": "apps/web/app/assets/css/main.css:68-73",
+      "alias": "app.config.ts:39 → ai: 'ai'",
+      "shadeCount": 6,
+      "missingShades": [200, 300, 800, 900, 950],
+      "risk": "已註冊為 Nuxt UI 顏色別名，Nuxt UI 會展開 11 階引用，缺檔將取空兜底值（與 brand 曾發生的問題同源）",
+      "scale": [
+        { "token": "--color-ai-50",  "hex": "#f5f3ff", "rgb": [245, 243, 255], "hsl": [250, 100, 98], "role": "AI 面板極淺底" },
+        { "token": "--color-ai-100", "hex": "#ede9fe", "rgb": [237, 233, 254], "hsl": [251, 91, 95],  "role": "AI 標籤底" },
+        { "token": "--color-ai-400", "hex": "#a78bfa", "rgb": [167, 139, 250], "hsl": [255, 92, 76],  "role": "AI 裝飾漸變" },
+        { "token": "--color-ai-500", "hex": "#8b5cf6", "rgb": [139, 92, 246],  "hsl": [258, 89, 66],  "contrastOnWhite": 4.24, "aaNormalText": false, "aaLargeText": true, "role": "AI 主色（頁頭漸變線終點 main.css:426）" },
+        { "token": "--color-ai-600", "hex": "#7c3aed", "rgb": [124, 58, 237],  "hsl": [262, 83, 58],  "contrastOnWhite": 5.70, "aaNormalText": true, "role": "AI 加深態" },
+        { "token": "--color-ai-700", "hex": "#6d28d9", "rgb": [109, 40, 217],  "hsl": [263, 70, 50],  "contrastOnWhite": 7.10, "aaNormalText": true, "role": "AI 深態文字" }
+      ]
+    },
+    "neutral": {
+      "alias": "app.config.ts:31 → neutral: 'stone'（暖灰；原為 slate 冷灰，註解說明改動意圖為護眼舒適）",
+      "semanticTokensUsed": ["bg-default", "bg-muted", "bg-inverted", "text-toned", "text-muted", "text-dimmed", "text-highlighted", "text-inverted", "border-default", "border-emphasis"],
+      "inferredBindings": [
+        { "semantic": "text-dimmed", "inferredStone": "stone-400 #a8a29e", "rgb": [168, 162, 158], "contrastOnWhite": 2.52, "aaNormalText": false, "confidence": "inferred" },
+        { "semantic": "text-muted",  "inferredStone": "stone-500 #78716c", "rgb": [120, 113, 108], "contrastOnWhite": 4.80, "aaNormalText": true,  "confidence": "inferred" },
+        { "semantic": "text-toned",  "inferredStone": "stone-600 #57534e", "rgb": [87, 83, 78],   "contrastOnWhite": 7.63, "aaNormalText": true,  "confidence": "inferred" }
+      ],
+      "note": "node_modules 未安裝，未能實測 Nuxt UI v4 的 --ui-* 實際綁定色階"
+    },
+    "decorative": [
+      { "value": "rgb(255 255 255 / 0.14)", "location": "main.css:397", "role": ".glass-card 頂部 1px 高光邊（模擬玻璃上緣反光）" },
+      { "value": "rgb(15 23 42 / 0.18)",     "location": "main.css:398", "role": ".glass-card 外投影 0 12px 40px -16px" },
+      { "value": "rgb(255 255 255 / 0.12)",  "location": "main.css:557", "role": ".tilt-spot 指針跟隨高光" },
+      { "value": "bg-black/40",              "location": "app.vue:129",  "role": "行動端抽屜遮罩（純黑硬編碼，未令牌化）" },
+      { "value": "text-white",               "location": "AppHeader.vue:91 / AppSidebar.vue:43", "role": "品牌方塊上的白字／白圖標" },
+      { "value": "opacity-70",               "location": "AppSidebar.vue:71", "role": "次要文字透明度（硬編碼）" },
+      { "value": "bg-muted/60",              "location": "AppSidebar.vue:77", "role": "側欄底部卡片底（任意透明度）" }
+    ]
+  },
+
+  "typography": {
+    "fontFamily": {
+      "declaration": "main.css:117-118（@layer base）",
+      "loading": "nuxt.config.ts:184 Google Fonts；L185-186 media=print + onload 異步化；L180-181 preconnect",
+      "stack": ["Inter", "Noto Sans SC", "PingFang SC", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+      "latin": { "name": "Inter", "identified": true, "weights": [400, 500, 600, 700], "mood": "technical, precision, clean, premium, developer, professional", "fitVerdict": "選型正確，與技術型產品定位高度吻合" },
+      "cjk": { "name": "Noto Sans SC", "identified": true, "weights": [400, 500, 700], "fallback": ["PingFang SC", "system-ui"] },
+      "mono": { "name": "Tailwind 默認 font-mono", "identified": false, "note": "未指定 --font-mono" },
+      "architectureIssue": "font-family 寫在 @layer base 而非 @theme 的 --font-*，font-sans 工具類不指向 Inter，無令牌可替換性"
+    },
+    "scale": {
+      "declaration": "main.css:83-91",
+      "modular": false,
+      "ratios": [1.09, 1.04, 1.04, 1.04, 1.11, 1.13, 1.29, 1.18],
+      "issues": ["非模數化，前五檔比值僅 1.04–1.11，肉眼難區分", "含 2 個分數像素（12.5px / 13.5px），1× DPI 下亞像素取整不一致", "無 line-height / letter-spacing / font-weight 配對令牌"],
+      "steps": [
+        { "token": "--text-eyebrow",  "rem": "0.6875",   "px": 11,   "declaredUse": "頁眉副標／極小字", "actuallyUsed": false, "note": "殼層改用 text-[11px]（AppSidebar.vue:53），同值重複" },
+        { "token": "--text-caption",  "rem": "0.75",     "px": 12,   "declaredUse": "頭像字／小字", "actuallyUsed": "partial", "note": "殼層用 text-xs（AppSidebar.vue:71/82/91），同值重複" },
+        { "token": "--text-meta",     "rem": "0.78125",  "px": 12.5, "declaredUse": "元信息／時間", "actuallyUsed": false, "note": "分數像素" },
+        { "token": "--text-body-sm",  "rem": "0.8125",   "px": 13,   "declaredUse": "次標題／用戶名", "actuallyUsed": false },
+        { "token": "--text-body",     "rem": "0.84375",  "px": 13.5, "declaredUse": "正文", "actuallyUsed": false, "note": "分數像素；對標基準要求行動端正文 ≥16px" },
+        { "token": "--text-subtitle", "rem": "0.9375",   "px": 15,   "declaredUse": "卡片標題(小)", "actuallyUsed": false },
+        { "token": "--text-title",    "rem": "1.0625",   "px": 17,   "declaredUse": "卡片標題(大)", "actuallyUsed": false },
+        { "token": "--text-heading",  "rem": "1.375",    "px": 22,   "declaredUse": "區塊大標題", "actuallyUsed": false, "note": ".prose-post 用 text-xl 繞過" },
+        { "token": "--text-display",  "rem": "1.625",    "px": 26,   "declaredUse": "文章頁主標題", "actuallyUsed": false }
+      ]
+    },
+    "hardcodedSizes": [
+      { "value": "text-sm (14px)", "locations": ["AppSidebar.vue:70", "AppSidebar.vue:78"], "conflict": "無對應令牌" },
+      { "value": "text-xs (12px)", "locations": ["AppSidebar.vue:71", "AppSidebar.vue:82", "AppSidebar.vue:91"], "conflict": "與 --text-caption 同值重複" },
+      { "value": "text-[11px]", "locations": ["AppSidebar.vue:53"], "conflict": "與 --text-eyebrow 同值重複" },
+      { "value": "text-xl (20px)", "locations": ["main.css:175"], "conflict": "應用 --text-heading" },
+      { "value": "text-lg (18px)", "locations": ["main.css:179"], "conflict": "應映射字階" }
+    ],
+    "scatteredConventions": [
+      { "property": "line-height", "values": ["leading-8 (main.css:171)", "leading-6 (main.css:203)"], "tokenized": false },
+      { "property": "letter-spacing", "values": ["tracking-tight (AppSidebar.vue:47)", "tracking-[0.18em] (AppSidebar.vue:53)"], "tokenized": false },
+      { "property": "font-weight", "values": ["font-medium", "font-semibold"], "tokenized": false }
+    ]
+  },
+
+  "spacing": {
+    "tokenized": false,
+    "system": "Tailwind 默認刻度（天然符合 4px 網格）",
+    "semanticLayers": false,
+    "contentMaxWidth": { "value": null, "location": "app.vue:144", "note": "main 無 max-w-* 約束，交給各頁面自行處理；對標 Notion/Linear 的『可預測內容寬度』原則為一致性風險" },
+    "observedValues": ["px-5", "gap-2.5", "space-y-1", "mt-16", "p-4", "p-5", "p-6"]
+  },
+
+  "radius": {
+    "tokens": [
+      { "token": "--radius-card", "value": "1rem", "declaration": "main.css:76", "usageCount": 0, "dead": true },
+      { "token": "--radius-pill", "value": "9999px", "declaration": "main.css:77", "usageCount": 0, "dead": true }
+    ],
+    "actualUsage": ["rounded-xl (12px)", "rounded-2xl (16px)", "rounded-full", "rounded-lg (8px)", "rounded-[inherit]"],
+    "issue": "兩枚令牌為死令牌，實際性格由 rounded-xl/2xl 承載，與令牌脫節"
+  },
+
+  "elevation": {
+    "tokenized": false,
+    "semanticLayers": false,
+    "occurrences": [
+      { "location": "main.css:396-399", "value": "inset 0 1px 0 rgb(255 255 255/.14), 0 12px 40px -16px rgb(15 23 42/.18)", "component": ".glass-card" },
+      { "location": "main.css:458", "value": "shadow-sm → hover:shadow-md", "component": ".card-surface" },
+      { "location": "main.css:466", "value": "shadow-sm → hover:shadow-md", "component": ".card-surface-sm" },
+      { "location": "app.vue:130", "value": "shadow-xl", "component": "行動抽屜" },
+      { "location": "AppHeader.vue:91", "value": "shadow-sm", "component": "行動品牌方塊" },
+      { "location": "AppSidebar.vue:43", "value": "shadow-sm", "component": "品牌方塊" },
+      { "location": "AiAssistant.vue:149", "value": "shadow-sm", "component": "懸浮按鈕" },
+      { "location": "main.css:445", "value": "無陰影（刻意）", "component": ".glass-panel" }
+    ],
+    "distinctValues": 4
+  },
+
+  "borders": {
+    "tokenized": false,
+    "widths": ["border (1px)", "border-b", "border-r", "border-l-4"],
+    "colorSource": "語義類：border-default / border-emphasis / border-primary-400",
+    "ringUtilitiesUsed": false,
+    "divideUsed": false,
+    "namingTrap": ".ring-breathe（main.css:261/320）是動畫類名，與 ring 邊框無關"
+  },
+
+  "motion": {
+    "keyframes": [
+      { "name": "fade-up", "lines": "226-235", "purpose": "通用淡入上移（opacity 0→1，translateY 8px→0）" },
+      { "name": "pop", "lines": "237-247", "purpose": "點讚按壓反饋（scale 1→1.28→1）" },
+      { "name": "aurora-drift", "lines": "307-317", "purpose": "光暈漂移（translate3d + scale 1→1.12，20–34s）" },
+      { "name": "ring-breathe", "lines": "320-330", "purpose": "頭像光環呼吸（opacity .35↔.75，scale 1↔1.05，5.5s）" },
+      { "name": "gradient-pan", "lines": "337-344", "purpose": "漸變流動（background-position 0%→200%，9s linear）" }
+    ],
+    "easingTokens": [{ "token": "--ease-out-expo", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "declaration": "main.css:103" }],
+    "durationTokens": [],
+    "distinctDurations": 11,
+    "blurToken": { "token": "--blur-aurora", "value": "56px", "declaration": "main.css:106" },
+    "timings": [
+      { "target": ".animate-fade-up", "duration": "450ms", "easing": "cubic-bezier(.22,1,.36,1)", "line": "251-253" },
+      { "target": ".animate-pop", "duration": "280ms", "easing": "cubic-bezier(.34,1.56,.64,1)", "line": "256-258" },
+      { "target": ".ring-breathe", "duration": "5.5s infinite", "easing": "ease-in-out", "line": "261-263" },
+      { "target": ".fade-up-enter/leave", "duration": "300ms", "easing": "cubic-bezier(.22,1,.36,1)", "line": "270-275" },
+      { "target": ".stagger > *", "delay": "calc(var(--i,0) * 45ms)", "line": "287-289" },
+      { "target": ".drift-slow / .drift-mid / .drift-fast", "duration": "34s / 26s / 20s infinite", "easing": "ease-in-out", "negativeDelay": ["-7s", "-13s"], "line": "373-383" },
+      { "target": ".gradient-frame", "duration": "9s infinite", "easing": "linear", "line": "482" },
+      { "target": ".reveal", "duration": "550ms", "easing": "var(--ease-out-expo)", "line": "501-505" },
+      { "target": ".tilt", "duration": "350ms", "easing": "var(--ease-out-expo)", "extra": "perspective(900px)", "line": "535-538" },
+      { "target": ".tilt-spot", "duration": "300ms (opacity)", "easing": "var(--ease-out-expo)", "extra": "radial-gradient 340px circle", "line": "553-562" },
+      { "target": ".header-gradient-line::after", "duration": "400ms (opacity)", "easing": "var(--ease-out-expo)", "line": "430" },
+      { "target": ".card-surface shadow", "duration": "300ms", "line": "458" },
+      { "target": "側欄寬度", "duration": "200ms", "line": "app.vue:114" },
+      { "target": "抽屜淡入／淡出", "duration": "200ms / 150ms", "easing": "ease-out / ease-in", "line": "app.vue:123-126" }
+    ],
+    "reducedMotion": {
+      "status": "complete",
+      "layers": [
+        { "type": "CSS global", "location": "main.css:131-140", "effect": "*/::before/::after → animation-duration .01ms !important, iteration-count 1, transition-duration .01ms, scroll-behavior auto" },
+        { "type": "CSS decoration patch", "location": "main.css:578-607", "effect": ".reveal--pending 恢復 opacity:1/transform:none；.aurora-blob 與 .gradient-frame animation:none !important；.tilt transform:none !important；.animate-* animation-delay 0s" },
+        { "type": "JS", "location": "useTilt.ts:77 / useReveal.ts:58", "effect": "手工 window.matchMedia('(prefers-reduced-motion: reduce)') 檢測（未使用 motion-v useReducedMotion）" },
+        { "type": "touch degrade", "location": "main.css:613-621", "effect": "@media (hover: none) 禁用 tilt 與 tilt-spot" }
+      ],
+      "verdict": "本專案做得最完整的一塊，達標並超過不少商業產品"
+    },
+    "motionV": {
+      "registration": "nuxt.config.ts:38（註解 L35-36：只用於必須連續計算的動效）",
+      "usage": ["useTilt.ts（指針跟隨傾斜）", "useReveal.ts（進入視口浮現）", "AppTiltCard.vue", "AuroraBackground.vue（滾動視差）", "home/GithubCtaSection.vue"],
+      "shellUsage": false,
+      "note": "殼層不用 motion-v（AppHeader 只用自有 useScrolled()），分層合理"
+    }
+  },
+
+  "icons": {
+    "library": "lucide",
+    "introductionMethods": [
+      { "method": "Iconify 字符串（UIcon / icon prop）", "examples": ["i-lucide-home", "i-lucide-message-square-text", "i-lucide-route", "i-lucide-github", "i-lucide-sparkles", "i-lucide-book-open", "i-lucide-panel-left-close", "i-lucide-menu", "i-lucide-search", "i-lucide-pen-line", "i-lucide-log-in", "i-lucide-log-out", "i-lucide-info", "i-lucide-alert-circle", "i-lucide-send"], "locations": ["AppSidebar.vue:27-30/44/79", "AppHeader.vue:30/84/105/44/119/49/148", "AiAssistant.vue:199/240/216/271", "app.vue:67-69/89/98"] },
+      { "method": "直接組件導入 lucide-vue-next", "examples": ["Sparkles :size=18", "BookOpen :size=14", "Sparkles :size=20", "Sparkles :size=14"], "locations": ["AppHeader.vue:10→92", "AppFooter.vue:9→27", "AiAssistant.vue:14→153/175"] }
+    ],
+    "emojiAsIcon": false,
+    "styleConsistency": "線性，單一來源",
+    "issues": [
+      "Sparkles 同一圖標兩種引入方式（AppSidebar 用 i-lucide-sparkles，AppHeader/AiAssistant 用組件導入）",
+      "圖標尺寸硬編碼 18 / 20 / 14，無 size 約定"
+    ],
+    "note": "ui-ux-pro-max 默認推薦 Phosphor，本專案用 lucide；風格庫 Pre-Delivery Checklist 亦接受 Lucide，無需遷移"
+  },
+
+  "imagery": {
+    "realAvatarImages": false,
+    "placeholders": [
+      { "location": "AppHeader.vue:131-135", "type": "首字母", "style": "h-7 w-7 rounded-full bg-primary/10 text-caption text-primary" },
+      { "location": "AppSidebar.vue:43", "type": "品牌方塊", "style": "h-9 w-9 rounded-xl bg-primary text-white（含 Sparkles 圖標）" }
+    ],
+    "gradientAvatar": {
+      "source": "packages/shared/src/constants/avatar.ts:28 → 'from-brand-400 to-brand-600'",
+      "exportFunction": "avatarGradientClass(seed) @ avatar.ts:54",
+      "tailwindScanEnabler": "main.css:24 @source '../../../../../packages/shared/src'",
+      "vulnerability": "硬編碼 5 層相對路徑；若不加則類不生成、顏色靜默丟失且不報錯"
+    },
+    "decorativeGradients": [
+      { "location": "main.css:422-427", "role": "頁頭線 brand-400 → ai-500" },
+      { "location": "main.css:475-480", "role": ".gradient-frame" },
+      { "location": "main.css:555-559", "role": "tilt 高光（340px circle radial-gradient）" }
+    ]
+  },
+
+  "components": {
+    "appShell": {
+      "root": "flex min-h-screen bg-default（app.vue:111）",
+      "sidebar": { "expanded": "w-64 (256px)", "collapsed": "w-20 (80px)", "transition": "transition-[width] duration-200", "breakpoint": "hidden … sm:flex sm:flex-col", "lines": "114-115" },
+      "mobileDrawer": { "implementation": "Teleport to=body + fixed inset-0 z-50 sm:hidden", "scrim": "bg-black/40 backdrop-blur-sm", "panel": "absolute inset-y-0 left-0 w-64 shadow-xl", "transition": "進 200ms ease-out / 出 150ms ease-in", "lines": "121-135" },
+      "contentColumn": "flex min-w-0 flex-1 flex-col：AppHeader → main.flex-1 → AppFooter → AiAssistant（137-151）",
+      "contentMaxWidth": null,
+      "commandPalette": { "implementation": "UModal + UCommandPalette", "width": "sm:max-w-2xl (672px)", "shortcut": "meta_k（僅註冊 ⌘K，Ctrl+K 未綁定，app.vue:52-54）", "dataSources": ["NAV_GROUP 靜態 3 項", "trending(20)", "posts(20)"], "lines": "155-165" }
+    },
+    "AppHeader": {
+      "shell": "UHeader :toggle=false（禁用內建行動菜單，改自繪）",
+      "sticky": "sticky top-0 z-50 h-16 (64px)",
+      "background": "bg-default/75 backdrop-blur-xl + border-b border-default",
+      "scrollFeedback": ".header-gradient-line + is-scrolled（useScrolled()）",
+      "desktopLeft": "側欄折疊鈕 i-lucide-panel-left-close / i-lucide-panel-left",
+      "mobileLeft": "i-lucide-menu + 品牌方塊 h-9 w-9 rounded-xl bg-primary text-white shadow-sm",
+      "right": ["搜尋（UTooltip + UKbd ⌘K）", "UColorModeButton", "「寫文章」主按鈕", "頭像下拉 / 登錄"],
+      "primaryNav": null
+    },
+    "AppSidebar": {
+      "widthControl": "由 app.vue 控制",
+      "brandArea": "h-16 + border-b + px-5，方塊 h-9 w-9 rounded-xl bg-primary text-white shadow-sm",
+      "navItems": 4,
+      "navLabels": ["首頁", "帖子流", "全棧學習路線", "GitHub 熱門"],
+      "activeState": ":variant=\"isActive ? 'solid' : 'ghost'\"",
+      "collapsedState": "flex flex-col items-center + justify-center，文字隱藏",
+      "bottomCard": { "style": "rounded-2xl border border-default bg-muted/60 p-4", "progressBar": "h-1.5 + w-[42%]", "data": "42% 為靜態假資料（AppSidebar.vue:84/87）" }
+    },
+    "AppFooter": {
+      "shell": "UFooter class=mt-16",
+      "columns": "1 行 2 槽（#left / #right），無多欄連結矩陣",
+      "left": "版權 text-caption text-muted",
+      "right": "「配套電子書」連結 + BookOpen :size=14 → hover:text-primary；分隔符為字面量 |（text-dimmed）；技術棧文案",
+      "linkCount": 1
+    },
+    "AiAssistant": {
+      "position": "fixed bottom-6 right-6 z-40（app.vue 同層）",
+      "triggerSize": "h-12 w-12 (48px) rounded-xl border border-default bg-default",
+      "hoverStates": "hover:scale-105 active:scale-95",
+      "panel": "USlideover side=right，w-full sm:max-w-md（桌面 448px / 行動全寬）",
+      "mountStrategy": "刻意用 v-if + :open=true 而非 v-model（註解 L156-163：v-model 下抽屜不渲染）",
+      "closable": true,
+      "ariaLabel": "隨狀態切換",
+      "aiPaletteUsage": 0,
+      "issue": "完全沒有使用 ai 紫羅蘭色板，圖標與發送鈕都用 text-primary / color=primary（brand 青藍），與 main.css:60-66 的設計意圖不一致"
+    }
+  },
+
+  "styleConflicts": [
+    {
+      "id": "C1",
+      "severity": "substantive",
+      "title": "企業級克制骨幹 ⟷ 消費級裝飾動效",
+      "sideA": { "name": "工具骨幹", "traits": ["語義令牌", "暖灰中性", "零手寫 dark", "網格間距", "無 emoji 圖標"], "scope": "殼層 5 個 Vue 檔 + @theme" },
+      "sideB": { "name": "裝飾表皮", "traits": ["Aurora 光暈 20–34s", "呼吸光環 5.5s infinite", "傾斜高光", "漸變流動 9s infinite", "玻璃卡"], "scope": "main.css:346-484 裝飾層 + AuroraBackground.vue" },
+      "dominant": "A（企業級克制）",
+      "reasoning": [
+        "A 面承載 100% 功能性介面，B 面只在首頁與卡片 hover 細節",
+        "A 面令牌驅動可維護，B 面散落無令牌",
+        "使用者主要任務路徑（讀帖、看路線、刷 trending）全在 A 面"
+      ],
+      "consequence": "ring-breathe 與 aurora-drift 是永不停止的持續動效，與 Notion/Linear『介面靜止時絕對安靜』的紀律相悖；長時間閱讀下產生注意力殘留"
+    },
+    { "id": "C2", "severity": "minor", "title": "AI 的色彩語義未落地", "detail": "main.css:60-66 註解要求 AI 用紫羅蘭形成冷暖對比，但 AiAssistant.vue 內 ai-* 零命中，實際用 text-primary" },
+    { "id": "C3", "severity": "minor", "title": "兩套字號系統並行", "detail": "9 檔語義字號 vs 5 種硬編碼 Tailwind 字號，兩組完全同值重複" },
+    { "id": "C4", "severity": "minor", "title": "同一圖標兩種引入方式", "detail": "Sparkles 同時以 i-lucide-sparkles 與 import { Sparkles } 出現" }
+  ],
+
+  "implicitRules": [
+    "色值單一來源：只在 @theme 定義一次，app.config.ts 只做別名映射（app.config.ts:8-11 註解明言）",
+    "不自造組件類：已刪除 .glass-bar/.nav-link/.post-card/.ai-panel/.tag-pill-*，改用 UHeader/UNavigationMenu/UButton/UCard/UAlert（main.css:148-160）",
+    "只在『類名會很長且多處重複』時才抽 @layer components（main.css:144-145）",
+    "JS 動效只用於必須連續計算的場景（nuxt.config.ts:35-36）",
+    "暗色模式靠語義令牌，不手寫 dark:（殼層 0 處手寫變體）",
+    "踩坑即寫註解：@source 與 @theme static 均有詳細踩坑說明（L15-23、L30-39、L156-163、L440-442）"
+  ]
+}

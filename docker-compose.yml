@@ -1,74 +1,86 @@
-# ============================================================
-#  本地容器化运行：MongoDB + 后端(NestJS) + 前端(Nuxt SSR)
-# ------------------------------------------------------------
-#  ⚠️ 两个 Dockerfile 的构建上下文都是**仓库根**（要 COPY packages/shared），
-#     所以本文件的 build.context 必须填 "."（仓库根），dockerfile 指向子目录。
+# 本地 + 线上双环境部署（Windows / 任意 Docker 主机）：Caddy + StudyPlan 应用 + PostgreSQL 16 + pgvector。
+# 通过环境变量切换（默认值走本地，线上用环境变量 / --env-file 覆盖）：
+#   本地（默认）：APP_DOMAIN 未设 → 站点 localhost，Caddy 纯 HTTP；NODE_ENV=development；BETTER_AUTH_URL=http://localhost。
+#   线上：APP_DOMAIN=your.domain、ACME_EMAIL=you@example.com、NODE_ENV=production、BETTER_AUTH_URL=https://your.domain。
+# 本地模型权重经卷挂载 ./model-cache 进容器离线运行（线上可改用 MODELS_PRELOAD=1 烘焙进镜像）。
 #
-#  接口地址分工（无需反向代理）：
-#    · 浏览器侧  → NUXT_PUBLIC_API_BASE = http://localhost:3000/api （直连 api 发布的 3000）
-#    · SSR 服务端 → NUXT_API_BASE_INTERNAL = http://api:3000/api   （容器内部 DNS）
-#
-#  启动：  docker compose up --build
-#  停止：  docker compose down          （保留 mongo 数据卷）
-#          docker compose down -v       （连数据卷一起删）
-# ============================================================
+#  构建： docker compose build app
+#  启动： docker compose up -d
+#  线上： APP_DOMAIN=example.com ACME_EMAIL=you@example.com NODE_ENV=production BETTER_AUTH_URL=https://example.com docker compose up -d
 
 services:
-  mongo:
-    image: mongo:7
-    container_name: studyplan-mongo
+  caddy:
+    image: caddy:2-alpine
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     environment:
-      MONGO_INITDB_DATABASE: studyplan
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - mongo-data:/data/db
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: studyplan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studyplan
+      POSTGRES_USER: studyplan
+      POSTGRES_PASSWORD: studyplan
+      # 自管内网：允许容器内通过 TCP 连接（PG 不曝公网，前置 Caddy 已做 TLS）。
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: ["CMD-SHELL", "pg_isready -U studyplan -d studyplan"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODELS_PRELOAD: ${MODELS_PRELOAD:-0}
+    container_name: studyplan-app
+    restart: unless-stopped
+    # 注入通用变量（BETTER_AUTH_SECRET / HF_ENDPOINT / 本地模型开关等）。
+    env_file:
+      - .env
+    environment:
+      # 容器内通过服务名 postgres 访问。
+      DATABASE_URL: postgresql://studyplan:studyplan@postgres:5432/studyplan
+      # 默认本地 development（绕过 https 强校验）；线上覆盖为 production。
+      NODE_ENV: ${NODE_ENV:-development}
+      # 默认本地 http；线上覆盖为 https://域名。
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost}
+      # 本地模型权重经卷挂载进容器；运行时离线加载。
+      LOCAL_MODELS_ONLY: "1"
+      MODEL_CACHE_DIR: /app/.model-cache
+    # 宿主预下载的 Qwen3 ONNX 权重挂载进容器（与 MODEL_CACHE_DIR 一致）。
+    volumes:
+      - ./model-cache:/app/.model-cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    container_name: studyplan-api
-    restart: unless-stopped
-    env_file:
-      - apps/api/.env
-    environment:
-      # 容器内端口 + 连 mongo 服务（覆盖 .env 里的 localhost）
-      PORT: "3000"
-      MONGODB_URI: "mongodb://mongo:27017/studyplan"
-      NODE_ENV: "development"
-    ports:
-      - "3000:3000"
-    depends_on:
-      mongo:
-        condition: service_healthy
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        # 构建期注入：浏览器侧接口地址（烘焙进客户端 bundle）
-        NUXT_PUBLIC_API_BASE: "http://localhost:3000/api"
-    container_name: studyplan-web
-    restart: unless-stopped
-    environment:
-      # SSR 服务端在容器内部调用后端，走 compose 内部 DNS
-      NUXT_API_BASE_INTERNAL: "http://api:3000/api"
-      NODE_ENV: "production"
-      HOST: "0.0.0.0"
-      PORT: "3000"
-    ports:
-      - "3001:3000"
-    depends_on:
-      - api
+      retries: 10
+      start_period: 30s
 
 volumes:
-  mongo-data:
+  postgres-data:
+  caddy_data:
+  caddy_config:

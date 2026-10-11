@@ -1,0 +1,59 @@
+{
+  "$schema": "studyplan-design-review/v1",
+  "meta": {
+    "project": "studyplan",
+    "reviewDate": "2026-09-23",
+    "reviewerRole": "设计质量审查负责人 + 项目经理 + 设计系统审核专家",
+    "basedOn": [
+      "01-visual-style-analysis.md",
+      "04-modification-plan.md",
+      "V3 落地（main.css / brand.md / 组件改动）"
+    ],
+    "companionArtifact": "design-tokens.json（已存在，含完整令牌与 27 条 issues；本文件仅补充审查纠正结论，不重复令牌数据）"
+  },
+  "reviewFindings": [
+    {
+      "id": "D01",
+      "candidateIssue": "reduced-motion 守卫缺失（原判 P1）",
+      "verdict": "false-positive",
+      "evidence": "main.css L449–459 全局 * 重置 animation-duration:.01ms!important；L937–966 装饰层 .aurora-blob/.gradient-frame/.ring-breathe { animation:none!important } 已完整实现",
+      "action": "无需改动",
+      "priority": "—"
+    },
+    {
+      "id": "D02",
+      "candidateIssue": "旧审计文档行号 / 动效令牌缺失（原判 P2）",
+      "verdict": "resolved",
+      "evidence": "已修正 01/04 中 ring-breathe/gradient-pan/aurora-drift/glass-card/tilt-spot 及 reduced-motion 区块的行号指针；brand.md 新增 §6 动效与装饰原则",
+      "action": "已完成",
+      "priority": "P2"
+    },
+    {
+      "id": "D03",
+      "candidateIssue": "/ebook 页 token 化未确认（原判 P3）",
+      "verdict": "false-positive",
+      "evidence": "AboutEbookSection.vue grep 硬编码 hex/rgb/color:#/background:# 返回 0 结果，已使用统一令牌",
+      "action": "无需改动",
+      "priority": "—"
+    },
+    {
+      "id": "D04",
+      "candidateIssue": "推測标注缺失（原判 P3）",
+      "verdict": "resolved",
+      "evidence": "brand.md §6.2（gradient-pan 触摸端不显示）与 §6.4（logo.svg 字体依赖）新增 2 处「推測」标注",
+      "action": "已完成",
+      "priority": "P3"
+    }
+  ],
+  "verification": {
+    "build": "本次仅改动 .md / .json 文档，未触及任何组件或样式逻辑；如需回归可运行 pnpm build",
+    "ssr": "home/posts/roadmap/trending/login 均 200（V3 已验证）",
+    "lint": "0 error / 6 warning（既有，与本次无关）",
+    "docChanges": [
+      "brand.md 新增 §6 动效与装饰原则（含 2 处「推測」）",
+      "01-visual-style-analysis.md 行号指针更新至 V3 实际位置",
+      "04-modification-plan.md 行号指针更新至 V3 实际位置",
+      "review-audit.json 新增本审查纠正结论（不覆盖既有 design-tokens.json）"
+    ]
+  }
+}

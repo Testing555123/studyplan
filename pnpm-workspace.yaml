@@ -1,26 +1,33 @@
+# pnpm 出于供应链安全默认禁止依赖执行 postinstall 脚本，
+# 但下面这些包必须放行，否则原生二进制装不上、项目跑不起来：
+#   esbuild          —— 构建内核，需要落地平台二进制
+#   unrs-resolver    —— ESLint 的 Rust 模块解析器
+#   onnxruntime-node —— transformers.js 本地嵌入的原生推理后端（第二批）
+#   protobufjs       —— onnxruntime-node 的依赖
+#
+# ⚠️ onnxruntime-node 是 v2.0 当年明确拒绝构建的包（allowBuilds: false）。
+# 若 Windows 或 Alpine 任一环境构建失败，回退路径见 docs/DECISIONS.md D9：
+# 优先改用 transformers.js 的 WASM 后端，再不行则回退托管 API。
+
+# 声明工作区子包（T0：packages/shared 契约单一来源）。
 packages:
-  - 'apps/*'
   - 'packages/*'
 
-# ---------------------------------------------------------------------------
-# 构建脚本白名单
-#
-# pnpm 出于供应链安全，默认**禁止**依赖执行 postinstall 脚本
-# （postinstall 是恶意代码最经典的入口）。但下面这些包必须放行，
-# 否则原生二进制装不上、项目跑不起来：
-#
-#   esbuild        —— Vite / Nuxt 的构建内核，需要落地平台二进制
-#   unrs-resolver  —— ESLint 的模块解析器（Rust 实现）
-#   @parcel/watcher —— 开发时的文件监听
-#   vue-demi       —— 按当前 Vue 版本切换自身实现（行为依赖 postinstall）
-#   @scarf/scarf   —— 只上报匿名安装统计，与功能无关，明确拒绝
-# ---------------------------------------------------------------------------
 allowBuilds:
   esbuild: true
   unrs-resolver: true
-  '@parcel/watcher': true
-  vue-demi: true
-  '@scarf/scarf': false
-
+  onnxruntime-node: true
+  protobufjs: true
 minimumReleaseAgeExclude:
-  - '@types/node@22.20.2'
+  - drizzle-orm@0.45.4
+  - '@ai-sdk/gateway@4.0.110'
+  - '@ai-sdk/provider-utils@5.0.58'
+  - '@ai-sdk/provider@4.0.26'
+  - '@assistant-ui/core@0.3.25'
+  - '@assistant-ui/react@0.15.26'
+  - '@assistant-ui/store@0.3.18'
+  - '@assistant-ui/tap@0.9.22'
+  - ai@7.0.137
+  - assistant-cloud@0.2.6
+  - assistant-stream@0.3.49
+  - '@ai-sdk/openai-compatible@3.0.67'

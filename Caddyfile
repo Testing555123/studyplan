@@ -1,0 +1,11 @@
+# StudyPlan 反向代理（本地 + 线上双环境）。
+# 站点地址与 ACME 邮箱通过环境变量注入（由 docker-compose 注入）：
+#   - 本地（未设置 APP_DOMAIN）：站点为 localhost，Caddy 自动纯 HTTP（不会对 localhost 申请证书）。
+#   - 线上（设置 APP_DOMAIN=your.domain + ACME_EMAIL）：Caddy 自动向 Let's Encrypt 签发证书，启用 HTTPS。
+{
+	email {$ACME_EMAIL:admin@example.com}
+}
+
+{$APP_DOMAIN:localhost} {
+	reverse_proxy app:3000
+}

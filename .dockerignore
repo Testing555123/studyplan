@@ -1,47 +1,21 @@
-# ============================================================
-#  Docker 构建上下文忽略清单
-# ------------------------------------------------------------
-#  为什么必须有它：
-#    两个 Dockerfile 的 Context Path 都是**仓库根**（因为要 COPY packages/shared）。
-#    不忽略的话，本地的 node_modules（往往上 GB）、.git、构建产物
-#    会全部打包进构建上下文 —— 首次构建会慢到让人以为卡死。
-# ============================================================
-
-# 依赖目录（构建时会重新安装）
+node_modules
 **/node_modules
-.pnpm-store
-
-# 构建产物（构建时会重新生成）
-**/dist
-**/.nuxt
-**/.output
-**/.turbo
-**/coverage
-
-# 版本控制与编辑器
+.next
 .git
-.gitignore
-**/.DS_Store
-.idea
-.vscode
-
-# ⚠️ 环境变量：绝不能进镜像。生产值由 Dokploy 运行时注入。
-**/.env
-**/.env.*
-!.env.example
-
-# 日志与测试产物
-**/*.log
-**/test-results
-**/playwright-report
-**/.auth
-
-# 文档站（电子书）**要**参与构建 —— 线上通过 /ebook 访问：
-#   · Dockerfile.vercel 会构建它（pnpm --filter @studyplan/docs build）
-#   · docker/vercel/entrypoint.mjs 用零依赖静态服务提供产物
-# 它的构建产物 apps/docs/.vitepress/dist 已被上面的 **/dist 规则排除，
-# 镜像里会重新生成，所以不需要进上下文。
-# ⚠️ 不要把整个 apps/docs 排除掉 —— 那样源码与配置进不去，电子书会直接 404。
-
-# 本机 AI 助手状态
+.github
 .codebuddy
+.model-cache
+tests
+coverage
+*.log
+.env
+.env.*
+README.md
+Dockerfile
+docker-compose.yml
+# 本地 Python 实验产物（venv/wheels）与缓存：与镜像构建无关，排除可显著减小构建上下文。
+venv
+wheels
+cache
+playwright-report
+test-results
