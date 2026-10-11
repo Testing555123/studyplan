@@ -7,6 +7,9 @@
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"
+    },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
     }
   },
   // 端口 7860：space 形态单容器（RUNTIME_FLAVOR=space）对外端口；公开可见便于演示。
