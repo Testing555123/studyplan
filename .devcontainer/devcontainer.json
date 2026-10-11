@@ -1,6 +1,8 @@
 {
   "name": "StudyPlan (Codespaces)",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  // 必须钉到具体 LTS 版本：浮动 ubuntu tag 已指向 Ubuntu 25.10 开发版（resolute），
+  // 其中没有 moby-cli 包，docker-in-docker feature 安装会失败（Codespaces 报错 1302）。
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/node:1": {
