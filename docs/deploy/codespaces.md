@@ -44,6 +44,15 @@ sh scripts/codespaces-space-run.sh
 
 两个命名卷在容器删除/重建后保留；**删除 Codespace 才会一并删除**。演示场景已用超大 `BACKUP_INTERVAL_MIN=525600` 禁用 HF 备份循环；如需定期备份，参考 `docs/deploy/huggingface-spaces.md` 的备份闭环配置。
 
+## 已知限制
+
+- **闲置自动停止**：无活动约 30 分钟后 Codespace 停止，下次访问自动唤醒并由 `postStartCommand` 拉起容器（数据在命名卷中不丢失），但唤醒期间有 1–2 分钟不可用。
+- **端口可见性回退**：闲置唤醒后 7860 端口可能回到 private（访问返回 302 跳转 `github.dev/pf-signin`），需手动重新公开：
+  ```bash
+  gh codespace ports visibility 7860:public -c <codespace名>
+  ```
+- **不支持长期在线**：个人账号免费额度 120 core-h/月，24/7 需 1440；30 天不活动会被回收。长期托管请用 HF Spaces（见 `docs/deploy/huggingface-spaces.md`）。
+
 ## 与 HF Spaces 部署的关系
 
 复用同一份 `Dockerfile`（`RUNTIME_FLAVOR=space`）与 `docker/space/` 编排脚本，仅入口不同：
