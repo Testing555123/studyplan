@@ -4,9 +4,9 @@ import { useSyncExternalStore, useState } from 'react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
 import { authClient } from '@/lib/auth/client'
-import { Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Search, Sun, Moon, BookOpen } from 'lucide-react'
+import { Button } from '@/components/m3e/button'
+import { Input } from '@/components/m3e/input'
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+} from '@/components/m3e/dialog'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/m3e/avatar'
 import { cn } from '@/lib/utils'
 import { CommandPalette, openCommandPalette } from '@/components/search/command-palette'
 
@@ -64,11 +64,11 @@ export function SiteNav({ session }: { session: { user: NavSessionUser } | null 
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
-            <span>📚</span>
+            <BookOpen className="size-5 text-primary" aria-hidden />
             <span>StudyPlan</span>
           </Link>
           <nav className="hidden items-center gap-4 text-sm text-muted-foreground sm:flex">
@@ -94,7 +94,9 @@ export function SiteNav({ session }: { session: { user: NavSessionUser } | null 
           >
             <Search className="size-4" />
             <span className="text-xs">搜索</span>
-            <kbd className="rounded border border-border bg-muted px-1 font-mono text-[10px]">⌘K</kbd>
+            <kbd className="rounded-sm border border-border bg-muted px-1 font-mono text-[10px]">
+              ⌘K
+            </kbd>
           </Button>
           <Button
             variant="ghost"
@@ -102,7 +104,11 @@ export function SiteNav({ session }: { session: { user: NavSessionUser } | null 
             aria-label="切换主题"
             onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           >
-            {mounted && resolvedTheme === 'dark' ? '☀️' : '🌙'}
+            {mounted && resolvedTheme === 'dark' ? (
+              <Sun className="size-5" />
+            ) : (
+              <Moon className="size-5" />
+            )}
           </Button>
 
           {session ? (

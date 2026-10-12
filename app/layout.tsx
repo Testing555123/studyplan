@@ -37,6 +37,12 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground antialiased">
+        <a
+          href="#main-content"
+          className="sr-only rounded-lg bg-primary px-4 py-2 text-on-primary focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100]"
+        >
+          跳到主内容
+        </a>
         <Providers>{children}</Providers>
       </body>
     </html>

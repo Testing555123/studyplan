@@ -1,0 +1,11 @@
+### components-buttons-specs [dark]
+- title: Buttons – Material Design 3
+- url: https://m3.material.io/components/buttons/specs
+- headings: h1:Buttons | h2:Buttons | h2:Variants | h2:Configurations | h2:Tokens & specs | h2:Anatomy | h2:Color | h2:States | h3:Elevated button states | h4:Default | h4:Toggle | h3:Filled button states | h4:Default | h4:Toggle
+- bg colors: #1c1b1d x6 (a.overline); #45455a x2 (button.mat-mdc-menu-trigger.active-token-set-butto); #0f0e0f x2 (input.mat-mdc-autocomplete-trigger.search-input); #553f5d x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #e6e1e3 x140 (h2); #cbc4cc x109 (h3); #9f86ff x20 (a); #1f1f1f x9 (body.ng-tns-0-1.dark-mode); #e2e0fb x2 (button.mat-mdc-menu-trigger.active-token-set-butto)
+- typography: Google Sans Text 16px/24px w400 x124 (body); Google Sans Text 14px/20px w400 x60 (a); Google Sans Text 16px/24px w500 x28 (a); Arial 24px/normal w400 x26 (button); Google Sans 57px/64px w475 x9 (h2); Google Sans 28px/36px w475 x9 (h3); Google Sans 24px/32px w475 x9 (h4); Google Sans Text 14px/20px w500 x4 (h3); Google Sans Text 16px/44px w500 x4 (a); Arial 13.3333px/normal w400 x4 (button); Google Sans Text 14px/normal w500 x2 (button); Google Sans 96px/96px w475 x1 (h1)
+- radius: 4px x36; 50% x26; 40px x4; 8px x4; 24px x2; 28px x2; 16px x1
+- padding: 8px x26; 1px x20; 2px x8; 0px 24px x4; 2px 8px 2px 12px x2; 6px 8px 6px 16px x2; 1px 48px x2; 64px 40px x1
+- transition durations: 0.3s, 0.3s x2; 0.3s x1
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Variants | Configurations

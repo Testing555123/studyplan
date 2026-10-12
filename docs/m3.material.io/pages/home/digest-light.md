@@ -1,0 +1,12 @@
+### home [light]
+- title: Material Design 3 - Google's latest open source design system
+- url: https://m3.material.io/
+- headings: h1:Material Design | h2:Material at Google I/O 2026 | h2:M3 Expressive: Design with emotion | h2:Expressive components | h2:How to apply M3 Expressive | h2:Latest in Material & Google Design | h2:Next steps | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x20 (a.thumbnail); #f1d3f9 x2 (a.section-fab.section-menu.ng-star-inserted); #6442d6 x1 (button.mio-button)
+- text colors: #4d4256 x49 (h3); #1c1b1d x40 (h1); #6442d6 x24 (a); #1f1f1f x12 (body.ng-tns-0-1); #ffffff x1 (button.mio-button)
+- typography: Google Sans Text 16px/24px w500 x47 (a); Google Sans Text 16px/24px w400 x45 (body); Google Sans Text 14px/20px w500 x19 (h3); Google Sans 57px/64px w475 x6 (h2); Google Sans Text 22px/30px w400 x6 (p); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (button); Arial 13.3333px/40px w400 x1 (button)
+- radius: 4px x30; 24px x20; 48px x2; 32px x2; 16px x1; 50% x1
+- padding: 1px x24; 2px x8; 0px 48px x1; 64px 40px x1
+- shadows (1): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.3s, 0.3s x20; 0.2s x3; 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Get started

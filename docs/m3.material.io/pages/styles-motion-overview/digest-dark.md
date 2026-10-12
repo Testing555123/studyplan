@@ -1,0 +1,12 @@
+### styles-motion-overview [dark]
+- title: Motion – Material Design 3
+- url: https://m3.material.io/styles/motion/overview/how-it-works
+- headings: h1:Motion physics system | h2:Motion physics system | h2:A motion system designed for expression | h2:Availability & resources | h2:The basics: Motion schemes | h2:How it works: Springs | h2:Spring tokens | h3:Style | h3:Speed | h2:Application | h3:Components | h2:Advanced customizations | h3:Level 1: Use a default motion scheme | h3:Level 2: Create a custom motion scheme
+- bg colors: #553f5d x16 (a.section-fab.section-menu.ng-star-inserted); #323032 x15 (video); #1c1b1d x10 (a.overline)
+- text colors: #e6e1e3 x119 (h1); #cbc4cc x78 (h3); #9f86ff x29 (a); #1f1f1f x22 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w400 x132 (body); Google Sans Text 16px/24px w500 x34 (a); Google Symbols 24px/24px w400 x24 (div); Google Sans Text 14px/20px w500 x19 (h3); Arial 13.3333px/40px w400 x15 (button); Google Sans 57px/64px w475 x7 (h2); Google Sans Text 14px/20px w400 x7 (a); Google Sans 28px/36px w475 x6 (h3); Google Sans Text 16px/44px w500 x2 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x43; 24px x26; 50% x15; 18px x7; 40px x2; 32px x2; 16px x1
+- padding: 1px x29; 16px 24px x24; 2px x8; 8px 16px x7; 0px 24px x2; 64px 40px x1
+- shadows (15): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x39; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | How it works | Specs | A motion system designed for expression | Availability & resources | The basics: Motion schemes | How it works: Springs

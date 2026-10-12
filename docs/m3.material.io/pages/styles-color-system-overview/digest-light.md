@@ -1,0 +1,12 @@
+### styles-color-system-overview [light]
+- title: Color - Material Design 3 - Create personal color schemes
+- url: https://m3.material.io/styles/color/system/overview
+- headings: h1:Color system | h2:Color system | h2:Resources | h2:What's new | h3:Three levels of contrast | h3:More colorful text and icons | h3:Reorganized guidelines | h3:Tone-based surface colors | h3:Additional accent colors | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x7 (a.overline); #f1d3f9 x2 (a.section-fab.section-menu.ng-star-inserted); #f5eff1 x2 (video)
+- text colors: #1c1b1d x118 (h1); #4d4256 x53 (h3); #6442d6 x28 (a); #1f1f1f x17 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x135 (body); Google Sans Text 16px/24px w500 x34 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x14 (div); Google Sans 28px/36px w475 x5 (h3); Google Sans 57px/64px w475 x2 (h2); Google Sans Text 16px/44px w500 x2 (a); Google Sans Text 14px/20px w400 x2 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2); Arial 13.3333px/40px w400 x1 (button)
+- radius: 4px x37; 24px x16; 40px x2; 18px x2; 32px x2; 16px x1; 50% x1
+- padding: 1px x28; 16px 24px x16; 2px x8; 0px 24px x2; 8px 16px x2; 64px 40px x1
+- shadows (1): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x15; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Overview | How the system works | Resources | What's new | arrow_left_alt PreviousMaterial A-Z | Up next arrow_right_altColor system: How

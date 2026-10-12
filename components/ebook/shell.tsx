@@ -4,8 +4,9 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { BookOpen, Sun, Moon, X } from 'lucide-react'
+import { Button } from '@/components/m3e/button'
+import { Input } from '@/components/m3e/input'
 import { cn } from '@/lib/utils'
 
 export interface EbookNavItem {
@@ -49,7 +50,7 @@ function NavList({
     <nav className="space-y-5">
       {grouped.map(([group, items]) => (
         <div key={group}>
-          <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="px-3 text-label-small font-medium uppercase tracking-wider text-on-surface-variant">
             {GROUP_LABELS[group] ?? group}
           </p>
           <ul className="mt-2 space-y-1">
@@ -63,8 +64,8 @@ function NavList({
                     className={cn(
                       'block rounded-lg px-3 py-2 text-sm transition-colors',
                       active
-                        ? 'bg-primary/10 font-medium text-primary'
-                        : 'text-foreground/80 hover:bg-muted hover:text-foreground',
+                        ? 'bg-secondary-container font-medium text-on-secondary-container'
+                        : 'text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface',
                     )}
                   >
                     {item.title}
@@ -99,11 +100,11 @@ function SearchModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[12vh]"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+        className="w-full max-w-lg overflow-hidden rounded-lg border border-outline-variant bg-surface-container-high shadow-elevation-2"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-b border-border p-3">
@@ -126,7 +127,7 @@ function SearchModal({
                 <Link
                   href={r.url}
                   onClick={onClose}
-                  className="block rounded-lg px-3 py-2 text-sm text-foreground/90 transition-colors hover:bg-muted"
+                  className="block rounded-lg px-3 py-2 text-body-medium text-on-surface transition-colors hover:bg-surface-container-highest"
                 >
                   {r.title}
                 </Link>
@@ -153,21 +154,21 @@ export function EbookShell({
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <button
               type="button"
               aria-label="打开目录"
               onClick={() => setMobileOpen(true)}
-              className="rounded-lg p-2 text-foreground/80 transition-colors hover:bg-muted lg:hidden"
+              className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-highest lg:hidden"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M3 12h18M3 18h18" />
               </svg>
             </button>
             <Link href="/ebook" className="flex items-center gap-2 font-semibold">
-              <span className="text-lg">📚</span>
+              <BookOpen className="size-5 text-primary" />
               <span>StudyPlan 电子书</span>
             </Link>
           </div>
@@ -176,7 +177,7 @@ export function EbookShell({
               type="button"
               aria-label="搜索"
               onClick={() => setSearchOpen(true)}
-              className="rounded-lg p-2 text-foreground/80 transition-colors hover:bg-muted"
+              className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-highest"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="7" />
@@ -189,7 +190,7 @@ export function EbookShell({
               aria-label="切换主题"
               onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
             >
-              {resolvedTheme === 'dark' ? '☀️' : '🌙'}
+              {resolvedTheme === 'dark' ? <Sun className="size-5" /> : <Moon className="size-5" />}
             </Button>
           </div>
         </div>
@@ -201,7 +202,7 @@ export function EbookShell({
             <NavList pages={pages} pathname={pathname} />
           </div>
         </aside>
-        <main className="min-w-0 flex-1 py-8">{children}</main>
+        <main id="main-content" className="min-w-0 flex-1 py-8">{children}</main>
       </div>
 
       {/* 移动端抽屉 */}
@@ -210,16 +211,16 @@ export function EbookShell({
           className="fixed inset-0 z-50 flex lg:hidden"
           onClick={() => setMobileOpen(false)}
         >
-          <div className="w-72 overflow-y-auto border-r border-border bg-card p-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-72 overflow-y-auto border-r border-outline-variant bg-surface-container-high p-4 shadow-elevation-2" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
               <span className="font-semibold">目录</span>
               <button
                 type="button"
                 aria-label="关闭"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-lg p-1 text-muted-foreground hover:bg-muted"
+                className="rounded-lg p-1 text-on-surface-variant hover:bg-surface-container-highest"
               >
-                ✕
+                <X className="size-4" />
               </button>
             </div>
             <NavList pages={pages} pathname={pathname} onNavigate={() => setMobileOpen(false)} />

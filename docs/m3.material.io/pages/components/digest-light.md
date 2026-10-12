@@ -1,0 +1,11 @@
+### components [light]
+- title: Components – Material Design 3
+- url: https://m3.material.io/components
+- headings: h1:Components | h2:Buttons | h2:Date & time pickers | h2:Loading & progress | h2:Navigation | h2:Sheets | h2:All other components | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x36 (a.thumbnail); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #4d4256 x63 (h3); #1c1b1d x60 (h2); #6442d6 x18 (a); #1f1f1f x12 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x65 (body); Google Sans Text 16px/24px w500 x62 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Sans 57px/64px w475 x6 (h2); Google Sans 96px/96px w475 x1 (h1)
+- radius: 24px x36; 4px x25; 32px x2; 16px x1
+- padding: 1px x18; 2px x8; 64px 40px x1
+- transition durations: 0.3s, 0.3s x36; 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog

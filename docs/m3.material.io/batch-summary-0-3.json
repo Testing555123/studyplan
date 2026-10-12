@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "home",
+    "url": "https://m3.material.io/",
+    "title": "Material Design 3 - Google's latest open source design system",
+    "scroll": {
+      "container": ".page-content",
+      "range": 5088
+    },
+    "light": {
+      "sampled": 126,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 126,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles",
+    "url": "https://m3.material.io/styles",
+    "title": "Styles - Material Design 3 - Browse color, shape, typography, and more",
+    "scroll": {
+      "container": ".page-content",
+      "range": 1736
+    },
+    "light": {
+      "sampled": 76,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 76,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-color-system-overview",
+    "url": "https://m3.material.io/styles/color/system/overview",
+    "title": "Color - Material Design 3 - Create personal color schemes",
+    "scroll": {
+      "container": ".page-content",
+      "range": 6733
+    },
+    "light": {
+      "sampled": 216,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 216,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  }
+]

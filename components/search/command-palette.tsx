@@ -18,9 +18,9 @@ import {
   CommandItem,
   CommandList,
   CommandShortcut,
-} from '@/components/ui/command'
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
+} from '@/components/m3e/command'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/m3e/dialog'
+import { Skeleton } from '@/components/m3e/skeleton'
 import type { SearchHit } from '@/lib/search/semantic'
 
 /**

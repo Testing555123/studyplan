@@ -1,0 +1,13 @@
+### components-app-bars-specs [light]
+- title: Top app bar – Material Design 3
+- url: https://m3.material.io/components/app-bars/specs
+- headings: h1:App bars | h2:App bars | h2:Variants | h3:Baseline variants | h2:Configurations | h3:Text alignment | h2:Tokens & specs | h3:Search component tokens & specs | h2:Anatomy | h3:Search | h3:Image | h3:Filled trailing icon button | h3:Subtitle | h2:Color
+- bg colors: #f8f1f6 x7 (a.overline); #dcdaf5 x3 (button.mat-mdc-menu-trigger.active-token-set-butto); #ffffff x3 (input.mat-mdc-autocomplete-trigger.search-input); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #4d4256 x130 (h3); #1c1b1d x104 (h2); #6442d6 x23 (a); #1f1f1f x20 (body.ng-tns-0-1); #21182b x3 (button.mat-mdc-menu-trigger.active-token-set-butto)
+- typography: Google Sans Text 16px/24px w400 x118 (body); Google Sans Text 14px/20px w400 x55 (a); Google Sans Text 16px/24px w500 x29 (a); Arial 24px/normal w400 x20 (button); Google Sans Text 14px/20px w500 x19 (h3); Google Sans 28px/36px w475 x15 (h3); Google Sans 57px/64px w475 x7 (h2); Arial 13.3333px/normal w400 x6 (button); Google Sans Text 16px/44px w500 x4 (a); Google Sans 24px/32px w475 x3 (h4); Google Sans 96px/96px w475 x1 (h1); Roboto 32px/42.6667px w400 x1 (p)
+- radius: 4px x37; 50% x20; 18px x7; 40px x4; 8px x4; 28px x3; 24px x2; 16px x1
+- padding: 1px x23; 8px x20; 16px 24px x10; 2px x8; 8px 16px x7; 0px 24px x4; 2px 8px 2px 12px x3; 1px 48px x3; 6px 8px 6px 16px x1; 64px 40px x1
+- transition durations: 0.3s, 0.3s x2; 0.3s x1
+- hex-in-text: copy #6750A4
+- dp values in text: 112dp, 24dp
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Variants | Configurations

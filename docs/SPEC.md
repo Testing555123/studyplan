@@ -230,3 +230,120 @@ v2.0 `daily_picks.postId` 是 `String` 弱引用（无外键、无 ref 校验）
 4. 根因层面：新项目（PG）用**外键强引用 + 事务**替代弱引用，不存在此缺陷类别——但「级联清理必须以主资源删除成功为前提」这条顺序约束仍写进规格。
 
 本条目恢复相关模块（每日推荐、互动）前无需实现，恢复时**必须先读本节**。
+
+## 9. 前端设计语言（M3 派生 · 第一批 T5 消费）
+
+> 事实来源：`docs/m3.material.io-full/design-full.md`——m3.material.io 官方站 28 个页面、浅色/暗色双主题、1440x900 桌面视口的计算样式采样（DOM 采样 9408 元素，暗色经 emulateMedia 切换并验证）。该文件是抽样参考而非官方品牌规范，本文将其提炼为**可验收**的设计契约。
+> 本章只定义规范，不改实现。`app/globals.css` 现行蓝色 palette（`--primary` ≈ #2563EB 等）由 T5 按本章整体替换；替换完成前本章令牌不生效。
+> 采样未覆盖项（hover/focus/disabled 状态、移动端断点、动效运行效果、调色板令牌色值）在对应位置标注「未验证」，实现后不得声称已通过。
+
+### 9.1 适用范围
+
+- 消费方：T5（UI 组件层：`components/ui/*` 与 `app/globals.css` 主题）及其后所有第一批前端页面。
+- 约束对象：颜色 token、字体排版档位、圆角与间距刻度、高度/阴影、动效、布局与重排策略。
+- 不约束：信息架构与页面模板（design-full.md 明示「围绕新读者任务组织内容，不照搬原站章节」，本项目自有页面结构不受原站模板约束）；图标库选型已定为 lucide-react（见 §9.4）。
+
+### 9.2 设计原则（五条）
+
+1. **双主题镜像色板，零例外**：所有表面/文字 token 成对定义浅色与暗色，主题切换后无未定义落色。品牌插画等图形可保持原色不反转，但界面表面必须镜像。
+2. **排版驱动识别**：display 96px 为正文 16px 的 6 倍；层级只走实测档位，不自造中间号。
+3. **扁平层级**：默认无阴影；层级靠表面色阶、文字色阶与反转深色块建立，不靠投影。
+4. **圆角/间距档位化**：所有取值必须来自 §9.5 档位表；圆角随组件尺寸分档，不统一取值。
+5. **动效克制**：时长只有 200/300ms 两档、单一 easing，且尊重 `prefers-reduced-motion`。
+
+### 9.3 色彩令牌（双主题成对）
+
+hex 实测值为**验收真值**；实现若用 oklch 等价表示（现行 `globals.css` 风格），不得改变实测色值。
+
+| 角色 | 浅色 | 暗色 | 对应 shadcn 变量 |
+| --- | --- | --- | --- |
+| 页面/卡片表面 | `#f8f1f6` | `#1c1b1d` | `--background`、`--card` |
+| 主文字 | `#1c1b1d` | `#e6e1e3` | `--foreground`、`--card-foreground`、`--popover-foreground` |
+| 次级文字 | `#4d4256` | `#cbc4cc` | `--muted-foreground` |
+| 强调/链接 | `#6442d6` | `#9f86ff` | `--primary`、`--accent-foreground`、`--ring` |
+| 导航搜索底/徽章底 | `#f1d3f9` | `#553f5d` | `--accent` |
+| 徽标/激活令牌按钮 | `#dcdaf5` 底 `#21182b` 字 | `#45455a` 底 `#e2e0fb` 字 | `--secondary` / `--secondary-foreground` |
+| 搜索输入 | `#ffffff` | `#0f0e0f` | `--popover` |
+| 视频/媒体框 | `#f5eff1` | `#323032` | `--muted` |
+| 主 CTA 暗色形态 | — | `#9f86ff` 底 + `#1a0056` 字 | `.dark` 下 `--primary` / `--primary-foreground`（唯一实心强调件） |
+
+派生与例外规则：
+
+- **描边不另造色**：`--border` / `--input` 由主文字色按 12%–15% 透明度派生（如 `color-mix(in oklab, var(--foreground) 14%, transparent)` 或同等 rgba），禁止自选灰色。
+- **functional 色不在 M3 采样内**：`--success` / `--warning` / `--destructive` 沿用项目现值（浅 `#16A34A` / `#F59E0B` / `#DC2626`，暗 `#22C55E` / `#FBBF24` / `#F87171`），本次不改，标注为「项目自有」。
+- **designTokens.colors.primary 是前景文字色（#4d4256）而非品牌强调色**（design-full.md 明示），品牌强调色只有 `#6442d6` / `#9f86ff` 一对。
+- **强调色使用纪律**：`#6442d6` / `#9f86ff` 只用于链接与唯一主 CTA；主 CTA 48px 全圆角、左右 48px 内边距、24px/32px 字（暗色为 `#9f86ff` 底 `#1a0056` 字）；禁止铺成大区块背景，禁止多个按钮同时实心紫，每屏实心强调件不超过 1 个。
+
+### 9.4 字体与排版
+
+- **字族唯一**：全站仅 Noto Sans SC 一族（D19 决策：放弃 Google Sans / Google Sans Text 拉丁识别，中文站优先）。`--font-sans` 与 `--font-heading` 均指向该族，禁止引入第二字族。
+- **档位表**（实测值，display 字重 475 为可变字体中间档，静态实现规范取 **500**）：
+
+| 层级 | 字号/行高 | 字重 | 用途 |
+| --- | --- | --- | --- |
+| display-xl | 96px / 96px | 500 | 首页与规范页主标题 |
+| display-lg | 57px / 64px | 500 | 章节标题 |
+| display-md | 28px / 36px | 500 | 小节标题 |
+| display-sm | 24px / 32px | 500 | 状态子标题、组件页次级标题 |
+| display-lg 降档 | 72px / 80px | 500 | 长标题降档（原站 advanced 页实证） |
+| lead | 22px / 30px | 400 | 章节导语 |
+| body | 16px / 24px | 400 | 正文 |
+| body-strong | 16px / 24px | 500 | 链接、导航项 |
+| label | 14px / 20px | 400 或 500 | 标签、h3 |
+
+- 层级关系：display-xl 96px 为 body 16px 的 6 倍；规格页内部用 57/28/24 三档区分页标题、小节、子标题。
+- **图标**：原站 Google Symbols 连字图标字体在 Web 项目不可直用，图标一律用 lucide-react（已装），24px 网格、线性风格。
+- 中文约束：不使用斜体，不添加额外 letter-spacing（实测无证据）。
+
+### 9.5 圆角与间距刻度
+
+圆角档位（全站实测 usage 聚合，映射 Tailwind v4 `--radius` 体系；18/28/40/48px 以独立 token 定义，**禁止任意值语法**如 `rounded-[13px]`）：
+
+| 档位 | 取值 | 典型用途 |
+| --- | --- | --- |
+| 0 | 0px | 章节区块容器 |
+| radius-xs | 4px | 小件：导航项、链接、小控件 |
+| radius-sm | 8px | 输入框等小元素 |
+| radius-md | 16px | 中等组件 |
+| radius-pill-sm | 18px | 分段导航胶囊 |
+| radius-lg | 24px | 卡片、thumbnail（`--radius` 基准） |
+| radius-xl | 28px | 规格页特殊件 |
+| radius-2xl | 32px | 中大件 |
+| radius-chip | 40px | 资源 chips |
+| radius-cta | 48px | 主 CTA 与大按钮 |
+| radius-full | 50% | 圆形图标按钮 |
+
+- `--radius: 24px` 为卡片基准，sm/md/lg/xl 按现行 calc 公式派生；档位外取值一律禁止。
+
+间距刻度（4px 基座，白名单：1/2/4/8/12/16/24/40/48/64px）：
+
+- 组件内边距档位（实测）：1px、2px、8px、16px、24px、12px、章节容器 64px 40px。
+- 官方 dp 参考（引用时标注来源页）：buttons 16/24/36/40dp、button-groups 32/18/48/2dp、app-bars 112/24dp、elevation 1/7/8dp、shape 20/32/48dp、spacing 8/12/24dp。
+- 刻度外随手值禁止（如 13px、37px）。
+
+### 9.6 高度、阴影与动效
+
+- **默认扁平**：卡片、面板、输入框、主 CTA 的 `box-shadow` 均为 `none`。
+- **唯一例外**：浮动控件（如暂停按钮）的一级 elevation——`rgba(0,0,0,0.3) 0 1px 2px 0` 叠加 `rgba(0,0,0,0.15) 0 1px 3px 1px`。
+- **动效**：时长 200ms / 300ms 两档；easing `cubic-bezier(0.2, 0, 0, 1)`；必须尊重 `prefers-reduced-motion`（降级为无动效或即时切换）。
+
+### 9.7 布局与重排
+
+- 4px 网格；内容容器宽度走档位（原站实证：双列约 584px、通栏约 1176px，本项目按需取用）。
+- **响应式策略：先重排（双列改单列）再缩字**；窄屏不得把正文缩到 16px 以下。
+- 不照搬原站 88px 图标导航栏等页面模板；本项目侧栏等自有信息架构由页面任务决定，但其表面/文字 token 仍走 §9.3。
+
+### 9.8 验收条目
+
+体例对齐 §5 不变量表：每条都有可执行的验收方式，T5 逐条勾选。
+
+| # | 不变量 | 验收方式 |
+| --- | --- | --- |
+| F1 | `:root` 与 `.dark` 中同一颜色 token 成对定义，主题切换无未定义落色 | 确定性检查：脚本或测试断言 `.dark` 块包含 `:root` 全部颜色 token 名 |
+| F2 | 全站 `font-family` 仅 Noto Sans SC 一族；正文 16px/24px | grep `globals.css` 与组件样式：无第二字族声明 |
+| F3 | 每屏实心强调件 ≤1；紫色不铺大区块背景 | 代码评审 + e2e 抽查关键页面 |
+| F4 | 圆角取值全部来自 §9.5 档位表 | 评审/lint：无 `rounded-[…]` 任意值，token 名在白名单内 |
+| F5 | 间距取值全部来自 4px 基座白名单 | 评审：Tailwind 间距类不出现刻度外随手值 |
+| F6 | 卡片/面板 `box-shadow: none`；阴影仅浮动控件一级 elevation | grep 样式表 + 评审 |
+| F7 | 文字对比度 ≥ 4.5:1（双主题均验）；保留 Skip to main content、图标按钮 `aria-label` | 对比度检查（axe 或同等工具）+ 键盘走查 |
+| F8 | 动效仅 200/300ms 两档且尊重 `prefers-reduced-motion` | grep `transition` / `animate` 声明 + 评审 |

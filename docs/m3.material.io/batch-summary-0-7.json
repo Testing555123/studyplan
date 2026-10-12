@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "home",
+    "url": "https://m3.material.io/",
+    "title": "Material Design 3 - Google's latest open source design system",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  },
+  {
+    "slug": "styles",
+    "url": "https://m3.material.io/styles",
+    "title": "Styles - Material Design 3 - Browse color, shape, typography, and more",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  },
+  {
+    "slug": "styles-color-system-overview",
+    "url": "https://m3.material.io/styles/color/system/overview",
+    "title": "Color - Material Design 3 - Create personal color schemes",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  },
+  {
+    "slug": "styles-color-roles",
+    "url": "https://m3.material.io/styles/color/roles",
+    "title": "Color roles - Material Design 3",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  },
+  {
+    "slug": "styles-color-static",
+    "url": "https://m3.material.io/styles/color/static",
+    "title": "Dynamic color - Material Design 3",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  },
+  {
+    "slug": "styles-color-dynamic",
+    "url": "https://m3.material.io/styles/color/dynamic",
+    "title": "Dynamic color - Material Design 3",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  },
+  {
+    "slug": "styles-color-advanced",
+    "url": "https://m3.material.io/styles/color/advanced",
+    "title": "Advanced color customizations – Material Design 3",
+    "light": null,
+    "dark": null,
+    "error": "Cannot read properties of undefined (reading 'container')"
+  }
+]

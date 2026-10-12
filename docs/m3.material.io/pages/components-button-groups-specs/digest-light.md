@@ -1,0 +1,13 @@
+### components-button-groups-specs [light]
+- title: Button groups
+- url: https://m3.material.io/components/button-groups/specs
+- headings: h1:Button groups | h2:Button groups | h2:Variants | h2:Configurations | h2:Tokens & specs | h2:Anatomy | h3:Common layouts | h3:Color | h2:Selection & activation | h2:States | h3:Standard button group | h3:Connected button group | h2:Measurements | h3:Standard button group
+- bg colors: #f8f1f6 x13 (a.overline); #f1d3f9 x3 (a.section-fab.section-menu.ng-star-inserted); #dcdaf5 x2 (button.mat-mdc-menu-trigger.active-token-set-butto); #ffffff x1 (input.mat-mdc-autocomplete-trigger.search-input)
+- text colors: #4d4256 x135 (h3); #1c1b1d x98 (h1); #6442d6 x25 (a); #1f1f1f x21 (body.ng-tns-0-1); #21182b x1 (button.mat-mdc-menu-trigger.active-token-set-butto)
+- typography: Google Sans Text 16px/24px w400 x112 (body); Google Sans Text 14px/20px w400 x62 (a); Google Sans Text 16px/24px w500 x35 (a); Google Symbols 24px/24px w400 x21 (div); Google Sans Text 14px/20px w500 x19 (h3); Google Sans 57px/64px w475 x8 (h2); Google Sans 28px/36px w475 x7 (h3); Arial 24px/normal w400 x5 (button); Google Sans Text 16px/44px w500 x4 (a); Arial 13.3333px/normal w400 x2 (button); Arial 13.3333px/40px w400 x2 (button); Google Sans 96px/96px w475 x1 (h1)
+- radius: 4px x40; 24px x23; 18px x8; 50% x7; 40px x4; 16px x1; 8px x1; 28px x1
+- padding: 1px x25; 16px 24px x25; 8px 16px x9; 2px x8; 8px x5; 0px 24px x4; 2px 8px 2px 12px x1; 1px 48px x1; 64px 40px x1
+- shadows (2): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x23; 0.3s, 0.3s x2; 0.3s x1
+- dp values in text: 32dp, 18dp, 48dp, 2dp
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Variants | Configurations

@@ -1,0 +1,198 @@
+[
+  {
+    "slug": "styles-shape-overview-principles",
+    "url": "https://m3.material.io/styles/shape/overview-principles",
+    "title": "Shape - Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 9974
+    },
+    "light": {
+      "sampled": 201,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 201,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-motion-overview",
+    "url": "https://m3.material.io/styles/motion/overview",
+    "title": "Motion – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 9106
+    },
+    "light": {
+      "sampled": 248,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 248,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-motion-easing-and-duration",
+    "url": "https://m3.material.io/styles/motion/easing-and-duration",
+    "title": "Easing and duration – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 6993
+    },
+    "light": {
+      "sampled": 190,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 190,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-elevation-overview",
+    "url": "https://m3.material.io/styles/elevation/overview",
+    "title": "Elevation – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 4670
+    },
+    "light": {
+      "sampled": 166,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 166,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-spacing",
+    "url": "https://m3.material.io/styles/spacing",
+    "title": "Spacing - Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 6512
+    },
+    "light": {
+      "sampled": 199,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 199,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-icons-overview",
+    "url": "https://m3.material.io/styles/icons/overview",
+    "title": "Icons – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 4177
+    },
+    "light": {
+      "sampled": 135,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 135,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "foundations",
+    "url": "https://m3.material.io/foundations",
+    "title": "Foundations - Material Design 3 - Learn the basics of Material",
+    "scroll": {
+      "container": ".page-content",
+      "range": 2082
+    },
+    "light": {
+      "sampled": 81,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 81,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  }
+]

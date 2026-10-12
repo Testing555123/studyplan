@@ -1,0 +1,12 @@
+### styles-icons-overview [dark]
+- title: Icons – Material Design 3
+- url: https://m3.material.io/styles/icons/overview
+- headings: h1:Icons | h2:Icons | h2:Resources | h2:What's new | h3:Copy & paste customized Material Symbols | h3:Material Symbols | h3:Adjustable axes | h3:Material Symbols Figma plugin | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #1c1b1d x8 (a.overline); #553f5d x3 (a.section-fab.section-menu.ng-star-inserted); #323032 x2 (video)
+- text colors: #e6e1e3 x47 (h2#isPasted); #cbc4cc x47 (h3); #9f86ff x24 (a); #1f1f1f x17 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w400 x58 (body); Google Sans Text 16px/24px w500 x31 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x9 (div); Google Sans Text 14px/20px w400 x5 (a); Google Sans 28px/36px w475 x4 (h3); Google Sans Text 16px/44px w500 x3 (a); Google Sans 57px/64px w475 x2 (h2); Arial 13.3333px/40px w400 x2 (button); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x33; 24px x11; 40px x3; 50% x2; 18px x2; 32px x2; 16px x1
+- padding: 1px x24; 16px 24px x10; 2px x8; 0px 24px x3; 8px 16px x2; 64px 40px x1
+- shadows (2): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x11; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Overview | Designing icons | Applying icons | Resources | What's new | arrow_left_alt PreviousElevation: Overvi

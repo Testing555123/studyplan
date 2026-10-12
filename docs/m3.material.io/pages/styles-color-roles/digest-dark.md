@@ -1,0 +1,12 @@
+### styles-color-roles [dark]
+- title: Color roles - Material Design 3
+- url: https://m3.material.io/styles/color/roles
+- headings: h1:Color roles | h2:Color roles | h2:What are color roles? | h2:General concepts | h3:Pairing and layering colors | h2:Accent color roles | h2:Primary | h2:Secondary | h2:Tertiary | h2:Error | h2:Surface | h3:Inverse colors | h2:Outline | h2:Add-on color roles
+- bg colors: #553f5d x3 (a.section-fab.section-menu.ng-star-inserted); #1c1b1d x2 (a.overline)
+- text colors: #cbc4cc x121 (h3); #e6e1e3 x116 (h2); #1f1f1f x22 (body.ng-tns-0-1.dark-mode); #9f86ff x21 (a)
+- typography: Google Sans Text 16px/24px w400 x160 (body); Google Sans Text 14px/20px w400 x34 (a); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Sans Text 14px/20px w700 x12 (li); Google Sans 57px/64px w475 x10 (h2); Google Symbols 24px/24px w400 x8 (div); Google Sans 28px/36px w475 x5 (h3); Arial 13.3333px/40px w400 x2 (button); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x38; 24px x10; 18px x10; 50% x2; 16px x1
+- padding: 1px x21; 8px 16px x10; 2px x8; 64px 40px x1
+- shadows (2): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x10; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | What are color roles? | General concepts | Accent color roles | Primary | Secondary | Tertiary

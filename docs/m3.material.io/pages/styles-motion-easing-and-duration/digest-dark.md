@@ -1,0 +1,12 @@
+### styles-motion-easing-and-duration [dark]
+- title: Easing and duration – Material Design 3
+- url: https://m3.material.io/styles/motion/easing-and-duration/applying-easing-and-duration
+- headings: h1:Easing and duration | h2:Easing and duration | h2:Suggested easing and duration pairs | h2:Easing | h3:Choosing an easing set | h3:Choosing an easing type | h4:Begin and end on screen | h4:Enter the screen | h4:Exit the screen permanently | h4:Exit the screen temporarily | h2:Duration | h3:Choosing a duration | h4:Transition size | h4:Enter vs. exit transitions
+- bg colors: #553f5d x14 (a.section-fab.section-menu.ng-star-inserted); #323032 x13 (video); #1c1b1d x4 (a.overline)
+- text colors: #e6e1e3 x87 (h2#isPasted); #cbc4cc x64 (h3); #9f86ff x20 (a); #1f1f1f x18 (body.ng-tns-0-1.dark-mode); #e7deff x1 (a)
+- typography: Google Sans Text 16px/24px w400 x84 (body); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x20 (h3); Google Symbols 24px/24px w400 x18 (div); Arial 13.3333px/40px w400 x13 (button); Google Sans Text 14px/20px w400 x11 (a); Google Sans 24px/32px w475 x7 (h4); Google Sans 57px/64px w475 x3 (h2); Google Sans 28px/36px w475 x3 (h3); Google Sans Text 16px/44px w500 x2 (a); Google Sans 96px/96px w475 x1 (h1)
+- radius: 4px x31; 24px x20; 50% x13; 18px x3; 40px x2; 32px x2; 16px x1
+- padding: 1px x21; 16px 24px x21; 2px x8; 8px 16px x3; 0px 24px x2; 64px 40px x1
+- shadows (13): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x31; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Applying easing and duration | Tokens & specs | Suggested easing and duration pairs | Easing | Duration | arrow_left_alt PreviousMotion physics sy

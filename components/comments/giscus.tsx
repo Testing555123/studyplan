@@ -70,7 +70,7 @@ export function EbookCommentsSlot({ slug }: { slug: string }) {
       ref={containerRef}
       data-ebook-comments={slug}
       aria-label="章节评论"
-      className="mt-12 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl"
+      className="mt-12 rounded-lg border border-outline-variant bg-surface-container-high p-6"
     />
   )
 }

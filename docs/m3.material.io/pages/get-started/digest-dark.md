@@ -1,0 +1,12 @@
+### get-started [dark]
+- title: Get started with Modern UI design - Material Design 3
+- url: https://m3.material.io/get-started
+- headings: h1:Get Started | h2:What's Material? | h2:What's Material 3 Expressive? | h2:Using Material | h2:Design | h2:Develop | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #1c1b1d x21 (a); #553f5d x6 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #e6e1e3 x49 (h2.ng-tns-c32-2); #cbc4cc x32 (h3); #9f86ff x20 (a); #1f1f1f x4 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w500 x49 (a); Google Sans Text 16px/24px w400 x25 (body); Google Sans Text 14px/20px w500 x19 (h3); Google Sans 57px/64px w475 x5 (h2); Arial 13.3333px/40px w400 x5 (button); Google Sans 96px/96px w475 x1 (h1); Google Sans Text 22px/30px w400 x1 (p)
+- radius: 4px x27; 24px x21; 50% x5; 32px x2; 16px x1
+- padding: 1px x20; 2px x8; 64px 40px x1
+- shadows (5): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.3s, 0.3s x21; 0.2s x5; 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog

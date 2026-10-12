@@ -1,0 +1,5 @@
+# 行尾规范化：容器内运行的 shell 脚本与 supervisord 配置必须是 LF。
+# Windows 检出（core.autocrlf=true）会把它们变成 CRLF，导致 sh 报
+# "set: illegal option"、supervisord 解析失败——故在此显式锁定 eol=lf。
+*.sh text eol=lf
+**/supervisord.conf text eol=lf

@@ -1,0 +1,12 @@
+### styles-typography-overview [dark]
+- title: Typography – Material Design 3
+- url: https://m3.material.io/styles/typography/overview
+- headings: h1:Typography | h2:Typography | h2:Availability & resources | h2:Updates | h3:Language script height support | h2:M3 Expressive update | h3:Updated M3 type scale with emphasized styles | h3:Emphasized type style tokens | h3:Google Design: Making Google Sans Flex | h2:Previous updates | h3:Variable fonts | h3:Style roles | h3:Social | h3:Libraries
+- bg colors: #1c1b1d x10 (a.overline); #553f5d x2 (a.section-fab.section-menu.ng-star-inserted); #323032 x1 (video)
+- text colors: #e6e1e3 x94 (h2); #cbc4cc x51 (h3); #9f86ff x30 (a); #1f1f1f x19 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w400 x108 (body); Google Sans Text 16px/24px w500 x31 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x14 (div); Google Sans 28px/36px w475 x6 (h3); Google Sans Text 16px/44px w500 x5 (a); Google Sans 57px/64px w475 x4 (h2); Google Sans Text 14px/20px w400 x4 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2); Arial 13.3333px/40px w400 x1 (button)
+- radius: 4px x41; 24px x16; 40px x5; 18px x4; 32px x2; 16px x1; 50% x1
+- padding: 1px x30; 16px 24px x23; 2px x8; 0px 24px x5; 8px 16px x4; 64px 40px x1
+- shadows (1): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x15; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Overview | Fonts | Type scale & tokens | Applying type | Editorial treatments | Availability & resources

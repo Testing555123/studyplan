@@ -1,0 +1,11 @@
+### styles [dark]
+- title: Styles - Material Design 3 - Browse color, shape, typography, and more
+- url: https://m3.material.io/styles
+- headings: h1:Styles | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #1c1b1d x6 (a.thumbnail); #553f5d x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #cbc4cc x33 (h3); #9f86ff x18 (a); #e6e1e3 x13 (h1); #1f1f1f x12 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w500 x32 (a); Google Sans Text 16px/24px w400 x24 (body); Google Sans Text 14px/20px w500 x19 (h3); Google Sans 96px/96px w475 x1 (h1)
+- radius: 4px x25; 24px x6; 32px x2; 16px x1
+- padding: 1px x18; 2px x8; 64px 40px x1
+- transition durations: 0.3s, 0.3s x6; 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog

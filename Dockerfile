@@ -81,6 +81,9 @@ RUN addgroup -S nodejs \
   && mkdir -p /app/.model-cache /app/public \
   && chown -R nextjs:nodejs /app/.model-cache /app/public
 
+# 嵌入代理服务需要 supervisord 托管双进程（next + embed-proxy）。
+RUN apk add --no-cache supervisor
+
 EXPOSE 3000
 
 # ---------- runner: space（HF Spaces 单容器：PG + Next 同机） ----------
@@ -167,11 +170,26 @@ COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
 # space 形态的同机编排（standalone 形态下不参与启动，无副作用）。
 COPY --from=builder /app/docker ./docker
 
+# 嵌入代理服务（services/embed-proxy，Express + TypeScript）：
+# 在 runner 内现场构建（两形态均带 node+npm；受限网络环境可改为 COPY 预构建产物）。
+# 只 COPY 构建所需源文件，node_modules/dist 不进上下文（见 .dockerignore）。
+COPY --from=builder /app/services/embed-proxy/package.json ./services/embed-proxy/package.json
+COPY --from=builder /app/services/embed-proxy/package-lock.json ./services/embed-proxy/package-lock.json
+COPY --from=builder /app/services/embed-proxy/tsconfig.json ./services/embed-proxy/tsconfig.json
+COPY --from=builder /app/services/embed-proxy/src ./services/embed-proxy/src
+# 全量安装（runner 阶段 NODE_ENV=production 会跳过 devDependencies，故显式 --include=dev
+# 带上 typescript）→ 构建 → 剪掉 devDependencies，控制运行镜像体积。
+RUN cd services/embed-proxy \
+  && npm ci --include=dev \
+  && npm run build \
+  && npm prune --omit=dev
+
 # Next 运行期会写 .next/cache（ISR/fetch cache），必须给运行用户写权限。
 RUN mkdir -p /app/.next/cache \
   && chown -R nextjs /app/.next /app/.model-cache /app/public \
   && chmod +x ./docker-entrypoint.sh \
-  && chmod +x ./docker/space/*.sh
+  && chmod +x ./docker/space/*.sh \
+  && chmod +x ./docker/standalone/*.sh
 
 USER nextjs
 

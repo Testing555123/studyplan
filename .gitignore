@@ -35,3 +35,6 @@ cache/
 
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# 临时验证脚本/截图（不入库）
+.tmp-*

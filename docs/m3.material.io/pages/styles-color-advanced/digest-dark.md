@@ -1,0 +1,11 @@
+### styles-color-advanced [dark]
+- title: Advanced color customizations – Material Design 3
+- url: https://m3.material.io/styles/color/advanced/overview
+- headings: h1:Advanced customizations | h2:Advanced customizations | h2:Apply colors | h2:Define new colors | h2:Adjust existing colors | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #1c1b1d x6 (a.overline); #553f5d x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #cbc4cc x37 (h3); #9f86ff x25 (a); #e6e1e3 x24 (h1); #1f1f1f x18 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w400 x40 (body); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x5 (div); Google Sans Text 16px/44px w500 x4 (a); Google Sans 57px/64px w475 x3 (h2); Google Sans Text 14px/20px w400 x3 (a); Google Sans 72px/80px w475 x1 (h1); Google Sans Text 22px/30px w400 x1 (h2)
+- radius: 4px x35; 24px x7; 40px x4; 18px x3; 32px x2; 16px x1
+- padding: 1px x25; 2px x8; 0px 24px x4; 8px 16px x3; 64px 40px x1
+- transition durations: 0.2s x5; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Overview | Apply colors | Define new colors | Adjust existing colors | Apply colors | Define new colors

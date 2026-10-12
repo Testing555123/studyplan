@@ -1,0 +1,198 @@
+[
+  {
+    "slug": "develop",
+    "url": "https://m3.material.io/develop",
+    "title": "Develop with Material Design 3 for Android & Web",
+    "scroll": {
+      "container": ".page-content",
+      "range": 2548
+    },
+    "light": {
+      "sampled": 82,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 82,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "get-started",
+    "url": "https://m3.material.io/get-started",
+    "title": "Get started with Modern UI design - Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 5224
+    },
+    "light": {
+      "sampled": 105,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 105,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components",
+    "url": "https://m3.material.io/components",
+    "title": "Components – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 6242
+    },
+    "light": {
+      "sampled": 153,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 153,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-buttons-overview",
+    "url": "https://m3.material.io/components/buttons/overview",
+    "title": "Buttons – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 4142
+    },
+    "light": {
+      "sampled": 180,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 180,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-buttons-specs",
+    "url": "https://m3.material.io/components/buttons/specs",
+    "title": "Buttons – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 21855
+    },
+    "light": {
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-cards-overview",
+    "url": "https://m3.material.io/components/cards/overview",
+    "title": "Cards – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 2416
+    },
+    "light": {
+      "sampled": 134,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 134,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-cards-specs",
+    "url": "https://m3.material.io/components/cards/specs",
+    "title": "Cards – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 9046
+    },
+    "light": {
+      "sampled": 194,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 194,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  }
+]

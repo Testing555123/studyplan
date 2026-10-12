@@ -1,0 +1,13 @@
+### styles-shape-overview-principles [light]
+- title: Shape - Material Design 3
+- url: https://m3.material.io/styles/shape/overview-principles
+- headings: h1:Shape | h2:Shape | h2:Availability & resources | h2:M3 Expressive update | h2:Shape library | h2:Use shapes and text in harmony | h2:Morph shapes to connect function and feeling | h2:Be bold and dare to embrace tension | h2:Shape is versatile, not semantic | h2:Use abstract shapes sparingly | h2:Emphasize aesthetic moments with shape | h2:Shape can be 2.5D | h3:Social | h3:Libraries
+- bg colors: #f8f1f6 x8 (a.overline); #f1d3f9 x7 (a.section-fab.section-menu.ng-star-inserted); #f5eff1 x6 (video)
+- text colors: #1c1b1d x86 (h2); #4d4256 x65 (h3); #1f1f1f x25 (body.ng-tns-0-1); #6442d6 x25 (a)
+- typography: Google Sans Text 16px/24px w400 x104 (body); Google Sans Text 16px/24px w500 x31 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x16 (div); Google Sans 57px/64px w475 x10 (h2); Google Sans Text 14px/20px w400 x10 (a); Arial 13.3333px/40px w400 x6 (button); Google Sans Text 16px/44px w500 x3 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x42; 24px x18; 18px x10; 50% x6; 40px x3; 32px x2; 16px x1
+- padding: 1px x25; 16px 24px x11; 8px 16px x10; 2px x8; 0px 24px x3; 64px 40px x1
+- shadows (6): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x22; 0.3s x3; 0.3s, 0.3s x2
+- dp values in text: 20dp, 32dp, 48dp
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Overview & principles | Corner radius scale | Shape morph | Availability & resources | M3 Expressive update | Shape library

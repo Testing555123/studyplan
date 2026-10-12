@@ -1,6 +1,6 @@
 import { ExternalLink, Star, GitFork, GraduationCap } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/m3e/badge'
+import { Card, CardContent } from '@/components/m3e/card'
 import { cn } from '@/lib/utils'
 import type { TrendingRepo } from '@/lib/db/schema/github'
 
@@ -12,8 +12,7 @@ export function RepoRow({ repo }: { repo: TrendingRepo }) {
   return (
     <Card
       className={cn(
-        'border-border/60 bg-card/60 backdrop-blur transition-all duration-300',
-        'hover:-translate-y-0.5 hover:border-primary/40',
+        'rounded-lg transition-colors hover:bg-surface-container-high',
       )}
     >
       <CardContent className="p-4">
@@ -24,12 +23,12 @@ export function RepoRow({ repo }: { repo: TrendingRepo }) {
             rel="noopener noreferrer"
             className="group/min0 min-w-0 flex-1"
           >
-            <p className="flex items-center gap-1.5 font-semibold text-foreground transition-colors group-hover/min0:text-primary">
+            <p className="flex items-center gap-1.5 font-medium text-on-surface transition-colors group-hover/min0:text-primary">
               <span className="truncate">{repo.fullName}</span>
-              <ExternalLink className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover/min0:-translate-y-0.5 group-hover/min0:translate-x-0.5" />
+              <ExternalLink className="size-3.5 shrink-0 text-on-surface-variant transition-colors group-hover/min0:text-primary" />
             </p>
             {repo.description ? (
-              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{repo.description}</p>
+              <p className="mt-1 line-clamp-2 text-body-medium text-on-surface-variant">{repo.description}</p>
             ) : null}
           </a>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -37,11 +36,11 @@ export function RepoRow({ repo }: { repo: TrendingRepo }) {
               <Badge variant="secondary">{repo.language}</Badge>
             ) : null}
             <Badge variant="outline">
-              <Star className="size-3 text-amber-500" />
+              <Star className="size-3 text-warning" />
               {formatStars(repo.stargazersCount)}
             </Badge>
             <Badge variant="outline" className="hidden sm:inline-flex">
-              <GitFork className="size-3 text-muted-foreground" />
+              <GitFork className="size-3 text-on-surface-variant" />
               {formatStars(repo.forksCount)}
             </Badge>
           </div>
@@ -49,7 +48,7 @@ export function RepoRow({ repo }: { repo: TrendingRepo }) {
         {repo.relatedStageSlug ? (
           <a
             href={`/ebook/${repo.relatedStageSlug}`}
-            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
+            className="mt-2 inline-flex items-center gap-1 text-label-small font-medium text-primary underline-offset-4 hover:underline"
           >
             <GraduationCap className="size-3.5" />
             相关课程：{repo.relatedStageTitle ?? repo.relatedStageSlug}

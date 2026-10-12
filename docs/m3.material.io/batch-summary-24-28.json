@@ -1,0 +1,114 @@
+[
+  {
+    "slug": "components-app-bars-overview",
+    "url": "https://m3.material.io/components/app-bars/overview",
+    "title": "Top app bar – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 4596
+    },
+    "light": {
+      "sampled": 176,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 176,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-app-bars-specs",
+    "url": "https://m3.material.io/components/app-bars/specs",
+    "title": "Top app bar – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 21108
+    },
+    "light": {
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-button-groups-overview",
+    "url": "https://m3.material.io/components/button-groups/overview",
+    "title": "Button groups",
+    "scroll": {
+      "container": ".page-content",
+      "range": 2849
+    },
+    "light": {
+      "sampled": 133,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 133,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "components-button-groups-specs",
+    "url": "https://m3.material.io/components/button-groups/specs",
+    "title": "Button groups",
+    "scroll": {
+      "container": ".page-content",
+      "range": 12839
+    },
+    "light": {
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  }
+]

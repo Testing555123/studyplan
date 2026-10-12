@@ -1,0 +1,11 @@
+### components-cards-specs [light]
+- title: Cards – Material Design 3
+- url: https://m3.material.io/components/cards/specs
+- headings: h1:Cards | h2:Cards | h2:Tokens & specs | h2:Elevated card | h3:Elevated card color | h3:Elevated card states | h2:Filled card | h3:Filled card color | h3:Filled card states | h2:Outlined card | h3:Outlined card color | h3:Outlined card states | h2:Measurements | h3:Social
+- bg colors: #f8f1f6 x14 (a.overline); #dcdaf5 x2 (button.mat-mdc-menu-trigger.active-token-set-butto); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted); #ffffff x1 (input.mat-mdc-autocomplete-trigger.search-input)
+- text colors: #1c1b1d x76 (h2); #4d4256 x73 (h3); #6442d6 x24 (a#isPasted); #1f1f1f x20 (body.ng-tns-0-1); #21182b x1 (button.mat-mdc-menu-trigger.active-token-set-butto)
+- typography: Google Sans Text 16px/24px w400 x58 (body); Google Sans Text 16px/24px w500 x30 (a); Google Sans Text 14px/20px w400 x28 (a); Google Symbols 24px/24px w400 x23 (div); Google Sans Text 14px/20px w500 x19 (h3); Arial 24px/normal w400 x15 (button); Google Sans 28px/36px w475 x6 (h3); Google Sans 57px/64px w475 x5 (h2); Google Sans Text 16px/44px w500 x4 (a); Arial 13.3333px/normal w400 x2 (button); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x36; 24px x25; 50% x15; 18px x5; 40px x4; 32px x3; 8px x2; 16px x1
+- padding: 1px x24; 8px x15; 16px 24px x10; 2px x8; 8px 16px x6; 0px 24px x4; 6px 8px 6px 16px x1; 2px 8px 2px 12px x1; 1px 48px x1; 64px 40px x1
+- transition durations: 0.2s x23; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Tokens & specs | Elevated card

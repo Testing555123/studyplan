@@ -1,8 +1,9 @@
 #!/bin/sh
 # StudyPlan 容器启动入口（双形态分派，见 Dockerfile 的 RUNTIME_FLAVOR）：
-#   standalone（默认）：先校验生产环境变量、再迁移数据库、最后启动服务（PG 由外部服务承载）。
+#   standalone（默认）：转交 supervisord 托管双进程（next + embed-proxy）；
+#     原「校验环境变量 → 迁移 → 起服务」逻辑迁至 docker/standalone/start-next.sh。
 #   space：转交 docker/space/entrypoint-space.sh（同机起 PG → 恢复备份 → 迁移 → 起 Web）。
-# 使用 exec 让被启动的进程接管 PID 1，正确接收终止信号（SIGTERM 等）。
+# supervisord 以 nodaemon 运行并接管 PID 1，正确接收终止信号（SIGTERM 等）。
 set -e
 
 if [ "${RUNTIME_FLAVOR:-standalone}" = "space" ]; then
@@ -10,11 +11,5 @@ if [ "${RUNTIME_FLAVOR:-standalone}" = "space" ]; then
   exec sh /app/docker/space/entrypoint-space.sh "$@"
 fi
 
-echo "==> 校验生产环境变量"
-node scripts/check-env.mjs
-
-echo "==> 执行数据库迁移（幂等）"
-node scripts/migrate.mjs
-
-echo "==> 启动 Next standalone 服务"
-exec node server.js
+echo "==> 启动 supervisord（next + embed-proxy）"
+exec supervisord -c /app/docker/standalone/supervisord.conf

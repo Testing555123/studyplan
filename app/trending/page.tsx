@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Flame, Sparkles, KeyRound, RefreshCw } from 'lucide-react'
 import { getSession } from '@/lib/auth/session'
 import { SiteNav } from '@/components/site/site-nav'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/m3e/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/m3e/card'
 import { RepoList } from '@/components/trending/repo-list'
 import { getTrendingCached } from '@/lib/github/trending'
 import { buildDigestFromSnapshot } from '@/lib/digest/build'
@@ -37,19 +37,19 @@ export default async function TrendingPage() {
         }
       />
 
-      <main className="mx-auto max-w-4xl px-4 py-10">
+      <main id="main-content" className="mx-auto max-w-4xl px-4 py-10">
         <header className="mb-8 flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-card bg-primary/10 text-primary">
+          <span className="grid size-10 place-items-center rounded-card bg-secondary-container text-on-secondary-container">
             <Flame className="size-5" />
           </span>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">GitHub 热门</h1>
-            <p className="text-sm text-muted-foreground">每天更新的高分新项目，附相关课程标注</p>
+            <h1 className="text-headline-small font-medium">GitHub 热门</h1>
+            <p className="text-body-medium text-on-surface-variant">每天更新的高分新项目，附相关课程标注</p>
           </div>
         </header>
 
         {!snapshot.configured ? (
-          <Card className="border-dashed">
+          <Card variant="outlined" className="border-dashed">
             <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
               <KeyRound className="size-8 text-muted-foreground" />
               <p className="font-medium">尚未配置 GITHUB_TOKEN</p>
@@ -59,7 +59,7 @@ export default async function TrendingPage() {
             </CardContent>
           </Card>
         ) : snapshot.repos.length === 0 ? (
-          <Card className="border-dashed">
+          <Card variant="outlined" className="border-dashed">
             <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
               <RefreshCw className="size-8 text-muted-foreground" />
               <p className="font-medium">今日快照暂未生成</p>
@@ -71,7 +71,7 @@ export default async function TrendingPage() {
         ) : (
           <>
             {/* 每日精选导读卡 */}
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card/60 to-card/60 backdrop-blur">
+            <Card variant="filled" className="rounded-lg">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -86,13 +86,13 @@ export default async function TrendingPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-relaxed text-foreground/90">{digest.text}</p>
+                <p className="text-body-large leading-relaxed text-on-surface">{digest.text}</p>
               </CardContent>
             </Card>
 
             {/* 仓库列表 */}
             <section className="mt-6">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              <h2 className="mb-3 text-label-large font-medium uppercase tracking-wide text-on-surface-variant">
                 收录项目（{digest.count}）
               </h2>
               <RepoList repos={snapshot.repos} />

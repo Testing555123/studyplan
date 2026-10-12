@@ -1,0 +1,12 @@
+### styles-color-choosing-a-scheme [light]
+- title: Choosing a color scheme – Material Design 3
+- url: https://m3.material.io/styles/color/choosing-a-scheme
+- headings: h1:Choosing a scheme | h2:Choosing a scheme | h2:Static color | h3:Use static (baseline) color if | h2:Dynamic color | h3:Use dynamic color if | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x2 (a.overline); #f1d3f9 x2 (a.section-fab.section-menu.ng-star-inserted); #f5eff1 x1 (video)
+- text colors: #1c1b1d x50 (h1); #4d4256 x35 (h3); #6442d6 x20 (a); #1f1f1f x16 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x56 (body); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x9 (div); Google Sans 57px/64px w475 x2 (h2); Google Sans 28px/36px w475 x2 (h3); Google Sans Text 14px/20px w400 x2 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2); Arial 13.3333px/40px w400 x1 (button)
+- radius: 4px x29; 24px x11; 18px x2; 32px x2; 16px x1; 50% x1
+- padding: 1px x20; 2px x8; 8px 16px x2; 64px 40px x1
+- shadows (1): button#btnToggleVideo: rgba(0, 0, 0, 0.3) 0px 1px 2px 0px, rgba(0, 0, 0, 0.15) 0px 1px 3px 1px
+- transition durations: 0.2s x10; 0.3s, 0.3s x2; 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Static color | Dynamic color | arrow_left_alt PreviousColor roles | Up next arrow_right_altStatic: Baseline

@@ -1,0 +1,11 @@
+### components-cards-overview [light]
+- title: Cards – Material Design 3
+- url: https://m3.material.io/components/cards/overview
+- headings: h1:Cards | h2:Cards | h2:Availability & resources | h2:Differences from M2 | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x9 (a.overline); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted); #dcdaf5 x1 (div.badge-list)
+- text colors: #4d4256 x55 (h3); #1c1b1d x40 (h2); #6442d6 x22 (a.platform-text.link); #1f1f1f x17 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x47 (body); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x22 (h3); Google Sans Text 14px/20px w400 x18 (a); Google Symbols 24px/24px w400 x6 (div); Google Sans Text 16px/44px w500 x4 (a); Google Sans Text 14px/24px w500 x4 (a); Google Sans 57px/64px w475 x2 (h2); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2); Google Sans 14px/20px w400 x1 (div)
+- radius: 4px x31; 24px x8; 40px x4; 32px x3; 18px x2; 16px x1
+- padding: 1px x22; 12px x15; 2px x8; 0px 24px x4; 8px 16px x3; 64px 40px x1
+- transition durations: 0.2s x6; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Availability & resources | Differences from M2

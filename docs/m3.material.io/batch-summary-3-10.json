@@ -1,0 +1,198 @@
+[
+  {
+    "slug": "styles-color-roles",
+    "url": "https://m3.material.io/styles/color/roles",
+    "title": "Color roles - Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 21503
+    },
+    "light": {
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 280,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-color-static",
+    "url": "https://m3.material.io/styles/color/static",
+    "title": "Dynamic color - Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 5245
+    },
+    "light": {
+      "sampled": 169,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 169,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-color-dynamic",
+    "url": "https://m3.material.io/styles/color/dynamic",
+    "title": "Dynamic color - Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 3558
+    },
+    "light": {
+      "sampled": 115,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 115,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-color-advanced",
+    "url": "https://m3.material.io/styles/color/advanced",
+    "title": "Advanced color customizations – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 2509
+    },
+    "light": {
+      "sampled": 104,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 104,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-color-choosing-a-scheme",
+    "url": "https://m3.material.io/styles/color/choosing-a-scheme",
+    "title": "Choosing a color scheme – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 4039
+    },
+    "light": {
+      "sampled": 121,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 121,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-color-resources",
+    "url": "https://m3.material.io/styles/color/resources",
+    "title": "Color resources – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 1407
+    },
+    "light": {
+      "sampled": 86,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 86,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  },
+  {
+    "slug": "styles-typography-overview",
+    "url": "https://m3.material.io/styles/typography/overview",
+    "title": "Typography – Material Design 3",
+    "scroll": {
+      "container": ".page-content",
+      "range": 5721
+    },
+    "light": {
+      "sampled": 194,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(241, 211, 249)",
+        "bodyClass": "ng-tns-0-1",
+        "prefersDark": false
+      }
+    },
+    "dark": {
+      "switched": true,
+      "sampled": 194,
+      "diagnostics": [],
+      "sample": {
+        "opaqueBg": "rgb(85, 63, 93)",
+        "bodyClass": "ng-tns-0-1 dark-mode",
+        "prefersDark": true
+      }
+    }
+  }
+]

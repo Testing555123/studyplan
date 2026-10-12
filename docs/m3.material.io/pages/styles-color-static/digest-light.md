@@ -1,0 +1,11 @@
+### styles-color-static [light]
+- title: Dynamic color - Material Design 3
+- url: https://m3.material.io/styles/color/static/baseline
+- headings: h1:Static color schemes | h2:Static color schemes | h2:Baseline colors | h2:Baseline color tokens | h2:Design with baseline | h3:Use the Design Kit and M3 baseline colors in new design files | h3:Apply baseline colors to an existing file | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x11 (a.overline); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted); #dcdaf5 x1 (button.mat-mdc-menu-trigger.active-token-set-butto); #ffffff x1 (input.mat-mdc-autocomplete-trigger.search-input)
+- text colors: #1c1b1d x86 (h1); #4d4256 x40 (h3); #6442d6 x24 (a); #1f1f1f x18 (body.ng-tns-0-1); #21182b x1 (button.mat-mdc-menu-trigger.active-token-set-butto)
+- typography: Google Sans Text 16px/24px w400 x82 (body); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x19 (h3); Arial 24px/normal w400 x16 (button); Google Symbols 24px/24px w400 x9 (div); Google Sans 57px/64px w475 x3 (h2); Google Sans Text 14px/20px w400 x3 (a); Google Sans 28px/36px w475 x2 (h3); Google Sans Text 16px/44px w500 x2 (a); Arial 13.3333px/normal w400 x2 (button); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x34; 50% x16; 24px x11; 18px x3; 40px x2; 8px x2; 32px x2; 16px x1
+- padding: 1px x24; 8px x16; 2px x8; 8px 16px x3; 0px 24px x2; 6px 8px 6px 16px x1; 2px 8px 2px 12px x1; 1px 48px x1; 64px 40px x1
+- transition durations: 0.2s x9; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Baseline | Custom brand | Baseline colors | Baseline color tokens | Design with baseline | arrow_left_alt PreviousChoosing a scheme

@@ -293,3 +293,49 @@ T13 落地时的实测数据（npm registry 当日核实）：
    - 下载阶段超时/连接被拒 → 检查 `HF_ENDPOINT` 镜像可达性，或换官方源（清空 `HF_ENDPOINT`）。
    - 维度非 1024 / yes/no 解析失败 → 权重不完整，删 `.model-cache` 重下。
 
+---
+
+## D19 · 设计语言采用 M3 派生令牌（2026-10-12）
+
+**决策**：前端设计语言以 `docs/m3.material.io-full/design-full.md`（m3.material.io 官方站 28 页、浅/暗双主题、1440x900 桌面视口计算样式采样）为证据源，提炼为 `SPEC.md` §9 契约并由 T5 落到 `app/globals.css` 与 `components/ui/*`：
+
+1. **双主题镜像色板**（零例外）：表面 `#f8f1f6`/`#1c1b1d`、主文字 `#1c1b1d`/`#e6e1e3`、次级文字 `#4d4256`/`#cbc4cc`、强调/链接 `#6442d6`/`#9f86ff`（暗色主 CTA 反转为 `#9f86ff` 底 `#1a0056` 字）。
+2. **Noto Sans SC 单族排版**：display 96px = body 16px 的 6 倍，层级只走实测档位（96/57/28/24 与 16/14/22），实测字重 475 在静态实现规范为 500。
+3. **圆角/间距档位化**：圆角 0/4/8/16/18/24/28/32/40/48/50%（小件 4px、卡片 24px、chips 40px、圆形 50%、大按钮 48px、章节容器 0px）；间距 4px 基座，白名单 1/2/4/8/12/16/24/40/48/64px。
+4. **扁平层级**：阴影仅浮动控件一级 elevation（`rgba(0,0,0,0.3) 0 1px 2px 0` + `rgba(0,0,0,0.15) 0 1px 3px 1px`），卡片/面板一律 none。
+5. **动效克制**：200/300ms 两档，easing `cubic-bezier(0.2, 0, 0, 1)`，尊重 `prefers-reduced-motion`。
+6. 验收条目 F1–F8 写入 `SPEC.md` §9.8（token 成对、字族唯一、每屏唯一实心强调件、圆角/间距白名单、卡片无阴影、对比度与 skip link/aria 底线、动效两档）。
+
+**理由**：现行蓝色 palette（`#2563EB` 系）没有任何证据来源，只是 shadcn 默认蓝的换皮；M3 派生令牌有 28 页双主题计算样式采样支撑，且「双主题成对 / 档位白名单 / 每屏唯一强调件」等规则可直接转成确定性验收（F1–F8），把审美争议压缩到最小。design-full.md 自身也要求「继承已验证的双主题色板、字体族与等级、圆角与间距档位，不编造未验证资源」。
+
+**代价**：
+
+1. 放弃 Google Sans / Google Sans Text 拉丁字形识别——中文站优先，且两款为 Google 品牌字体、不可免费分发，硬上只会得到回退字体（用户已确认单族 Noto Sans SC）。
+2. 现行蓝色 token 全部作废重写，T5 工作量增加。
+3. Material Symbols 连字图标字体不可用，图标走 lucide-react（已装，线性风格）。
+4. 采样未覆盖 hover/focus/disabled 状态、移动端断点、动效运行效果——这些状态需实现时自证，规范中已标注「未验证」。
+
+**回退**：token 集中在 `globals.css` CSS 变量，换色板只改变量值、不动组件结构；若 M3 派生不符合中文阅读场景，可整体替换 §9.3 色表而保持档位体系与 F1–F8 验收框架不变。
+
+---
+
+## D20 · 组件层采用 shadcn-m3e（2026-10-12）
+
+**决策**：M3 派生设计语言的组件层由 **Crysta1221/shadcn-m3e**（MIT）承载，而非 `@material/web` / `mdui`：组件以**源码**经 shadcn registry 安装进项目（`components/m3e/*`、`lib/m3e/*`、`hooks/*`、`scripts/icons.mjs`，`@m3e/<name>` 约定），替换原 `components/ui/*` 14 件；图标统一 lucide-react（§9.4）。m3e 默认 baseline 色（#6750a4 系）**不是验收真值**，全部 `--md-sys-color-*` 已在 `app/globals.css` 逐项覆盖为 SPEC §9.3 实测 hex（`:root`/`.dark` 成对）。
+
+**理由**（现成项目调研结论回填，截图证据 `docs/m3.material.io-full/candidate-*.png`）：
+
+1. **同栈零互操作成本**：shadcn-m3e 是 React 19 + Tailwind v4 + Base UI + shadcn registry 分发，与本项目完全一致；迁移是「换 token + 换组件源」而非重写交互。`@material/web` 与 `mdui` 均为 lit Web Components 路线，需整体替换 React 组件层并处理 web component 互操作，整合成本高，排除。
+2. **shadcn 语义变量已映射 M3 角色**：card→surface-container-low、muted→surface-container-highest、border→outline-variant 等，现有 `bg-muted`/`text-muted-foreground` 类自动跟随主题，页面层零改动即生效。
+3. **备选 `materialwind-css`**（Tailwind v4 插件）仅作 token 生成交叉验证，不作主路径。
+4. registry 组件源码进项目、无新增运行时依赖，最坏情况可手工改——这满足「不引入黑盒依赖」的一贯约束（参见 D9 对 node_modules 体积的取舍）。
+
+**代价**：
+
+1. m3e 默认 #6750a4 baseline 必须逐项覆盖，且个别映射与 SPEC 冲突（如 ring：m3e 映射 secondary，SPEC 规定强调色）——覆盖后以 §9.3 表为唯一真值。
+2. M3E corner 档缺 SPEC 的 24（卡片）/40（chips）/18（胶囊）px，补三个自定义 token（`--radius-pill-sm/chip/cta`），`--radius` 基准由 16px 改 24px。
+3. 字体需覆盖 m3e 默认 Roboto 栈为 Noto Sans SC（D19）。
+4. 组件源码复制进项目，上游更新需手动同步 registry（无 semver 升级路径）。
+
+**回退**：registry 组件即项目内源码，可逐个手工修改；整体回退路径为「自绘 shadcn 组件 + §9 token」，页面结构不动。验收已闭环：F1 用确定性脚本 `scripts/check-f1.mjs` 断言（24 个颜色 token 浅/深成对、0 缺失）；F2–F8 经源码核查与明暗双主题截图（首页/roadmap/trending/ai，`docs/m3-verify-screenshots/`）比对通过；`tsc` / `eslint` / `next build` 0 错误，`vitest` 14 文件 79 用例全过。
+

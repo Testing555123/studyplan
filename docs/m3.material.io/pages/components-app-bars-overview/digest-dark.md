@@ -1,0 +1,11 @@
+### components-app-bars-overview [dark]
+- title: Top app bar – Material Design 3
+- url: https://m3.material.io/components/app-bars/overview
+- headings: h1:App bars | h2:App bars | h2:Availability & resources | h2:M3 Expressive update | h2:Differences from M2 | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #1c1b1d x9 (a.overline); #553f5d x1 (a.section-fab.section-menu.ng-star-inserted); #45455a x1 (div.badge-list)
+- text colors: #cbc4cc x68 (h3); #e6e1e3 x64 (h2); #9f86ff x26 (a.platform-text.link); #1f1f1f x18 (body.ng-tns-0-1.dark-mode)
+- typography: Google Sans Text 16px/24px w400 x71 (body); Google Sans Text 14px/20px w400 x30 (a); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x22 (h3); Google Symbols 24px/24px w400 x9 (div); Google Sans Text 14px/24px w500 x6 (a); Google Sans Text 16px/44px w500 x4 (a); Google Sans 57px/64px w475 x3 (h2); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2); Google Sans 14px/20px w400 x1 (div)
+- radius: 4px x36; 24px x11; 40px x4; 18px x3; 32px x3; 16px x1
+- padding: 1px x26; 12px x21; 2px x8; 0px 24px x4; 8px 16px x4; 64px 40px x1
+- transition durations: 0.2s x9; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Availability & resources | M3 Expressive update

@@ -1,0 +1,12 @@
+### components-buttons-overview [light]
+- title: Buttons – Material Design 3
+- url: https://m3.material.io/components/buttons/overview
+- headings: h1:Buttons | h2:Buttons | h2:Availability & resources | h2:M3 Expressive update | h2:Differences from M2 | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x9 (a.overline); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted); #dcdaf5 x1 (div.badge-list)
+- text colors: #4d4256 x69 (h3); #1c1b1d x67 (h2); #6442d6 x26 (a.platform-text.link); #1f1f1f x18 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x72 (body); Google Sans Text 14px/20px w400 x31 (a); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x22 (h3); Google Symbols 24px/24px w400 x10 (div); Google Sans Text 14px/24px w500 x7 (a); Google Sans Text 16px/44px w500 x4 (a); Google Sans 57px/64px w475 x3 (h2); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2); Google Sans 14px/20px w400 x1 (div)
+- radius: 4px x36; 24px x12; 40px x4; 18px x3; 32px x3; 16px x1
+- padding: 1px x26; 12px x21; 2px x8; 0px 24px x4; 8px 16px x4; 64px 40px x1
+- transition durations: 0.2s x10; 0.3s x3; 0.3s, 0.3s x2
+- dp values in text: 16dp, 24dp, 36dp, 40dp
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | infoOverview | styleSpecs | design_servicesGuidelines | accessibility_newAccessibility | Availability & resources | M3 Expressive update

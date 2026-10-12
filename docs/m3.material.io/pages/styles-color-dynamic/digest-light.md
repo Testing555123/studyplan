@@ -1,0 +1,11 @@
+### styles-color-dynamic [light]
+- title: Dynamic color - Material Design 3
+- url: https://m3.material.io/styles/color/dynamic/choosing-a-source
+- headings: h1:Dynamic color schemes | h2:Dynamic color schemes | h2:User-generated color | h2:Content-based color | h2:Multiple color sources | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x5 (a.overline); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #4d4256 x40 (h3); #1c1b1d x35 (h1); #6442d6 x22 (a); #1f1f1f x18 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x47 (body); Google Sans Text 16px/24px w500 x28 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x8 (div); Google Sans Text 14px/20px w400 x5 (a); Google Sans 57px/64px w475 x3 (h2); Google Sans Text 16px/44px w500 x3 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x32; 24px x10; 40px x3; 18px x3; 32px x2; 16px x1
+- padding: 1px x22; 2px x8; 0px 24px x3; 8px 16px x3; 64px 40px x1
+- transition durations: 0.2s x8; 0.3s x3; 0.3s, 0.3s x2
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Choosing a source | User-generated source | Content-based source | User-generated color | Content-based color | Multiple color sources

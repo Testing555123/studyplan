@@ -1,140 +1,142 @@
 @import 'tailwindcss';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* M3 组件令牌体系（shadcn-m3e registry，MIT）：提供 type scale / state-layer /
+   ripple / elevation / motion 工具类与 M3 角色映射。其默认 #6750a4 baseline 由下方
+   :root / .dark 覆盖为 SPEC §9.3 实测值；字体按 D19 用 Noto Sans SC（不引入 m3e 的
+   Roboto 字体依赖 @fontsource-variable/*）。 */
+@import "../lib/m3e/m3e.css";
 
-@custom-variant dark (&:is(.dark *));
+/* SPEC §9 首页 display 96px（= 正文 16px 的 6 倍层级；m3e 字阶最大仅 57px，此处补足）。
+   用 clamp 做响应式收口，宽屏达到 6rem/96px。 */
+@utility text-display-xl {
+  font-size: clamp(3rem, 7vw, 6rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
 
+/* ============================================================
+   M3 派生协调层：覆盖 m3e baseline + D19 字体 + SPEC §9.3 语义修正
+   ============================================================ */
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'Noto Sans SC', 'Noto Sans', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    --color-success: var(--success);
-    --color-warning: var(--warning);
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  /* 字体：Noto Sans SC 单族（D19），覆盖 m3e 默认 Roboto 栈 */
+  --font-sans: 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-heading: var(--font-sans);
+
+  /* 项目自有 functional 色（SPEC §9.3 标注「项目自有」，m3e 未提供） */
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  /* SPEC §9.5 独有圆角档位（m3e 缺 18/40；48 由 --radius-4xl 提供） */
+  --radius-pill-sm: 18px;
+  --radius-chip: 40px;
+  --radius-cta: 48px;
 }
 
 :root {
-    /* 设计令牌：亮色模式。主色 #2563EB，背景 #FFFFFF/#F8FAFC，文字 #0F172A/#475569 */
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.208 0.042 265.8);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.208 0.042 265.8);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.208 0.042 265.8);
-    --primary: oklch(0.546 0.215 262.9);            /* #2563EB */
-    --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.984 0.003 247.9);          /* #F8FAFC */
-    --secondary-foreground: oklch(0.208 0.042 265.8);
-    --muted: oklch(0.984 0.003 247.9);
-    --muted-foreground: oklch(0.446 0.043 257.3);   /* #475569 */
-    --accent: oklch(0.97 0.014 254.6);              /* blue-50 */
-    --accent-foreground: oklch(0.546 0.215 262.9);
-    --destructive: oklch(0.577 0.245 27.3);         /* #DC2626 */
-    --success: oklch(0.606 0.176 149.2);            /* #16A34A */
-    --warning: oklch(0.769 0.188 70.1);             /* #F59E0B */
-    --border: oklch(0.929 0.013 255.5);             /* #E2E8F0 */
-    --input: oklch(0.929 0.013 255.5);
-    --ring: oklch(0.623 0.214 259.8);               /* #3B82F6 */
-    --chart-1: oklch(0.546 0.215 262.9);
-    --chart-2: oklch(0.685 0.169 237.3);            /* #0EA5E9 */
-    --chart-3: oklch(0.606 0.176 149.2);
-    --chart-4: oklch(0.769 0.188 70.1);
-    --chart-5: oklch(0.606 0.25 292.7);             /* #8B5CF6 */
-    --radius: 0.625rem;
-    --sidebar: oklch(0.984 0.003 247.9);
-    --sidebar-foreground: oklch(0.208 0.042 265.8);
-    --sidebar-primary: oklch(0.546 0.215 262.9);
-    --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: oklch(0.97 0.014 254.6);
-    --sidebar-accent-foreground: oklch(0.546 0.215 262.9);
-    --sidebar-border: oklch(0.929 0.013 255.5);
-    --sidebar-ring: oklch(0.623 0.214 259.8);
+  /* ---- 覆盖 m3e baseline 颜色为 SPEC §9.3 实测 hex（浅色） ---- */
+  --md-sys-color-surface: #f8f1f6;
+  --md-sys-color-on-surface: #1c1b1d;
+  --md-sys-color-on-surface-variant: #4d4256;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f8f1f6;
+  --md-sys-color-surface-container: #f5eff1;
+  --md-sys-color-surface-container-high: #f1d3f9;
+  --md-sys-color-surface-container-highest: #dcdaf5;
+  --md-sys-color-primary: #6442d6;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #dcdaf5;
+  --md-sys-color-on-primary-container: #21182b;
+  --md-sys-color-secondary-container: #f1d3f9;
+  --md-sys-color-on-secondary-container: #6442d6;
+  --md-sys-color-secondary: #dcdaf5;
+  --md-sys-color-on-secondary: #21182b;
+
+  /* ---- 圆角档位对齐 SPEC §9.5（覆盖 m3e 4/8/12/16/20/28/32/48 → 4/8/16/24/28/32/48） ---- */
+  --md-sys-shape-corner-medium: 16px;            /* radius-md */
+  --md-sys-shape-corner-large: 24px;              /* radius-lg / 卡片基准 */
+  --md-sys-shape-corner-large-increased: 28px;    /* radius-xl */
+  --md-sys-shape-corner-pill-small: 18px;         /* 分段导航胶囊 */
+  --md-sys-shape-corner-chip: 40px;               /* 资源 chips */
+
+  /* ---- SPEC §9.3 语义修正（m3e 用 secondary/error；SPEC 用 primary 作 ring、项目自有 functional 色、媒体框/搜索底独立取色） ---- */
+  --ring: #6442d6;
+  --border: rgb(28 27 29 / 0.14);
+  --input: rgb(28 27 29 / 0.14);
+  --muted: #f5eff1;
+  --popover: #ffffff;
+  --destructive: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+
+  /* 字体回退保证（覆盖 m3e 空 --font-sans） */
+  --font-sans: 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  /* 运行时派生令牌（模式无关，供组件 var() 引用） */
+  --radius-pill-sm: 18px;
+  --radius-chip: 40px;
+  --radius-cta: 48px;
+  --motion-fast: 200ms;
+  --motion-standard: 300ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0, 1);
 }
 
 .dark {
-    /* 设计令牌：暗色模式。背景 #0F172A，文字 #CBD5E1，主色提亮到 #3B82F6 */
-    --background: oklch(0.208 0.042 265.8);          /* #0F172A */
-    --foreground: oklch(0.868 0.023 252.9);          /* #CBD5E1 */
-    --card: oklch(0.279 0.041 260);                  /* #1E293B */
-    --card-foreground: oklch(0.868 0.023 252.9);
-    --popover: oklch(0.279 0.041 260);
-    --popover-foreground: oklch(0.868 0.023 252.9);
-    --primary: oklch(0.623 0.214 259.8);             /* #3B82F6 */
-    --primary-foreground: oklch(1 0 0);
-    --secondary: oklch(0.279 0.041 260);
-    --secondary-foreground: oklch(0.868 0.023 252.9);
-    --muted: oklch(0.279 0.041 260);
-    --muted-foreground: oklch(0.712 0.026 261.8);    /* #94A3B8 */
-    --accent: oklch(0.279 0.041 260);
-    --accent-foreground: oklch(0.837 0.128 255.4);   /* #93C5FD */
-    --destructive: oklch(0.704 0.191 22.2);          /* #F87171 */
-    --success: oklch(0.723 0.192 149.6);             /* #22C55E */
-    --warning: oklch(0.828 0.189 84.4);              /* #FBBF24 */
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.623 0.214 259.8);
-    --chart-1: oklch(0.623 0.214 259.8);
-    --chart-2: oklch(0.685 0.169 237.3);
-    --chart-3: oklch(0.723 0.192 149.6);
-    --chart-4: oklch(0.828 0.189 84.4);
-    --chart-5: oklch(0.702 0.183 293.5);             /* #A78BFA */
-    --sidebar: oklch(0.279 0.041 260);
-    --sidebar-foreground: oklch(0.868 0.023 252.9);
-    --sidebar-primary: oklch(0.623 0.214 259.8);
-    --sidebar-primary-foreground: oklch(1 0 0);
-    --sidebar-accent: oklch(0.279 0.041 260);
-    --sidebar-accent-foreground: oklch(0.837 0.128 255.4);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.623 0.214 259.8);
+  --md-sys-color-surface: #1c1b1d;
+  --md-sys-color-on-surface: #e6e1e3;
+  --md-sys-color-on-surface-variant: #cbc4cc;
+  --md-sys-color-surface-container-lowest: #0f0e0f;
+  --md-sys-color-surface-container-low: #1c1b1d;
+  --md-sys-color-surface-container: #323032;
+  --md-sys-color-surface-container-high: #553f5d;
+  --md-sys-color-surface-container-highest: #45455a;
+  --md-sys-color-primary: #9f86ff;
+  --md-sys-color-on-primary: #1a0056;
+  --md-sys-color-primary-container: #45455a;
+  --md-sys-color-on-primary-container: #e2e0fb;
+  --md-sys-color-secondary-container: #553f5d;
+  --md-sys-color-on-secondary-container: #9f86ff;
+  --md-sys-color-secondary: #45455a;
+  --md-sys-color-on-secondary: #e2e0fb;
+
+  --md-sys-shape-corner-medium: 16px;
+  --md-sys-shape-corner-large: 24px;
+  --md-sys-shape-corner-large-increased: 28px;
+  --md-sys-shape-corner-pill-small: 18px;
+  --md-sys-shape-corner-chip: 40px;
+
+  --ring: #9f86ff;
+  --border: rgb(230 225 227 / 0.14);
+  --input: rgb(230 225 227 / 0.14);
+  --muted: #323032;
+  --popover: #0f0e0f;
+  --destructive: #f87171;
+  --success: #22c55e;
+  --warning: #fbbf24;
+
+  --font-sans: 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  --radius-pill-sm: 18px;
+  --radius-chip: 40px;
+  --radius-cta: 48px;
+  --motion-fast: 200ms;
+  --motion-standard: 300ms;
+  --motion-easing: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
-  button:not(:disabled), [role="button"]:not(:disabled) {
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
     cursor: pointer;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
 }

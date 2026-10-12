@@ -19,3 +19,7 @@ wheels
 cache
 playwright-report
 test-results
+# 嵌入代理服务的本地构建产物（镜像内现场构建，不进上下文）。
+services/embed-proxy/dist
+services/embed-proxy/node_modules
+services/embed-proxy/service.log

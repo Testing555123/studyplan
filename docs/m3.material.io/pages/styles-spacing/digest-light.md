@@ -1,0 +1,12 @@
+### styles-spacing [light]
+- title: Spacing - Material Design 3
+- url: https://m3.material.io/styles/spacing/overview
+- headings: h1:Spacing | h2:Spacing | h2:Availability & resources | h2:Spacing units | h3:Component layouts | h3:Page layouts | h2:Parts of spacing | h3:Padding | h3:Gaps | h3:Margins | h3:Social | h3:Libraries | h3:More Google sites | h3:Archived versions
+- bg colors: #f8f1f6 x8 (a.overline); #f1d3f9 x1 (a.section-fab.section-menu.ng-star-inserted)
+- text colors: #1c1b1d x89 (h2); #4d4256 x70 (h3); #6442d6 x22 (a); #1f1f1f x18 (body.ng-tns-0-1)
+- typography: Google Sans Text 16px/24px w400 x109 (body); Google Sans Text 16px/24px w500 x31 (a); Google Sans Text 14px/20px w500 x19 (h3); Google Symbols 24px/24px w400 x15 (div); Google Sans Text 14px/20px w400 x12 (a); Google Sans 28px/36px w475 x5 (h3); Google Sans 57px/64px w475 x3 (h2); Google Sans Text 16px/44px w500 x3 (a); Google Sans 96px/96px w475 x1 (h1); Google Sans 24px/32px w475 x1 (h2)
+- radius: 4px x32; 24px x17; 40px x3; 18px x3; 32px x2; 16px x1
+- padding: 1px x22; 16px 24px x10; 2px x8; 0px 24px x3; 8px 16px x3; 64px 40px x1
+- transition durations: 0.2s x15; 0.3s x3; 0.3s, 0.3s x2
+- dp values in text: 8dp, 12dp, 24dp
+- nav: search | material_design Home | apps Get started | code Develop | book Foundations | palette Styles | add_circle Components | pages Blog | Overview | Applying spacing | Tokens | Availability & resources | Spacing units | Parts of spacing
