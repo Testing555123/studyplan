@@ -18,9 +18,9 @@ MODELS_PRELOAD=${MODELS_PRELOAD:-0}
 # 烘焙权重需要 glibc builder（onnxruntime-node 只有 glibc 二进制，alpine 下会 ERR_DLOPEN_FAILED）。
 if [ -z "${BUILDER_IMAGE:-}" ]; then
   if [ "$MODELS_PRELOAD" = "1" ]; then
-    BUILDER_IMAGE=node:24-slim
+    BUILDER_IMAGE=node:24.22.1-slim
   else
-    BUILDER_IMAGE=node:24-alpine
+    BUILDER_IMAGE=node:24.22.1-alpine
   fi
 fi
 KEEP=${KEEP:-0}

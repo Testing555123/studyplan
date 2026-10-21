@@ -39,7 +39,7 @@ else
   BUILD_ARGS="--build-arg RUNTIME_FLAVOR=space --build-arg NEXT_PUBLIC_SITE_URL=${SITE_URL}"
   if [ "${MODELS_PRELOAD:-0}" = "1" ]; then
     # onnxruntime-node 仅发布 glibc 二进制，烘焙权重必须换 glibc builder（见 Dockerfile 注释）。
-    BUILD_ARGS="$BUILD_ARGS --build-arg MODELS_PRELOAD=1 --build-arg BUILDER_IMAGE=node:24-slim"
+    BUILD_ARGS="$BUILD_ARGS --build-arg MODELS_PRELOAD=1 --build-arg BUILDER_IMAGE=node:24.22.1-slim"
     [ -n "${HF_ENDPOINT:-}" ] && BUILD_ARGS="$BUILD_ARGS --build-arg HF_ENDPOINT=${HF_ENDPOINT}"
     echo "[codespaces] 构建 ${IMAGE_NAME}（烘焙模型权重，耗时较长）..."
   else

@@ -1,6 +1,6 @@
 # StudyPlan 容器构建（T16）：多阶段 + 双运行形态（RUNTIME_FLAVOR）。
 #
-#   standalone（默认，等价改造前行为）：node:24-alpine，单进程 node server.js，
+#   standalone（默认，等价改造前行为）：node:24.22.1-alpine，单进程 node server.js，
 #     PG 由外部服务承载（本地 docker compose 的 postgres / OCI 自管库），端口 3000。
 #   space（免卡免费托管：HF Spaces Docker SDK）：pgvector/pgvector:pg16，
 #     容器内同机跑 postgres+pgvector 与 Next.js（supervisord 托管双进程），端口 7860，
@@ -14,8 +14,14 @@
 ARG RUNTIME_FLAVOR=standalone
 
 # ---------- builder（两种形态共用） ----------
-# BUILDER_IMAGE 可在受限网络下换成已在本机/私有源存在的等价 Node 镜像（如 node:24-slim）。
-ARG BUILDER_IMAGE=node:24-alpine
+# BUILDER_IMAGE 可在受限网络下换成已在本机/私有源存在的等价 Node 镜像（如 node:24.22.1-slim）。
+#
+# ⚠️ 必须钉到**补丁版本号**，不能写 node:24 这类浮动标签：
+#    浮动标签只在"基础镜像层被重新拉取"时才可能带上新补丁，一旦构建机/OCI 命中缓存层，
+#    产物会一直停在旧版本上——不报错、也看不出来。
+#    24.22.1 = Node.js 2026-10-21 安全发布的 24.x 修复版（10 个 CVE，含 4 个高危：
+#    Brotli 解码器越界写可致 RCE、两处 TLS 证书主机名校验绕过、dns.resolve NUL 截断）。
+ARG BUILDER_IMAGE=node:24.22.1-alpine
 FROM ${BUILDER_IMAGE} AS builder
 WORKDIR /app
 
@@ -64,7 +70,9 @@ RUN mkdir -p /app/.runtime-deps \
 RUN pnpm build
 
 # ---------- runner: standalone（默认形态，行为不变） ----------
-FROM node:24-alpine AS runner-standalone
+# 线上（OCI compose）跑的就是这一层，版本必须钉死到安全补丁版：
+#   24.22.1 = 2026-10-21 安全发布（见上方 BUILDER_IMAGE 处的说明）。
+FROM node:24.22.1-alpine AS runner-standalone
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -90,8 +98,12 @@ EXPOSE 3000
 FROM pgvector/pgvector:pg16 AS runner-space
 
 # Node 运行时：官方 tarball（与 builder 的 alpine 解耦，产物为纯 JS，跨 libc 无风险）。
-# 版本需满足 package.json engines（node >=22.19）。
-ARG NODE_VERSION=22.20.0
+# 版本需满足 package.json engines。
+#
+# ⚠️ 22.23.4 = 2026-10-21 安全发布的 22.x 修复版。此前的 22.20.0 受同一批 CVE 影响
+#    （高危：Brotli 越界写 RCE、dns.resolve NUL 截断、TLS 证书主机名校验绕过）。
+#    这一层是 HF Space 形态的**实际运行时**，必须跟 24 线一起升。
+ARG NODE_VERSION=22.23.4
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl xz-utils supervisor \
   && rm -rf /var/lib/apt/lists/* \
