@@ -44,7 +44,7 @@ jobs:
           build-args: |
             RUNTIME_FLAVOR=space
             MODELS_PRELOAD=1
-            BUILDER_IMAGE=node:24-slim
+            BUILDER_IMAGE=node:24.22.1-slim
             HF_ENDPOINT=
             NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL || 'https://studyplan.hf.space' }}
           cache-from: type=gha

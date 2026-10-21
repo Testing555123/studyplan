@@ -38,7 +38,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # 钉到补丁版：22.23.4 = 2026-10-21 安全发布的 22.x 修复版。
+          # 写 `22` 会解析到 runner 缓存里的任意 22.x，可能仍是未修版本。
+          node-version: 22.23.4
           cache: pnpm
 
       - name: Install dependencies
