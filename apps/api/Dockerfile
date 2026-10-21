@@ -11,7 +11,10 @@
 #    Docker Context Path = .
 # ============================================================
 
-ARG NODE_VERSION=24
+# 与 Dockerfile.vercel 保持同一补丁版本（24.22.1，2026-10-21 安全发布），
+# 避免"生产已修、本地 compose 仍用旧版"这种只对一半的升级。
+# 升级时两个 Dockerfile 一起改；应急覆盖：--build-arg NODE_VERSION=24.x.y
+ARG NODE_VERSION=24.22.1
 
 # ---------- 公共基础层 ----------
 FROM node:${NODE_VERSION}-alpine AS base

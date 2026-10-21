@@ -21,7 +21,13 @@
 #    docker run --rm -p 8080:80 -e MONGODB_URI=... studyplan-vercel
 # ============================================================
 
-ARG NODE_VERSION=24
+# ⚠️ 钉到**补丁版本号**而不是大版本（24）。
+#   `node:24-alpine` 这种浮动标签只在"基础镜像层被重新拉取"时才可能拿到新补丁，
+#   而构建机/Vercel 一旦命中缓存层，线上会一直停在旧镜像上——不报错、看不出来。
+#   24.22.1 = Node.js 2026-10-21 官方安全发布的 24.x 修复版
+#   （10 个 CVE，含 4 个高危：Brotli 解码器越界写 RCE、两处 TLS 主机名校验绕过、dns.resolve NUL 截断）。
+# 升级：改这一处即可；应急覆盖：docker build --build-arg NODE_VERSION=24.x.y
+ARG NODE_VERSION=24.22.1
 
 # ---------- 公共基础层 ----------
 FROM node:${NODE_VERSION}-alpine AS base
